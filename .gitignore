@@ -1,0 +1,22 @@
+# Flutter/Dart
+sle_prep/.dart_tool/
+sle_prep/.packages
+sle_prep/build/
+sle_prep/.flutter-plugins
+sle_prep/.flutter-plugins-dependencies
+
+# Android
+sle_prep/android/.gradle/
+sle_prep/android/local.properties
+sle_prep/android/app/.cxx/
+*.keystore
+key.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+Thumbs.db
+Desktop.ini
