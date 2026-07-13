@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "sets": [
+    {
+      "title": "Note de service — nouvelle politique de télétravail",
+      "kind": "note_service",
+      "bodyFr": "DESTINATAIRES : Tous les employés de la Direction générale des services intégrés\nEXPÉDITRICE : Lucie Bergeron, directrice générale\nOBJET : Mise à jour de l'entente de télétravail\n\nLa présente note vise à vous informer des changements apportés à l'entente de télétravail, qui entreront en vigueur le 1er septembre.\n\nÀ compter de cette date, tous les employés devront être présents au bureau au moins trois jours par semaine, dont le mardi, désigné journée d'équipe obligatoire. Les demandes d'exception pour des motifs médicaux ou familiaux devront être soumises à votre gestionnaire au moyen du formulaire TT-204, accompagnées des pièces justificatives pertinentes, au plus tard le 15 août.\n\nNous sommes conscients que cette transition pourrait poser des défis pour certains d'entre vous, notamment en matière de transport et de garde d'enfants. C'est pourquoi la Direction offrira, durant les mois de septembre et d'octobre, une certaine souplesse dans l'application de la nouvelle entente, pourvu que les employés en discutent au préalable avec leur superviseur immédiat.\n\nUne séance d'information virtuelle aura lieu le 20 août à 13 h 30. Votre participation, bien que facultative, est fortement encouragée. Les questions peuvent être adressées en tout temps à la boîte générique des ressources humaines.\n\nNous vous remercions de votre collaboration habituelle.",
+      "questions": [
+        {
+          "prompt": "Quel est l'objet principal de cette note de service ?",
+          "options": ["Annoncer la fermeture du bureau le mardi", "Informer les employés de changements à l'entente de télétravail", "Inviter les employés à une activité d'équipe", "Présenter la nouvelle directrice générale"],
+          "correctIndex": 1,
+          "explanationFr": "L'objet est énoncé dès la première phrase : informer des changements apportés à l'entente de télétravail."
+        },
+        {
+          "prompt": "Que doivent faire les employés qui souhaitent une exception ?",
+          "options": ["Envoyer un courriel à la directrice générale", "Participer à la séance d'information du 20 août", "Soumettre le formulaire TT-204 avec pièces justificatives avant le 15 août", "Se présenter au bureau quatre jours par semaine"],
+          "correctIndex": 2,
+          "explanationFr": "Le deuxième paragraphe précise le formulaire (TT-204), les pièces justificatives et l'échéance du 15 août."
+        },
+        {
+          "prompt": "Que signifie « pourvu que les employés en discutent au préalable » ?",
+          "options": ["À condition d'en discuter d'abord", "Même s'ils en discutent ensuite", "Parce qu'ils en ont déjà discuté", "Sans qu'il soit nécessaire d'en discuter"],
+          "correctIndex": 0,
+          "explanationFr": "« Pourvu que » exprime une condition; « au préalable » signifie avant. La souplesse est donc conditionnelle à une discussion préalable."
+        },
+        {
+          "prompt": "La participation à la séance d'information est :",
+          "options": ["obligatoire pour tous", "réservée aux gestionnaires", "facultative mais encouragée", "reportée à septembre"],
+          "correctIndex": 2,
+          "explanationFr": "Le texte dit : « bien que facultative, est fortement encouragée »."
+        },
+        {
+          "prompt": "Quel ton adopte l'expéditrice à l'égard des difficultés potentielles des employés ?",
+          "options": ["Indifférent", "Compréhensif, avec une souplesse temporaire", "Sévère et inflexible", "Ironique"],
+          "correctIndex": 1,
+          "explanationFr": "Elle se dit « consciente » des défis et offre une souplesse durant deux mois — un ton compréhensif."
+        }
+      ]
+    },
+    {
+      "title": "Courriel — suivi d'un dossier en retard",
+      "kind": "courriel",
+      "bodyFr": "De : Karim Haddad, analyste principal\nÀ : Mélanie Roy, gestionnaire\nObjet : Suivi — dossier d'approvisionnement 2026-114\n\nBonjour Mélanie,\n\nPour faire suite à notre échange de lundi, je t'écris afin de faire le point sur le dossier d'approvisionnement 2026-114, qui accuse maintenant un retard de trois semaines sur l'échéancier initial.\n\nLe retard s'explique principalement par deux facteurs. D'une part, le fournisseur a soumis une documentation incomplète, ce qui a exigé deux allers-retours supplémentaires. D'autre part, notre conseillère juridique est en congé depuis la mi-juin, et son remplaçant n'a pu prendre le relais qu'au début du mois.\n\nCela dit, je ne crois pas que l'échéance finale soit compromise, à condition que nous obtenions l'avis juridique d'ici le 25 juillet. J'ai déjà relancé le bureau des services juridiques à deux reprises et je propose, si nous restons sans réponse d'ici vendredi, de faire remonter la question à l'échelon supérieur.\n\nPar ailleurs, il faudrait que nous informions le client interne du nouveau calendrier. Préfères-tu t'en charger, ou veux-tu que je rédige une ébauche de courriel que tu pourras réviser ?\n\nMerci de me faire part de tes directives.\n\nKarim",
+      "questions": [
+        {
+          "prompt": "Pourquoi Karim écrit-il ce courriel ?",
+          "options": ["Pour demander un congé", "Pour faire le point sur un dossier en retard", "Pour se plaindre de la conseillère juridique", "Pour annoncer la fin du projet"],
+          "correctIndex": 1,
+          "explanationFr": "Dès le premier paragraphe : « faire le point sur le dossier… qui accuse un retard de trois semaines »."
+        },
+        {
+          "prompt": "Lequel des éléments suivants N'EST PAS une cause du retard ?",
+          "options": ["Une documentation incomplète du fournisseur", "Le congé de la conseillère juridique", "Le refus du client interne", "La prise de relais tardive du remplaçant"],
+          "correctIndex": 2,
+          "explanationFr": "Les causes nommées sont la documentation incomplète et l'absence juridique; le client interne n'est pas en cause."
+        },
+        {
+          "prompt": "Que propose Karim si les services juridiques ne répondent pas d'ici vendredi ?",
+          "options": ["Annuler le dossier", "Faire remonter la question à l'échelon supérieur", "Changer de fournisseur", "Reporter l'échéance finale"],
+          "correctIndex": 1,
+          "explanationFr": "Il propose explicitement de « faire remonter la question à l'échelon supérieur » — une expression clé du registre administratif."
+        },
+        {
+          "prompt": "« Je ne crois pas que l'échéance finale soit compromise » exprime :",
+          "options": ["une certitude absolue", "un doute prudent mais optimiste", "une résignation", "un refus"],
+          "correctIndex": 1,
+          "explanationFr": "La négation de croire + subjonctif (« soit ») marque un jugement nuancé; le ton reste optimiste sous condition."
+        },
+        {
+          "prompt": "Que demande Karim à Mélanie à la fin du courriel ?",
+          "options": ["De choisir qui informera le client interne", "D'approuver un budget supplémentaire", "De remplacer la conseillère juridique", "De rencontrer le fournisseur"],
+          "correctIndex": 0,
+          "explanationFr": "Il offre deux options : qu'elle s'en charge, ou qu'il rédige une ébauche — il lui demande de trancher."
+        }
+      ]
+    },
+    {
+      "title": "Extrait de politique — utilisation des outils d'intelligence artificielle",
+      "kind": "politique",
+      "bodyFr": "4. Énoncé de politique\n\n4.1 La présente politique vise à encadrer l'utilisation responsable des outils d'intelligence artificielle générative par les employés du Ministère dans l'exercice de leurs fonctions.\n\n4.2 Les employés peuvent recourir à ces outils pour appuyer la rédaction, la synthèse et la traduction de documents à faible sensibilité, dans la mesure où le résultat fait l'objet d'une vérification humaine avant toute diffusion.\n\n4.3 Il est strictement interdit de saisir dans ces outils des renseignements personnels, des renseignements classifiés ou protégés, ou tout renseignement dont la divulgation pourrait porter atteinte aux intérêts du Ministère. Le non-respect de cette disposition peut entraîner des mesures administratives ou disciplinaires, selon la gravité du manquement.\n\n4.4 Les gestionnaires veillent à ce que les membres de leur équipe suivent la formation obligatoire sur l'utilisation responsable de l'IA dans les six mois suivant leur entrée en fonction. Ils tiennent compte, dans l'évaluation des risques, du caractère évolutif de ces technologies.\n\n4.5 Toute utilisation d'un outil d'IA non approuvé par la Direction de la sécurité doit faire l'objet d'une demande d'exception, laquelle sera évaluée au cas par cas dans un délai de dix jours ouvrables.",
+      "questions": [
+        {
+          "prompt": "Quel est l'objectif de cette politique ?",
+          "options": ["Interdire complètement l'IA au Ministère", "Encadrer l'utilisation responsable des outils d'IA générative", "Remplacer la formation des employés", "Décrire les avantages de l'IA"],
+          "correctIndex": 1,
+          "explanationFr": "L'article 4.1 énonce l'objectif : « encadrer l'utilisation responsable des outils d'intelligence artificielle générative »."
+        },
+        {
+          "prompt": "À quelle condition un employé peut-il utiliser l'IA pour rédiger un document ?",
+          "options": ["Si le document est classifié", "Si le résultat est vérifié par un humain avant diffusion", "Si le gestionnaire n'est pas disponible", "Si l'outil est gratuit"],
+          "correctIndex": 1,
+          "explanationFr": "L'article 4.2 permet l'usage « dans la mesure où le résultat fait l'objet d'une vérification humaine avant toute diffusion »."
+        },
+        {
+          "prompt": "Que risque un employé qui saisit des renseignements protégés dans un outil d'IA ?",
+          "options": ["Rien, si c'est involontaire", "Des mesures administratives ou disciplinaires", "Une amende personnelle", "La suppression de son accès courriel"],
+          "correctIndex": 1,
+          "explanationFr": "L'article 4.3 prévoit « des mesures administratives ou disciplinaires, selon la gravité du manquement »."
+        },
+        {
+          "prompt": "Dans quel délai la formation obligatoire doit-elle être suivie ?",
+          "options": ["Dix jours ouvrables", "Six mois après l'entrée en fonction", "Un an après l'embauche", "Avant l'entrée en fonction"],
+          "correctIndex": 1,
+          "explanationFr": "L'article 4.4 : « dans les six mois suivant leur entrée en fonction ». Les dix jours ouvrables (4.5) concernent les demandes d'exception."
+        },
+        {
+          "prompt": "Le mot « laquelle » à l'article 4.5 renvoie à :",
+          "options": ["la Direction de la sécurité", "l'utilisation", "la demande d'exception", "la technologie"],
+          "correctIndex": 2,
+          "explanationFr": "« Laquelle » (pronom relatif féminin singulier) reprend « une demande d'exception », qui sera évaluée au cas par cas."
+        }
+      ]
+    }
+  ]
+}

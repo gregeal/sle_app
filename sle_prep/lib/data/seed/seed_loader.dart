@@ -6,7 +6,11 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../db/database.dart';
 
 const _seedVersionKey = 'seedVersion';
-const _seedVersion = '1';
+
+/// Highest seed version shipped with this build. Content added in later app
+/// versions imports incrementally: only the steps above the device's stored
+/// version run, so upgrades never duplicate earlier content.
+const _targetSeedVersion = 2;
 
 /// Thrown when bundled seed content does not match the app's expected schema.
 class SeedContentException implements Exception {
@@ -25,20 +29,31 @@ class SeedContentException implements Exception {
 /// The seed version is written only after every row is inserted successfully,
 /// so a failed import can be retried safely on the next launch.
 Future<bool> importSeedFromAssets(AppDatabase db) async {
-  final currentVersion = await _setting(db, _seedVersionKey);
-  if (currentVersion == _seedVersion) {
+  final storedVersion =
+      int.tryParse(await _setting(db, _seedVersionKey) ?? '0') ?? 0;
+  if (storedVersion >= _targetSeedVersion) {
     return false;
   }
 
-  final assets = await Future.wait([
-    rootBundle.loadString('assets/seed/curriculum.json'),
-    rootBundle.loadString('assets/seed/vocab_core.json'),
-    rootBundle.loadString('assets/seed/drills_core.json'),
-  ]);
+  // Parse everything this upgrade needs before touching the database.
+  List<_SeedWeek> curriculum = const [];
+  List<_SeedCard> cards = const [];
+  List<_SeedDrill> drills = const [];
+  List<_SeedReadingSet> readingSets = const [];
 
-  final curriculum = _parseCurriculum(assets[0]);
-  final cards = _parseCards(assets[1]);
-  final drills = _parseDrills(assets[2]);
+  if (storedVersion < 1) {
+    curriculum = _parseCurriculum(
+        await rootBundle.loadString('assets/seed/curriculum.json'));
+    cards =
+        _parseCards(await rootBundle.loadString('assets/seed/vocab_core.json'));
+    drills = _parseDrills(
+        await rootBundle.loadString('assets/seed/drills_core.json'));
+  }
+  if (storedVersion < 2) {
+    readingSets = _parseReadingSets(
+        await rootBundle.loadString('assets/seed/reading_core.json'));
+  }
+
   final now = DateTime.now();
 
   await db.transaction(() async {
@@ -89,12 +104,25 @@ Future<bool> importSeedFromAssets(AppDatabase db) async {
           );
     }
 
+    for (final set in readingSets) {
+      await db
+          .into(db.readingSets)
+          .insert(
+            ReadingSetsCompanion.insert(
+              title: set.title,
+              kind: set.kind,
+              bodyFr: set.bodyFr,
+              questions: jsonEncode(set.questions),
+            ),
+          );
+    }
+
     await db
         .into(db.appSettings)
         .insertOnConflictUpdate(
           AppSettingsCompanion.insert(
             key: _seedVersionKey,
-            value: _seedVersion,
+            value: '$_targetSeedVersion',
           ),
         );
   });
@@ -219,6 +247,66 @@ List<_SeedDrill> _parseDrills(String source) {
       .toList(growable: false);
 }
 
+List<_SeedReadingSet> _parseReadingSets(String source) {
+  final root = _decodeObject(source, 'reading_core.json');
+  final sets = _requiredList(root, 'sets', 'reading_core.json');
+
+  return sets
+      .asMap()
+      .entries
+      .map((entry) {
+        final context = 'reading_core.json sets[${entry.key}]';
+        final item = _asObject(entry.value, context);
+        final questions = _requiredList(item, 'questions', context)
+            .asMap()
+            .entries
+            .map((question) {
+              final questionContext = '$context questions[${question.key}]';
+              final value = _asObject(question.value, questionContext);
+              final options = _requiredList(value, 'options', questionContext)
+                  .map((option) =>
+                      _asNonEmptyString(option, '$questionContext options'))
+                  .toList(growable: false);
+              final correctIndex =
+                  _requiredInt(value, 'correctIndex', questionContext);
+              if (options.length != 4) {
+                throw SeedContentException(
+                  '$questionContext options must contain exactly four values',
+                );
+              }
+              if (options.toSet().length != options.length) {
+                throw SeedContentException(
+                    '$questionContext options must be unique');
+              }
+              if (correctIndex < 0 || correctIndex >= options.length) {
+                throw SeedContentException(
+                  '$questionContext correctIndex is outside the options',
+                );
+              }
+              return <String, dynamic>{
+                'prompt': _requiredString(value, 'prompt', questionContext),
+                'options': options,
+                'correctIndex': correctIndex,
+                'explanationFr':
+                    _requiredString(value, 'explanationFr', questionContext),
+              };
+            })
+            .toList(growable: false);
+        if (questions.isEmpty) {
+          throw SeedContentException(
+              '$context must contain at least one question');
+        }
+
+        return _SeedReadingSet(
+          title: _requiredString(item, 'title', context),
+          kind: _requiredString(item, 'kind', context),
+          bodyFr: _requiredString(item, 'bodyFr', context),
+          questions: questions,
+        );
+      })
+      .toList(growable: false);
+}
+
 Map<String, dynamic> _decodeObject(String source, String name) {
   try {
     return _asObject(jsonDecode(source), name);
@@ -285,6 +373,20 @@ class _SeedWeek {
   final List<String> grammarTopics;
   final String vocabDomain;
   final List<Map<String, dynamic>> resourceSlots;
+}
+
+class _SeedReadingSet {
+  const _SeedReadingSet({
+    required this.title,
+    required this.kind,
+    required this.bodyFr,
+    required this.questions,
+  });
+
+  final String title;
+  final String kind;
+  final String bodyFr;
+  final List<Map<String, dynamic>> questions;
 }
 
 class _SeedCard {

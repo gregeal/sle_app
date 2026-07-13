@@ -104,6 +104,58 @@ void main() {
     });
   });
 
+  group('reading_core.json', () {
+    test('has at least 3 well-formed reading sets', () async {
+      final reading = await loadAsset('reading_core.json');
+      final sets = (reading['sets'] as List).cast<Map<String, dynamic>>();
+      expect(sets.length, greaterThanOrEqualTo(3));
+      for (final set in sets) {
+        expect(set['title'], isNotEmpty);
+        expect(set['kind'], isNotEmpty);
+        expect((set['bodyFr'] as String).length, greaterThan(200),
+            reason: 'passages should be substantial');
+        final questions =
+            (set['questions'] as List).cast<Map<String, dynamic>>();
+        expect(questions.length, greaterThanOrEqualTo(4));
+        for (final question in questions) {
+          expect(question['prompt'], isNotEmpty);
+          final options = (question['options'] as List).cast<String>();
+          expect(options, hasLength(4));
+          expect(options.toSet(), hasLength(4));
+          expect(question['correctIndex'] as int, inInclusiveRange(0, 3));
+          expect(question['explanationFr'], isNotEmpty);
+        }
+      }
+    });
+  });
+
+  group('seed loader upgrade', () {
+    test('v1 devices gain reading sets without duplicating v1 content',
+        () async {
+      final db = inMemoryDatabase();
+      addTearDown(db.close);
+
+      // Simulate a device that already imported seed v1.
+      await db.setSetting('seedVersion', '1');
+      await db.insertCardWithState(
+        front: 'pre-existing card',
+        back: 'x',
+        exampleFr: 'x',
+        domain: 'x',
+        now: DateTime(2026),
+      );
+
+      final ran = await importSeedFromAssets(db);
+      expect(ran, isTrue);
+
+      expect(await db.dueCardCount(DateTime(2030)), 1,
+          reason: 'vocab must not be re-imported');
+      expect(await db.allReadingSets(), isNotEmpty,
+          reason: 'reading sets are the v2 content');
+      expect(await db.getSetting('seedVersion'), '2');
+    });
+  });
+
   group('seed loader', () {
     test('imports all content once and is idempotent across calls', () async {
       final db = inMemoryDatabase();
