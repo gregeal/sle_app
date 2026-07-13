@@ -165,10 +165,17 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           controller: _baseUrlController,
           enabled: !_isSaving,
           keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
             labelText: 'URL de base',
             hintText: 'https://…',
+            helperMaxLines: 3,
+            helperText: _provider == LlmProvider.ollama
+                ? 'Sur un téléphone physique, utilisez l’adresse IP de votre '
+                      'PC sur le réseau local (p. ex. '
+                      'http://192.168.1.10:11434/v1). L’adresse 10.0.2.2 ne '
+                      'fonctionne que sur l’émulateur Android.'
+                : null,
           ),
           validator: (value) {
             final uri = Uri.tryParse(value?.trim() ?? '');

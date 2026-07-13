@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'features/coach/coach_screen.dart';
 import 'features/practice/practice_screen.dart';
 import 'features/progress/progress_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -15,7 +16,7 @@ class SlePrepApp extends ConsumerWidget {
     final seedImport = ref.watch(seedImportProvider);
 
     return MaterialApp(
-      title: 'Objectif C',
+      title: 'SLE Prep',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -47,6 +48,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _screens = [
     TodayScreen(),
     PracticeScreen(),
+    CoachScreen(),
     ProgressScreen(),
     SettingsScreen(),
   ];
@@ -67,6 +69,11 @@ class _AppShellState extends ConsumerState<AppShell> {
           icon: Icon(Icons.style_outlined),
           selectedIcon: Icon(Icons.style),
           label: 'Réviser',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.mic_none),
+          selectedIcon: Icon(Icons.mic),
+          label: 'Coach',
         ),
         NavigationDestination(
           icon: Icon(Icons.bar_chart_outlined),
