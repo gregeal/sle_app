@@ -29,6 +29,9 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
   final baseUrl =
       await database.getSetting('llmBaseUrl') ?? defaultBaseUrl(provider);
   final model = await database.getSetting('llmModel') ?? '';
+  final realtimeModel =
+      await database.getSetting('realtimeModel') ?? 'gpt-realtime';
+  final realtimeVoice = await database.getSetting('realtimeVoice') ?? 'marin';
   final hasApiKey =
       (await ref.watch(secureStorageProvider).read(key: 'llmApiKey'))
           ?.isNotEmpty ??
@@ -38,6 +41,8 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
     baseUrl: baseUrl,
     model: model,
     hasApiKey: hasApiKey,
+    realtimeModel: realtimeModel,
+    realtimeVoice: realtimeVoice,
   );
 });
 
@@ -49,8 +54,9 @@ final llmClientProvider = FutureProvider<LlmClient>((ref) async {
   return clientFor(config, apiKey: apiKey);
 });
 
-final speechServiceProvider =
-    Provider<SpeechService>((ref) => DeviceSpeechService());
+final speechServiceProvider = Provider<SpeechService>(
+  (ref) => DeviceSpeechService(),
+);
 
 final ttsServiceProvider = Provider<TtsService>((ref) => DeviceTtsService());
 
@@ -167,8 +173,9 @@ final progressSnapshotProvider = FutureProvider<ProgressSnapshot>((ref) async {
     database.latestMockPerSkill(),
   ]);
   final savedStart = await database.getSetting('planStartDate');
-  final planStart =
-      savedStart == null ? day : DateTime.tryParse(savedStart) ?? day;
+  final planStart = savedStart == null
+      ? day
+      : DateTime.tryParse(savedStart) ?? day;
   return ProgressSnapshot(
     streak: values[0] as int,
     dueCards: values[1] as int,

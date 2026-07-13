@@ -6,19 +6,31 @@ class LlmConfig {
     required this.baseUrl,
     required this.model,
     required this.hasApiKey,
+    this.realtimeModel = 'gpt-realtime',
+    this.realtimeVoice = 'marin',
   });
 
   final LlmProvider provider;
   final String baseUrl;
   final String model;
   final bool hasApiKey;
+  final String realtimeModel;
+  final String realtimeVoice;
 
   factory LlmConfig.defaults() => LlmConfig(
     provider: LlmProvider.openAiCompatible,
     baseUrl: defaultBaseUrl(LlmProvider.openAiCompatible),
     model: '',
     hasApiKey: false,
+    realtimeModel: 'gpt-realtime',
+    realtimeVoice: 'marin',
   );
+}
+
+bool supportsOpenAiRealtime(LlmConfig config) {
+  if (config.provider != LlmProvider.openAiCompatible) return false;
+  final uri = Uri.tryParse(config.baseUrl);
+  return uri?.scheme == 'https' && uri?.host == 'api.openai.com';
 }
 
 String providerLabel(LlmProvider provider) => switch (provider) {

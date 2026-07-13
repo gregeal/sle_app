@@ -116,7 +116,8 @@ class OralQuestions extends Table {
 class OralAttempts extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  /// 'daily' (one question) or 'interview' (escalating sequence).
+  /// 'daily' (one question), 'interview' (guided STT/TTS sequence), or
+  /// 'realtime' (voice-to-voice WebRTC interview).
   TextColumn get mode => text()();
 
   /// JSON list of {question, answer} transcript pairs.

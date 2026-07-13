@@ -4,7 +4,7 @@
 |---|---|
 | **Author** | Gregory Ealeifo |
 | **Date** | 2026-07-12 |
-| **Status** | Draft v1 |
+| **Status** | Implemented v1; Realtime WebRTC interview added 2026-07-13 |
 | **Platform** | Android (Flutter) |
 | **Audience** | Personal tool first; potential future release to GoC employees |
 

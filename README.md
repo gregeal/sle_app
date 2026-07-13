@@ -7,12 +7,12 @@ All four planned phases (P0–P3) are implemented:
 - **Daily habit engine (P0)** — 26-week curriculum, 309 workplace vocabulary cards with SM-2 spaced repetition, 92+ SLE-style grammar drills with explanations and weak-topic prioritization, a composed daily session with completion checklist, streaks, and resource links (Mauril, PSC self-assessments). Fully offline.
 - **AI integration (P0/P1)** — provider-agnostic LLM client (OpenAI, OpenRouter, local Ollama, Anthropic, or any OpenAI-compatible endpoint) with connection test, encrypted API-key storage, and validated on-demand generation of new grammar drills and reading passages. Adapts automatically to newer OpenAI parameter requirements (`max_completion_tokens`, locked temperature).
 - **Reading & writing (P1)** — timed SLE-style reading comprehension (memos, emails, policy excerpts) with per-question explanations, and guided composition with AI feedback: inline corrections, a corrected model text, an unofficial A/B/C level estimate, and concrete tips.
-- **Oral coach (P2)** — a daily OLA-style spoken question (difficulty follows the 26-week arc) and a full 5-question simulated interview escalating A → B → C. Questions are read aloud (TTS), answers are transcribed on-device (`fr_CA` speech recognition), and the transcript is assessed against the five official OLA criteria (aisance, compréhension, vocabulaire, grammaire, prononciation) with a report, level estimate, and improvement tips.
+- **Oral coach (P2)** — daily and guided modes use on-device STT/TTS; the full OpenAI Realtime interview is true low-latency voice-to-voice over WebRTC, with semantic turn detection, natural interruptions, adaptive A → B → C follow-ups, live transcripts, and a saved report against the five official OLA criteria (aisance, compréhension, vocabulaire, grammaire, prononciation).
 - **Checkpoints & dashboard (P3)** — monthly mock-exam checkpoints for all three skills, scored against approximate published cut lines, feeding a per-skill level-trajectory dashboard with streak, total study hours, and per-topic accuracy.
 
 Navigation: **Accueil** (today's session), **Réviser** (vocabulary, grammar, reading, writing, AI generation), **Coach** (oral practice), **Progrès** (trajectory, stats, mock exams), **Paramètres** (AI provider).
 
-Vocabulary, grammar drills, and seeded reading passages work fully offline. AI features (content generation, writing feedback, oral assessment) require a configured provider and API key; the key is stored in Android encrypted storage and never leaves the device — only prompts/transcripts are sent to your chosen provider. All level estimates are **unofficial**; the app makes no official SLE claims.
+Vocabulary, grammar drills, and seeded reading passages work fully offline. AI features require a configured provider. The API key is stored with Android encrypted storage and is sent only over HTTPS to the provider you selected for authenticated API calls; it is not stored in SQLite or sent to an SLE Prep developer server. The Realtime interview additionally sends microphone audio to OpenAI. All level estimates are **unofficial**; the app makes no official SLE claims.
 
 Project documents in the repository root:
 
@@ -28,6 +28,7 @@ Use a Windows machine with:
 2. The **Android SDK** with Platform-Tools (`adb`), a platform, and Build-Tools — via Android Studio's SDK Manager or the command-line tools.
 3. A **JDK 17+** for Gradle (Android Studio's bundled JBR, or a standalone JDK configured with `flutter config --jdk-dir`).
 4. An Android phone with USB debugging enabled (recommended — the oral coach needs a real microphone), or an emulator.
+5. For voice-to-voice interviews: a stable Internet connection, headphones or a quiet room, and an OpenAI API account with Realtime access and billing enabled.
 
 ## One-time Windows setup
 
@@ -114,9 +115,25 @@ On first launch the app imports its bundled curriculum, vocabulary, drills, read
 1. Open **Paramètres**, pick a provider (OpenAI, OpenRouter, Ollama local, Anthropic, or custom), enter the base URL, model name, and API key.
 2. Tap **Tester la connexion** — it saves the form and performs a cheap round-trip.
 3. Notes:
-   - OpenAI: use a current text model (e.g. `gpt-5.4-mini`). Realtime/voice-only models do not work with the chat-completions endpoint the app uses.
+   - OpenAI text features: choose a text model supported by Chat Completions. Realtime/voice-only models do not work in the regular **Nom du modèle** field.
+   - OpenAI voice interview: leave **Modèle Realtime** at `gpt-realtime` unless your account requires another supported Realtime model; choose the evaluator voice separately. This feature requires the official `https://api.openai.com/v1` base URL.
    - Ollama on a physical phone: use your PC's LAN IP (e.g. `http://192.168.1.10:11434/v1`); `10.0.2.2` only resolves on the emulator.
-   - Typical text-feature cost is well under $15/month; oral assessments send only text transcripts.
+   - Text and Realtime audio usage are billed separately. Check the provider's current pricing and your usage dashboard rather than relying on a hard-coded estimate.
+
+## Use the true voice-to-voice interview
+
+1. In **Paramètres**, choose **OpenAI compatible**, set the base URL to `https://api.openai.com/v1`, enter a working text model, and save your OpenAI API key.
+2. Under **Entrevue voix-à-voix**, keep `gpt-realtime` (or enter a Realtime model available to your account) and choose a voice such as `marin` or `cedar`.
+3. Tap **Tester la connexion**. This checks the text model; it does not spend Realtime audio tokens.
+4. Open **Coach → Entrevue Realtime**, read the cost/microphone notice, and tap **Commencer l'entrevue**.
+5. Speak naturally. Server-side semantic voice activity detection decides when each turn ends and supports interrupting the evaluator. Use the mic button to mute temporarily.
+6. Tap **Terminer et analyser**. The WebRTC session closes, the completed transcript is paired into question/answer exchanges, and the configured text model produces and saves the five-criterion report.
+
+The app requests Android microphone permission on first use. Realtime sessions require Internet access and OpenAI; the daily question and guided interview remain available as the lower-cost STT/TTS fallback.
+
+### Realtime credential security
+
+This repository is a personal, bring-your-own-key app: it never hardcodes an API key into the APK. The device uses the key from Android encrypted storage to call `/v1/realtime/client_secrets`, then authenticates the WebRTC call with the returned short-lived credential. Do not distribute a build with a preloaded or shared key. Before turning this into a multi-user/public app, move client-secret creation to an authenticated server endpoint so the standard OpenAI key never exists in client code or on end-user devices, as required by the [official WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).
 
 ## Run checks
 
@@ -126,7 +143,7 @@ flutter analyze
 flutter test
 ```
 
-The 80+ tests cover the Drift data layer and migrations, SM-2 scheduling, seed validation and incremental import, the session composer, LLM clients (including OpenAI parameter fallbacks), drill/reading/writing/oral generation and parsing, mock-exam scoring, and key widget flows.
+The test suite covers the Drift data layer and migrations, SM-2 scheduling, seed validation and incremental import, the session composer, LLM clients (including OpenAI parameter fallbacks), Realtime client-secret/SDP requests and event parsing, drill/reading/writing/oral generation and parsing, mock-exam scoring, and key widget flows.
 
 After changing a Drift table in `lib/data/db/database.dart`, regenerate the database code (and add a migration step in the same file):
 
@@ -155,9 +172,9 @@ Output: `build\app\outputs\flutter-apk\app-release.apk`
 
 ## Roadmap
 
-- OpenAI Realtime API (voice-to-voice) upgrade for the simulated interview — the current STT → text-model → report pipeline is designed so this slots in behind the same interfaces.
-- Dynamic follow-up questions in the simulated interview.
-- Session-plan re-weighting from mock-exam results; backup export; release signing.
+- Production token-broker deployment for a multi-user release; usage/cost metering per Realtime session.
+- Session-plan re-weighting from mock-exam results; encrypted backup/export; release signing.
+- Optional iOS target and broader device-level audio routing tests.
 
 ## Project layout
 
@@ -172,6 +189,7 @@ sle_prep/
 │   ├── domain/mock/          Mock-exam scoring and checkpoint math
 │   ├── domain/speech/        Device speech-to-text / TTS wrappers
 │   ├── domain/llm/           LLM clients, generators, writing & oral coaches
+│   ├── domain/realtime/      OpenAI token bootstrap, WebRTC session, events
 │   └── features/             Today, practice, reading, writing, coach,
 │                             mocks, progress, settings screens
 ├── test/                     Unit, parser, DAO, and widget tests
@@ -191,5 +209,9 @@ sle_prep/
 | AI test fails with "Connexion impossible" | Check the phone's internet connection; for Ollama use the PC's LAN IP. |
 | AI test fails with HTTP 401 / 404 / 429 | 401: re-paste the key. 404: fix the model name. 429: add credit at your provider. |
 | Microphone not working in the coach | Grant the microphone permission (Android Settings → Apps → SLE Prep → Permissions). |
+| Realtime interview says it needs OpenAI | Select **OpenAI compatible** and use exactly `https://api.openai.com/v1`; OpenRouter, Anthropic, Ollama, and custom endpoints still work for text features but not this WebRTC flow. |
+| Realtime fails with HTTP 401 / 403 | Re-paste the OpenAI key and confirm the API project has Realtime access and billing. ChatGPT subscriptions do not supply API credit. |
+| Realtime connects but there is no sound | Raise media volume, unmute the app, grant microphone permission, disconnect/reconnect Bluetooth, then retry with the phone speaker or wired headphones. |
+| Realtime disconnects or stalls | Switch to a stable Wi-Fi/mobile network, disable restrictive VPN/firewall rules, and retry. The guided STT/TTS interview remains available as a fallback. |
 | Database/schema errors after table changes | `dart run build_runner build --delete-conflicting-outputs`. |
 | Need a clean test run | `flutter clean`, then `flutter pub get` and `flutter test`. |

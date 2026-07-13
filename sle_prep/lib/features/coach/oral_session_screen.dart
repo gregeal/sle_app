@@ -131,41 +131,37 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text(widget.mode == 'daily'
-              ? 'Question du jour'
-              : 'Entrevue simulée'),
+    appBar: AppBar(
+      title: Text(
+        widget.mode == 'daily' ? 'Question du jour' : 'Entrevue simulée',
+      ),
+    ),
+    body: SafeArea(
+      child: switch (_stage) {
+        _Stage.answering || _Stage.reviewing => _buildQuestion(context),
+        _Stage.assessing => const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('L\'évaluatrice analyse vos réponses…'),
+            ],
+          ),
         ),
-        body: SafeArea(
-          child: switch (_stage) {
-            _Stage.answering || _Stage.reviewing => _buildQuestion(context),
-            _Stage.assessing => const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('L\'évaluatrice analyse vos réponses…'),
-                  ],
+        _Stage.report =>
+          _feedback != null
+              ? OralReportView(feedback: _feedback!, exchanges: _exchanges)
+              : _AssessError(
+                  error: _assessError,
+                  onRetry: () {
+                    setState(() => _stage = _Stage.assessing);
+                    _retryAssessment();
+                  },
                 ),
-              ),
-            _Stage.report => _feedback != null
-                ? OralReportView(
-                    feedback: _feedback!,
-                    exchanges: _exchanges,
-                  )
-                : _AssessError(
-                    error: _assessError,
-                    onRetry: () {
-                      setState(() => _stage = _Stage.assessing);
-                      // Re-run assessment with the exchanges already captured.
-                      _exchanges.removeRange(0, 0);
-                      _retryAssessment();
-                    },
-                  ),
-          },
-        ),
-      );
+      },
+    ),
+  );
 
   Future<void> _retryAssessment() async {
     try {
@@ -201,8 +197,12 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
         children: [
           Row(
             children: [
-              Chip(label: Text('Question ${_index + 1} / '
-                  '${widget.questions.length}')),
+              Chip(
+                label: Text(
+                  'Question ${_index + 1} / '
+                  '${widget.questions.length}',
+                ),
+              ),
               const SizedBox(width: 8),
               Chip(
                 label: Text('Palier ${_question.tier}'),
@@ -270,8 +270,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                               _isListening
                                   ? 'Transcription en direct…'
                                   : 'Votre réponse (transcrite)',
-                              style:
-                                  Theme.of(context).textTheme.labelLarge,
+                              style: Theme.of(context).textTheme.labelLarge,
                             ),
                             const SizedBox(height: 8),
                             Text(_transcript.isEmpty ? '…' : _transcript),
@@ -325,10 +324,11 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                         : Theme.of(context).colorScheme.primary,
                     boxShadow: [
                       BoxShadow(
-                        color: (_isListening
-                                ? coachAccent
-                                : Theme.of(context).colorScheme.primary)
-                            .withValues(alpha: 0.35),
+                        color:
+                            (_isListening
+                                    ? coachAccent
+                                    : Theme.of(context).colorScheme.primary)
+                                .withValues(alpha: 0.35),
                         blurRadius: 22,
                         offset: const Offset(0, 8),
                       ),
@@ -452,7 +452,8 @@ class OralReportView extends StatelessWidget {
                                 criterion.level,
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w600),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -487,17 +488,19 @@ class OralReportView extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   ...feedback.tips.asMap().entries.map(
-                        (entry) => ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            radius: 13,
-                            child: Text('${entry.key + 1}',
-                                style: const TextStyle(fontSize: 13)),
-                          ),
-                          title: Text(entry.value),
+                    (entry) => ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        radius: 13,
+                        child: Text(
+                          '${entry.key + 1}',
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
+                      title: Text(entry.value),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -534,24 +537,24 @@ class _AssessError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48),
-              const SizedBox(height: 12),
-              const Text('Impossible d\'obtenir la rétroaction.'),
-              const SizedBox(height: 8),
-              Text('$error', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Réessayer'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48),
+          const SizedBox(height: 12),
+          const Text('Impossible d\'obtenir la rétroaction.'),
+          const SizedBox(height: 8),
+          Text('$error', textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Réessayer'),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }

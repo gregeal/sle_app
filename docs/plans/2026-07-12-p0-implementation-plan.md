@@ -1,5 +1,10 @@
 # SLE Prep App — Phase P0 Implementation Plan
 
+> **Archive status (2026-07-13):** P0–P3 and the PRD's OpenAI Realtime
+> voice-to-voice interview are implemented. The unchecked steps below are the
+> original execution plan, preserved for design history; use the root README
+> for current setup, features, verification, and troubleshooting.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build P0 of the French SLE prep app from the PRD (`C:\Users\grege\Documents\My Docs\MyApp\PRD.md`) — a working, offline-capable Android "daily habit engine": 26-week curriculum planner, spaced-repetition vocabulary, SLE-style grammar drills, resource rail, and a provider-agnostic LLM adapter with settings.

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/daos.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/llm_config.dart';
+import '../../domain/realtime/openai_realtime_api.dart';
 import '../../providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -40,8 +41,10 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _baseUrlController;
   late final TextEditingController _modelController;
+  late final TextEditingController _realtimeModelController;
   final _apiKeyController = TextEditingController();
   late LlmProvider _provider;
+  late String _realtimeVoice;
   var _isSaving = false;
   var _isTesting = false;
 
@@ -51,12 +54,17 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _provider = widget.config.provider;
     _baseUrlController = TextEditingController(text: widget.config.baseUrl);
     _modelController = TextEditingController(text: widget.config.model);
+    _realtimeModelController = TextEditingController(
+      text: widget.config.realtimeModel,
+    );
+    _realtimeVoice = widget.config.realtimeVoice;
   }
 
   @override
   void dispose() {
     _baseUrlController.dispose();
     _modelController.dispose();
+    _realtimeModelController.dispose();
     _apiKeyController.dispose();
     super.dispose();
   }
@@ -98,6 +106,11 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     await database.setSetting('llmProvider', _provider.name);
     await database.setSetting('llmBaseUrl', _baseUrlController.text.trim());
     await database.setSetting('llmModel', _modelController.text.trim());
+    await database.setSetting(
+      'realtimeModel',
+      _realtimeModelController.text.trim(),
+    );
+    await database.setSetting('realtimeVoice', _realtimeVoice);
     if (_apiKeyController.text.trim().isNotEmpty) {
       await ref
           .read(secureStorageProvider)
@@ -185,6 +198,60 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             return null;
           },
         ),
+        if (_provider == LlmProvider.openAiCompatible) ...[
+          const SizedBox(height: 24),
+          Text(
+            'ENTREVUE VOIX-À-VOIX',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _realtimeModelController,
+            enabled: !_isSaving,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Modèle Realtime',
+              hintText: defaultRealtimeModel,
+              helperText:
+                  'Distinct du modèle texte. Utilisé uniquement par le coach en direct.',
+            ),
+            validator: (value) =>
+                _provider == LlmProvider.openAiCompatible &&
+                    (value == null || value.trim().isEmpty)
+                ? 'Entrez le modèle Realtime.'
+                : null,
+          ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<String>(
+            initialValue: realtimeVoices.contains(_realtimeVoice)
+                ? _realtimeVoice
+                : defaultRealtimeVoice,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Voix de l’évaluatrice',
+            ),
+            items: realtimeVoices
+                .map(
+                  (voice) => DropdownMenuItem(value: voice, child: Text(voice)),
+                )
+                .toList(growable: false),
+            onChanged: _isSaving
+                ? null
+                : (voice) {
+                    if (voice != null) {
+                      setState(() => _realtimeVoice = voice);
+                    }
+                  },
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Le mode Realtime fonctionne avec l’API OpenAI officielle. '
+            'Pour cette application personnelle, la clé enregistrée demande '
+            'un jeton de session de courte durée. Ne préchargez jamais une clé '
+            'dans une APK distribuée à d’autres personnes.',
+            style: TextStyle(fontSize: 12.5),
+          ),
+        ],
         const SizedBox(height: 14),
         TextFormField(
           controller: _modelController,
@@ -231,9 +298,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.wifi_tethering),
-          label: Text(
-            _isTesting ? 'Test en cours…' : 'Tester la connexion',
-          ),
+          label: Text(_isTesting ? 'Test en cours…' : 'Tester la connexion'),
         ),
         const SizedBox(height: 24),
         Card(
@@ -248,7 +313,12 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Le vocabulaire et la grammaire restent hors ligne. La clé sert à la génération d’exercices (onglet Réviser) et aux futures fonctions de rétroaction. Prévoyez un budget mensuel d’environ 15 \$ pour les fonctions texte; les simulations orales en temps réel sont distinctes.',
+                  'Le vocabulaire et la grammaire restent hors ligne. Les '
+                  'fonctions IA envoient uniquement le contenu nécessaire au '
+                  'fournisseur configuré. Les entrevues Realtime transmettent '
+                  'l’audio à OpenAI et sont facturées séparément des fonctions '
+                  'texte; consultez toujours la tarification actuelle avant '
+                  'une longue session.',
                 ),
               ],
             ),
