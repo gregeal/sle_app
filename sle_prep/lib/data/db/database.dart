@@ -79,6 +79,40 @@ class AppSettings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+class ReadingSets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+
+  /// Passage genre: note_service, courriel, politique, article.
+  TextColumn get kind => text()();
+  TextColumn get bodyFr => text()();
+
+  /// JSON list of {prompt, options[4], correctIndex, explanationFr}.
+  TextColumn get questions => text()();
+  TextColumn get source => text().withDefault(const Constant('seed'))();
+}
+
+class ReadingAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get setId => integer().references(ReadingSets, #id)();
+  IntColumn get correct => integer()();
+  IntColumn get total => integer()();
+
+  /// Reading + answering time, for the timed mode.
+  IntColumn get seconds => integer()();
+  DateTimeColumn get answeredAt => dateTime()();
+}
+
+class WritingAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get promptFr => text()();
+  TextColumn get userText => text()();
+
+  /// JSON feedback from the writing coach (corrections, level, tips).
+  TextColumn get feedback => text()();
+  DateTimeColumn get answeredAt => dateTime()();
+}
+
 @DriftDatabase(tables: [
   VocabCards,
   ReviewStates,
@@ -87,10 +121,24 @@ class AppSettings extends Table {
   CurriculumWeeks,
   SessionLogs,
   AppSettings,
+  ReadingSets,
+  ReadingAttempts,
+  WritingAttempts,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(readingSets);
+            await m.createTable(readingAttempts);
+            await m.createTable(writingAttempts);
+          }
+        },
+      );
 }

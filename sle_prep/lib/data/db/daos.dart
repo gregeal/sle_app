@@ -25,6 +25,11 @@ extension CurriculumWeekJson on CurriculumWeek {
       (jsonDecode(resourceSlots) as List).cast<Map<String, dynamic>>();
 }
 
+extension ReadingSetJson on ReadingSet {
+  List<Map<String, dynamic>> get questionsList =>
+      (jsonDecode(questions) as List).cast<Map<String, dynamic>>();
+}
+
 extension SessionLogJson on SessionLog {
   List<String> get blocksPlannedList =>
       (jsonDecode(blocksPlanned) as List).cast<String>();
@@ -270,6 +275,80 @@ extension AppDaos on AppDatabase {
     }
     return streak;
   }
+
+  // ── Reading ───────────────────────────────────────────────────────────────
+
+  Future<int> insertReadingSet({
+    required String title,
+    required String kind,
+    required String bodyFr,
+    required List<Map<String, dynamic>> questions,
+    String source = 'seed',
+  }) {
+    return into(readingSets).insert(
+      ReadingSetsCompanion.insert(
+        title: title,
+        kind: kind,
+        bodyFr: bodyFr,
+        questions: jsonEncode(questions),
+        source: Value(source),
+      ),
+    );
+  }
+
+  Future<List<ReadingSet>> allReadingSets() => select(readingSets).get();
+
+  Future<void> recordReadingAttempt({
+    required int setId,
+    required int correct,
+    required int total,
+    required int seconds,
+    required DateTime at,
+  }) {
+    return into(readingAttempts)
+        .insert(
+          ReadingAttemptsCompanion.insert(
+            setId: setId,
+            correct: correct,
+            total: total,
+            seconds: seconds,
+            answeredAt: at,
+          ),
+        )
+        .then((_) {});
+  }
+
+  /// Newest first.
+  Future<List<ReadingAttempt>> readingHistory() =>
+      (select(readingAttempts)
+            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
+          .get();
+
+  // ── Writing ───────────────────────────────────────────────────────────────
+
+  Future<void> insertWritingAttempt({
+    required String promptFr,
+    required String userText,
+    required String feedback,
+    required DateTime at,
+  }) {
+    return into(writingAttempts)
+        .insert(
+          WritingAttemptsCompanion.insert(
+            promptFr: promptFr,
+            userText: userText,
+            feedback: feedback,
+            answeredAt: at,
+          ),
+        )
+        .then((_) {});
+  }
+
+  /// Newest first.
+  Future<List<WritingAttempt>> writingHistory() =>
+      (select(writingAttempts)
+            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
+          .get();
 
   // ── Settings ──────────────────────────────────────────────────────────────
 

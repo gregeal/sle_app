@@ -2536,6 +2536,1155 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $ReadingSetsTable extends ReadingSets
+    with TableInfo<$ReadingSetsTable, ReadingSet> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReadingSetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyFrMeta = const VerificationMeta('bodyFr');
+  @override
+  late final GeneratedColumn<String> bodyFr = GeneratedColumn<String>(
+    'body_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionsMeta = const VerificationMeta(
+    'questions',
+  );
+  @override
+  late final GeneratedColumn<String> questions = GeneratedColumn<String>(
+    'questions',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('seed'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    kind,
+    bodyFr,
+    questions,
+    source,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reading_sets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReadingSet> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('body_fr')) {
+      context.handle(
+        _bodyFrMeta,
+        bodyFr.isAcceptableOrUnknown(data['body_fr']!, _bodyFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyFrMeta);
+    }
+    if (data.containsKey('questions')) {
+      context.handle(
+        _questionsMeta,
+        questions.isAcceptableOrUnknown(data['questions']!, _questionsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionsMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReadingSet map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReadingSet(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      bodyFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body_fr'],
+      )!,
+      questions: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}questions'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+    );
+  }
+
+  @override
+  $ReadingSetsTable createAlias(String alias) {
+    return $ReadingSetsTable(attachedDatabase, alias);
+  }
+}
+
+class ReadingSet extends DataClass implements Insertable<ReadingSet> {
+  final int id;
+  final String title;
+
+  /// Passage genre: note_service, courriel, politique, article.
+  final String kind;
+  final String bodyFr;
+
+  /// JSON list of {prompt, options[4], correctIndex, explanationFr}.
+  final String questions;
+  final String source;
+  const ReadingSet({
+    required this.id,
+    required this.title,
+    required this.kind,
+    required this.bodyFr,
+    required this.questions,
+    required this.source,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    map['kind'] = Variable<String>(kind);
+    map['body_fr'] = Variable<String>(bodyFr);
+    map['questions'] = Variable<String>(questions);
+    map['source'] = Variable<String>(source);
+    return map;
+  }
+
+  ReadingSetsCompanion toCompanion(bool nullToAbsent) {
+    return ReadingSetsCompanion(
+      id: Value(id),
+      title: Value(title),
+      kind: Value(kind),
+      bodyFr: Value(bodyFr),
+      questions: Value(questions),
+      source: Value(source),
+    );
+  }
+
+  factory ReadingSet.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReadingSet(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      kind: serializer.fromJson<String>(json['kind']),
+      bodyFr: serializer.fromJson<String>(json['bodyFr']),
+      questions: serializer.fromJson<String>(json['questions']),
+      source: serializer.fromJson<String>(json['source']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'kind': serializer.toJson<String>(kind),
+      'bodyFr': serializer.toJson<String>(bodyFr),
+      'questions': serializer.toJson<String>(questions),
+      'source': serializer.toJson<String>(source),
+    };
+  }
+
+  ReadingSet copyWith({
+    int? id,
+    String? title,
+    String? kind,
+    String? bodyFr,
+    String? questions,
+    String? source,
+  }) => ReadingSet(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    kind: kind ?? this.kind,
+    bodyFr: bodyFr ?? this.bodyFr,
+    questions: questions ?? this.questions,
+    source: source ?? this.source,
+  );
+  ReadingSet copyWithCompanion(ReadingSetsCompanion data) {
+    return ReadingSet(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      bodyFr: data.bodyFr.present ? data.bodyFr.value : this.bodyFr,
+      questions: data.questions.present ? data.questions.value : this.questions,
+      source: data.source.present ? data.source.value : this.source,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingSet(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('bodyFr: $bodyFr, ')
+          ..write('questions: $questions, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, kind, bodyFr, questions, source);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReadingSet &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.kind == this.kind &&
+          other.bodyFr == this.bodyFr &&
+          other.questions == this.questions &&
+          other.source == this.source);
+}
+
+class ReadingSetsCompanion extends UpdateCompanion<ReadingSet> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<String> kind;
+  final Value<String> bodyFr;
+  final Value<String> questions;
+  final Value<String> source;
+  const ReadingSetsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.bodyFr = const Value.absent(),
+    this.questions = const Value.absent(),
+    this.source = const Value.absent(),
+  });
+  ReadingSetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    required String kind,
+    required String bodyFr,
+    required String questions,
+    this.source = const Value.absent(),
+  }) : title = Value(title),
+       kind = Value(kind),
+       bodyFr = Value(bodyFr),
+       questions = Value(questions);
+  static Insertable<ReadingSet> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<String>? kind,
+    Expression<String>? bodyFr,
+    Expression<String>? questions,
+    Expression<String>? source,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (kind != null) 'kind': kind,
+      if (bodyFr != null) 'body_fr': bodyFr,
+      if (questions != null) 'questions': questions,
+      if (source != null) 'source': source,
+    });
+  }
+
+  ReadingSetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<String>? kind,
+    Value<String>? bodyFr,
+    Value<String>? questions,
+    Value<String>? source,
+  }) {
+    return ReadingSetsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      kind: kind ?? this.kind,
+      bodyFr: bodyFr ?? this.bodyFr,
+      questions: questions ?? this.questions,
+      source: source ?? this.source,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (bodyFr.present) {
+      map['body_fr'] = Variable<String>(bodyFr.value);
+    }
+    if (questions.present) {
+      map['questions'] = Variable<String>(questions.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingSetsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('bodyFr: $bodyFr, ')
+          ..write('questions: $questions, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReadingAttemptsTable extends ReadingAttempts
+    with TableInfo<$ReadingAttemptsTable, ReadingAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReadingAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _setIdMeta = const VerificationMeta('setId');
+  @override
+  late final GeneratedColumn<int> setId = GeneratedColumn<int>(
+    'set_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _correctMeta = const VerificationMeta(
+    'correct',
+  );
+  @override
+  late final GeneratedColumn<int> correct = GeneratedColumn<int>(
+    'correct',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalMeta = const VerificationMeta('total');
+  @override
+  late final GeneratedColumn<int> total = GeneratedColumn<int>(
+    'total',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answeredAtMeta = const VerificationMeta(
+    'answeredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+    'answered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    setId,
+    correct,
+    total,
+    seconds,
+    answeredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reading_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReadingAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('set_id')) {
+      context.handle(
+        _setIdMeta,
+        setId.isAcceptableOrUnknown(data['set_id']!, _setIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setIdMeta);
+    }
+    if (data.containsKey('correct')) {
+      context.handle(
+        _correctMeta,
+        correct.isAcceptableOrUnknown(data['correct']!, _correctMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_correctMeta);
+    }
+    if (data.containsKey('total')) {
+      context.handle(
+        _totalMeta,
+        total.isAcceptableOrUnknown(data['total']!, _totalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+        _answeredAtMeta,
+        answeredAt.isAcceptableOrUnknown(data['answered_at']!, _answeredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReadingAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReadingAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      setId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}set_id'],
+      )!,
+      correct: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}correct'],
+      )!,
+      total: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      answeredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReadingAttemptsTable createAlias(String alias) {
+    return $ReadingAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class ReadingAttempt extends DataClass implements Insertable<ReadingAttempt> {
+  final int id;
+  final int setId;
+  final int correct;
+  final int total;
+
+  /// Reading + answering time, for the timed mode.
+  final int seconds;
+  final DateTime answeredAt;
+  const ReadingAttempt({
+    required this.id,
+    required this.setId,
+    required this.correct,
+    required this.total,
+    required this.seconds,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['set_id'] = Variable<int>(setId);
+    map['correct'] = Variable<int>(correct);
+    map['total'] = Variable<int>(total);
+    map['seconds'] = Variable<int>(seconds);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    return map;
+  }
+
+  ReadingAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return ReadingAttemptsCompanion(
+      id: Value(id),
+      setId: Value(setId),
+      correct: Value(correct),
+      total: Value(total),
+      seconds: Value(seconds),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory ReadingAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReadingAttempt(
+      id: serializer.fromJson<int>(json['id']),
+      setId: serializer.fromJson<int>(json['setId']),
+      correct: serializer.fromJson<int>(json['correct']),
+      total: serializer.fromJson<int>(json['total']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'setId': serializer.toJson<int>(setId),
+      'correct': serializer.toJson<int>(correct),
+      'total': serializer.toJson<int>(total),
+      'seconds': serializer.toJson<int>(seconds),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  ReadingAttempt copyWith({
+    int? id,
+    int? setId,
+    int? correct,
+    int? total,
+    int? seconds,
+    DateTime? answeredAt,
+  }) => ReadingAttempt(
+    id: id ?? this.id,
+    setId: setId ?? this.setId,
+    correct: correct ?? this.correct,
+    total: total ?? this.total,
+    seconds: seconds ?? this.seconds,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  ReadingAttempt copyWithCompanion(ReadingAttemptsCompanion data) {
+    return ReadingAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      setId: data.setId.present ? data.setId.value : this.setId,
+      correct: data.correct.present ? data.correct.value : this.correct,
+      total: data.total.present ? data.total.value : this.total,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingAttempt(')
+          ..write('id: $id, ')
+          ..write('setId: $setId, ')
+          ..write('correct: $correct, ')
+          ..write('total: $total, ')
+          ..write('seconds: $seconds, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, setId, correct, total, seconds, answeredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReadingAttempt &&
+          other.id == this.id &&
+          other.setId == this.setId &&
+          other.correct == this.correct &&
+          other.total == this.total &&
+          other.seconds == this.seconds &&
+          other.answeredAt == this.answeredAt);
+}
+
+class ReadingAttemptsCompanion extends UpdateCompanion<ReadingAttempt> {
+  final Value<int> id;
+  final Value<int> setId;
+  final Value<int> correct;
+  final Value<int> total;
+  final Value<int> seconds;
+  final Value<DateTime> answeredAt;
+  const ReadingAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.setId = const Value.absent(),
+    this.correct = const Value.absent(),
+    this.total = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+  });
+  ReadingAttemptsCompanion.insert({
+    this.id = const Value.absent(),
+    required int setId,
+    required int correct,
+    required int total,
+    required int seconds,
+    required DateTime answeredAt,
+  }) : setId = Value(setId),
+       correct = Value(correct),
+       total = Value(total),
+       seconds = Value(seconds),
+       answeredAt = Value(answeredAt);
+  static Insertable<ReadingAttempt> custom({
+    Expression<int>? id,
+    Expression<int>? setId,
+    Expression<int>? correct,
+    Expression<int>? total,
+    Expression<int>? seconds,
+    Expression<DateTime>? answeredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (setId != null) 'set_id': setId,
+      if (correct != null) 'correct': correct,
+      if (total != null) 'total': total,
+      if (seconds != null) 'seconds': seconds,
+      if (answeredAt != null) 'answered_at': answeredAt,
+    });
+  }
+
+  ReadingAttemptsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? setId,
+    Value<int>? correct,
+    Value<int>? total,
+    Value<int>? seconds,
+    Value<DateTime>? answeredAt,
+  }) {
+    return ReadingAttemptsCompanion(
+      id: id ?? this.id,
+      setId: setId ?? this.setId,
+      correct: correct ?? this.correct,
+      total: total ?? this.total,
+      seconds: seconds ?? this.seconds,
+      answeredAt: answeredAt ?? this.answeredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (setId.present) {
+      map['set_id'] = Variable<int>(setId.value);
+    }
+    if (correct.present) {
+      map['correct'] = Variable<int>(correct.value);
+    }
+    if (total.present) {
+      map['total'] = Variable<int>(total.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('setId: $setId, ')
+          ..write('correct: $correct, ')
+          ..write('total: $total, ')
+          ..write('seconds: $seconds, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WritingAttemptsTable extends WritingAttempts
+    with TableInfo<$WritingAttemptsTable, WritingAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WritingAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _promptFrMeta = const VerificationMeta(
+    'promptFr',
+  );
+  @override
+  late final GeneratedColumn<String> promptFr = GeneratedColumn<String>(
+    'prompt_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userTextMeta = const VerificationMeta(
+    'userText',
+  );
+  @override
+  late final GeneratedColumn<String> userText = GeneratedColumn<String>(
+    'user_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feedbackMeta = const VerificationMeta(
+    'feedback',
+  );
+  @override
+  late final GeneratedColumn<String> feedback = GeneratedColumn<String>(
+    'feedback',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answeredAtMeta = const VerificationMeta(
+    'answeredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+    'answered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    promptFr,
+    userText,
+    feedback,
+    answeredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'writing_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WritingAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('prompt_fr')) {
+      context.handle(
+        _promptFrMeta,
+        promptFr.isAcceptableOrUnknown(data['prompt_fr']!, _promptFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptFrMeta);
+    }
+    if (data.containsKey('user_text')) {
+      context.handle(
+        _userTextMeta,
+        userText.isAcceptableOrUnknown(data['user_text']!, _userTextMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userTextMeta);
+    }
+    if (data.containsKey('feedback')) {
+      context.handle(
+        _feedbackMeta,
+        feedback.isAcceptableOrUnknown(data['feedback']!, _feedbackMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_feedbackMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+        _answeredAtMeta,
+        answeredAt.isAcceptableOrUnknown(data['answered_at']!, _answeredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WritingAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WritingAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      promptFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_fr'],
+      )!,
+      userText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_text'],
+      )!,
+      feedback: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feedback'],
+      )!,
+      answeredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WritingAttemptsTable createAlias(String alias) {
+    return $WritingAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class WritingAttempt extends DataClass implements Insertable<WritingAttempt> {
+  final int id;
+  final String promptFr;
+  final String userText;
+
+  /// JSON feedback from the writing coach (corrections, level, tips).
+  final String feedback;
+  final DateTime answeredAt;
+  const WritingAttempt({
+    required this.id,
+    required this.promptFr,
+    required this.userText,
+    required this.feedback,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['prompt_fr'] = Variable<String>(promptFr);
+    map['user_text'] = Variable<String>(userText);
+    map['feedback'] = Variable<String>(feedback);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    return map;
+  }
+
+  WritingAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return WritingAttemptsCompanion(
+      id: Value(id),
+      promptFr: Value(promptFr),
+      userText: Value(userText),
+      feedback: Value(feedback),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory WritingAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WritingAttempt(
+      id: serializer.fromJson<int>(json['id']),
+      promptFr: serializer.fromJson<String>(json['promptFr']),
+      userText: serializer.fromJson<String>(json['userText']),
+      feedback: serializer.fromJson<String>(json['feedback']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'promptFr': serializer.toJson<String>(promptFr),
+      'userText': serializer.toJson<String>(userText),
+      'feedback': serializer.toJson<String>(feedback),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  WritingAttempt copyWith({
+    int? id,
+    String? promptFr,
+    String? userText,
+    String? feedback,
+    DateTime? answeredAt,
+  }) => WritingAttempt(
+    id: id ?? this.id,
+    promptFr: promptFr ?? this.promptFr,
+    userText: userText ?? this.userText,
+    feedback: feedback ?? this.feedback,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  WritingAttempt copyWithCompanion(WritingAttemptsCompanion data) {
+    return WritingAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      promptFr: data.promptFr.present ? data.promptFr.value : this.promptFr,
+      userText: data.userText.present ? data.userText.value : this.userText,
+      feedback: data.feedback.present ? data.feedback.value : this.feedback,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WritingAttempt(')
+          ..write('id: $id, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('userText: $userText, ')
+          ..write('feedback: $feedback, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, promptFr, userText, feedback, answeredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WritingAttempt &&
+          other.id == this.id &&
+          other.promptFr == this.promptFr &&
+          other.userText == this.userText &&
+          other.feedback == this.feedback &&
+          other.answeredAt == this.answeredAt);
+}
+
+class WritingAttemptsCompanion extends UpdateCompanion<WritingAttempt> {
+  final Value<int> id;
+  final Value<String> promptFr;
+  final Value<String> userText;
+  final Value<String> feedback;
+  final Value<DateTime> answeredAt;
+  const WritingAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.promptFr = const Value.absent(),
+    this.userText = const Value.absent(),
+    this.feedback = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+  });
+  WritingAttemptsCompanion.insert({
+    this.id = const Value.absent(),
+    required String promptFr,
+    required String userText,
+    required String feedback,
+    required DateTime answeredAt,
+  }) : promptFr = Value(promptFr),
+       userText = Value(userText),
+       feedback = Value(feedback),
+       answeredAt = Value(answeredAt);
+  static Insertable<WritingAttempt> custom({
+    Expression<int>? id,
+    Expression<String>? promptFr,
+    Expression<String>? userText,
+    Expression<String>? feedback,
+    Expression<DateTime>? answeredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (promptFr != null) 'prompt_fr': promptFr,
+      if (userText != null) 'user_text': userText,
+      if (feedback != null) 'feedback': feedback,
+      if (answeredAt != null) 'answered_at': answeredAt,
+    });
+  }
+
+  WritingAttemptsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? promptFr,
+    Value<String>? userText,
+    Value<String>? feedback,
+    Value<DateTime>? answeredAt,
+  }) {
+    return WritingAttemptsCompanion(
+      id: id ?? this.id,
+      promptFr: promptFr ?? this.promptFr,
+      userText: userText ?? this.userText,
+      feedback: feedback ?? this.feedback,
+      answeredAt: answeredAt ?? this.answeredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (promptFr.present) {
+      map['prompt_fr'] = Variable<String>(promptFr.value);
+    }
+    if (userText.present) {
+      map['user_text'] = Variable<String>(userText.value);
+    }
+    if (feedback.present) {
+      map['feedback'] = Variable<String>(feedback.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WritingAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('userText: $userText, ')
+          ..write('feedback: $feedback, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2548,6 +3697,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SessionLogsTable sessionLogs = $SessionLogsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $ReadingSetsTable readingSets = $ReadingSetsTable(this);
+  late final $ReadingAttemptsTable readingAttempts = $ReadingAttemptsTable(
+    this,
+  );
+  late final $WritingAttemptsTable writingAttempts = $WritingAttemptsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2560,6 +3716,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     curriculumWeeks,
     sessionLogs,
     appSettings,
+    readingSets,
+    readingAttempts,
+    writingAttempts,
   ];
 }
 
@@ -3957,6 +5116,642 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$ReadingSetsTableCreateCompanionBuilder =
+    ReadingSetsCompanion Function({
+      Value<int> id,
+      required String title,
+      required String kind,
+      required String bodyFr,
+      required String questions,
+      Value<String> source,
+    });
+typedef $$ReadingSetsTableUpdateCompanionBuilder =
+    ReadingSetsCompanion Function({
+      Value<int> id,
+      Value<String> title,
+      Value<String> kind,
+      Value<String> bodyFr,
+      Value<String> questions,
+      Value<String> source,
+    });
+
+class $$ReadingSetsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReadingSetsTable> {
+  $$ReadingSetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bodyFr => $composableBuilder(
+    column: $table.bodyFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get questions => $composableBuilder(
+    column: $table.questions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReadingSetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReadingSetsTable> {
+  $$ReadingSetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bodyFr => $composableBuilder(
+    column: $table.bodyFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get questions => $composableBuilder(
+    column: $table.questions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReadingSetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReadingSetsTable> {
+  $$ReadingSetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get bodyFr =>
+      $composableBuilder(column: $table.bodyFr, builder: (column) => column);
+
+  GeneratedColumn<String> get questions =>
+      $composableBuilder(column: $table.questions, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+}
+
+class $$ReadingSetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReadingSetsTable,
+          ReadingSet,
+          $$ReadingSetsTableFilterComposer,
+          $$ReadingSetsTableOrderingComposer,
+          $$ReadingSetsTableAnnotationComposer,
+          $$ReadingSetsTableCreateCompanionBuilder,
+          $$ReadingSetsTableUpdateCompanionBuilder,
+          (
+            ReadingSet,
+            BaseReferences<_$AppDatabase, $ReadingSetsTable, ReadingSet>,
+          ),
+          ReadingSet,
+          PrefetchHooks Function()
+        > {
+  $$ReadingSetsTableTableManager(_$AppDatabase db, $ReadingSetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReadingSetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReadingSetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReadingSetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> bodyFr = const Value.absent(),
+                Value<String> questions = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => ReadingSetsCompanion(
+                id: id,
+                title: title,
+                kind: kind,
+                bodyFr: bodyFr,
+                questions: questions,
+                source: source,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String title,
+                required String kind,
+                required String bodyFr,
+                required String questions,
+                Value<String> source = const Value.absent(),
+              }) => ReadingSetsCompanion.insert(
+                id: id,
+                title: title,
+                kind: kind,
+                bodyFr: bodyFr,
+                questions: questions,
+                source: source,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReadingSetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReadingSetsTable,
+      ReadingSet,
+      $$ReadingSetsTableFilterComposer,
+      $$ReadingSetsTableOrderingComposer,
+      $$ReadingSetsTableAnnotationComposer,
+      $$ReadingSetsTableCreateCompanionBuilder,
+      $$ReadingSetsTableUpdateCompanionBuilder,
+      (
+        ReadingSet,
+        BaseReferences<_$AppDatabase, $ReadingSetsTable, ReadingSet>,
+      ),
+      ReadingSet,
+      PrefetchHooks Function()
+    >;
+typedef $$ReadingAttemptsTableCreateCompanionBuilder =
+    ReadingAttemptsCompanion Function({
+      Value<int> id,
+      required int setId,
+      required int correct,
+      required int total,
+      required int seconds,
+      required DateTime answeredAt,
+    });
+typedef $$ReadingAttemptsTableUpdateCompanionBuilder =
+    ReadingAttemptsCompanion Function({
+      Value<int> id,
+      Value<int> setId,
+      Value<int> correct,
+      Value<int> total,
+      Value<int> seconds,
+      Value<DateTime> answeredAt,
+    });
+
+class $$ReadingAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReadingAttemptsTable> {
+  $$ReadingAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correct => $composableBuilder(
+    column: $table.correct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReadingAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReadingAttemptsTable> {
+  $$ReadingAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correct => $composableBuilder(
+    column: $table.correct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReadingAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReadingAttemptsTable> {
+  $$ReadingAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get setId =>
+      $composableBuilder(column: $table.setId, builder: (column) => column);
+
+  GeneratedColumn<int> get correct =>
+      $composableBuilder(column: $table.correct, builder: (column) => column);
+
+  GeneratedColumn<int> get total =>
+      $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ReadingAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReadingAttemptsTable,
+          ReadingAttempt,
+          $$ReadingAttemptsTableFilterComposer,
+          $$ReadingAttemptsTableOrderingComposer,
+          $$ReadingAttemptsTableAnnotationComposer,
+          $$ReadingAttemptsTableCreateCompanionBuilder,
+          $$ReadingAttemptsTableUpdateCompanionBuilder,
+          (
+            ReadingAttempt,
+            BaseReferences<
+              _$AppDatabase,
+              $ReadingAttemptsTable,
+              ReadingAttempt
+            >,
+          ),
+          ReadingAttempt,
+          PrefetchHooks Function()
+        > {
+  $$ReadingAttemptsTableTableManager(
+    _$AppDatabase db,
+    $ReadingAttemptsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReadingAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReadingAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReadingAttemptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> setId = const Value.absent(),
+                Value<int> correct = const Value.absent(),
+                Value<int> total = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<DateTime> answeredAt = const Value.absent(),
+              }) => ReadingAttemptsCompanion(
+                id: id,
+                setId: setId,
+                correct: correct,
+                total: total,
+                seconds: seconds,
+                answeredAt: answeredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int setId,
+                required int correct,
+                required int total,
+                required int seconds,
+                required DateTime answeredAt,
+              }) => ReadingAttemptsCompanion.insert(
+                id: id,
+                setId: setId,
+                correct: correct,
+                total: total,
+                seconds: seconds,
+                answeredAt: answeredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReadingAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReadingAttemptsTable,
+      ReadingAttempt,
+      $$ReadingAttemptsTableFilterComposer,
+      $$ReadingAttemptsTableOrderingComposer,
+      $$ReadingAttemptsTableAnnotationComposer,
+      $$ReadingAttemptsTableCreateCompanionBuilder,
+      $$ReadingAttemptsTableUpdateCompanionBuilder,
+      (
+        ReadingAttempt,
+        BaseReferences<_$AppDatabase, $ReadingAttemptsTable, ReadingAttempt>,
+      ),
+      ReadingAttempt,
+      PrefetchHooks Function()
+    >;
+typedef $$WritingAttemptsTableCreateCompanionBuilder =
+    WritingAttemptsCompanion Function({
+      Value<int> id,
+      required String promptFr,
+      required String userText,
+      required String feedback,
+      required DateTime answeredAt,
+    });
+typedef $$WritingAttemptsTableUpdateCompanionBuilder =
+    WritingAttemptsCompanion Function({
+      Value<int> id,
+      Value<String> promptFr,
+      Value<String> userText,
+      Value<String> feedback,
+      Value<DateTime> answeredAt,
+    });
+
+class $$WritingAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $WritingAttemptsTable> {
+  $$WritingAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userText => $composableBuilder(
+    column: $table.userText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WritingAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WritingAttemptsTable> {
+  $$WritingAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userText => $composableBuilder(
+    column: $table.userText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WritingAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WritingAttemptsTable> {
+  $$WritingAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get promptFr =>
+      $composableBuilder(column: $table.promptFr, builder: (column) => column);
+
+  GeneratedColumn<String> get userText =>
+      $composableBuilder(column: $table.userText, builder: (column) => column);
+
+  GeneratedColumn<String> get feedback =>
+      $composableBuilder(column: $table.feedback, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$WritingAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WritingAttemptsTable,
+          WritingAttempt,
+          $$WritingAttemptsTableFilterComposer,
+          $$WritingAttemptsTableOrderingComposer,
+          $$WritingAttemptsTableAnnotationComposer,
+          $$WritingAttemptsTableCreateCompanionBuilder,
+          $$WritingAttemptsTableUpdateCompanionBuilder,
+          (
+            WritingAttempt,
+            BaseReferences<
+              _$AppDatabase,
+              $WritingAttemptsTable,
+              WritingAttempt
+            >,
+          ),
+          WritingAttempt,
+          PrefetchHooks Function()
+        > {
+  $$WritingAttemptsTableTableManager(
+    _$AppDatabase db,
+    $WritingAttemptsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WritingAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WritingAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WritingAttemptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> promptFr = const Value.absent(),
+                Value<String> userText = const Value.absent(),
+                Value<String> feedback = const Value.absent(),
+                Value<DateTime> answeredAt = const Value.absent(),
+              }) => WritingAttemptsCompanion(
+                id: id,
+                promptFr: promptFr,
+                userText: userText,
+                feedback: feedback,
+                answeredAt: answeredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String promptFr,
+                required String userText,
+                required String feedback,
+                required DateTime answeredAt,
+              }) => WritingAttemptsCompanion.insert(
+                id: id,
+                promptFr: promptFr,
+                userText: userText,
+                feedback: feedback,
+                answeredAt: answeredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WritingAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WritingAttemptsTable,
+      WritingAttempt,
+      $$WritingAttemptsTableFilterComposer,
+      $$WritingAttemptsTableOrderingComposer,
+      $$WritingAttemptsTableAnnotationComposer,
+      $$WritingAttemptsTableCreateCompanionBuilder,
+      $$WritingAttemptsTableUpdateCompanionBuilder,
+      (
+        WritingAttempt,
+        BaseReferences<_$AppDatabase, $WritingAttemptsTable, WritingAttempt>,
+      ),
+      WritingAttempt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3975,4 +5770,10 @@ class $AppDatabaseManager {
       $$SessionLogsTableTableManager(_db, _db.sessionLogs);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$ReadingSetsTableTableManager get readingSets =>
+      $$ReadingSetsTableTableManager(_db, _db.readingSets);
+  $$ReadingAttemptsTableTableManager get readingAttempts =>
+      $$ReadingAttemptsTableTableManager(_db, _db.readingAttempts);
+  $$WritingAttemptsTableTableManager get writingAttempts =>
+      $$WritingAttemptsTableTableManager(_db, _db.writingAttempts);
 }
