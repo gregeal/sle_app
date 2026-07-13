@@ -102,6 +102,94 @@ void main() {
       );
     });
 
+    test('retries with max_completion_tokens when the model rejects max_tokens',
+        () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-5.4-mini',
+        apiKey: 'sk',
+        httpClient: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          bodies.add(body);
+          if (body.containsKey('max_tokens')) {
+            return http.Response(
+              jsonEncode({
+                'error': {
+                  'message':
+                      "Unsupported parameter: 'max_tokens' is not supported "
+                          "with this model. Use 'max_completion_tokens' "
+                          'instead.',
+                },
+              }),
+              400,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'OK'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final reply =
+          await client.complete(system: 's', user: 'u', maxTokens: 16);
+
+      expect(reply, 'OK');
+      expect(bodies, hasLength(2));
+      expect(bodies.first['max_tokens'], 16);
+      expect(bodies.last.containsKey('max_tokens'), isFalse);
+      expect(bodies.last['max_completion_tokens'], 16);
+    });
+
+    test('retries without temperature when the model rejects it', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-5.4-mini',
+        apiKey: 'sk',
+        httpClient: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          bodies.add(body);
+          if (body.containsKey('temperature')) {
+            return http.Response(
+              jsonEncode({
+                'error': {
+                  'message':
+                      "Unsupported value: 'temperature' does not support 0.8 "
+                          'with this model. Only the default (1) value is '
+                          'supported.',
+                },
+              }),
+              400,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'OK'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final reply = await client.complete(system: 's', user: 'u');
+
+      expect(reply, 'OK');
+      expect(bodies, hasLength(2));
+      expect(bodies.last.containsKey('temperature'), isFalse);
+    });
+
     test('maps malformed JSON to an LlmException', () async {
       final client = OpenAiCompatibleClient(
         baseUrl: 'https://api.openai.com/v1',

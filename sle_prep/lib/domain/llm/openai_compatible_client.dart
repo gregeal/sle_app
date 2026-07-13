@@ -30,32 +30,70 @@ class OpenAiCompatibleClient implements LlmClient {
     double temperature = 0.7,
     int? maxTokens,
   }) async {
+    final body = <String, dynamic>{
+      'model': model,
+      'temperature': temperature,
+      'max_tokens': ?maxTokens,
+      'messages': [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user},
+      ],
+    };
+
+    // Newer OpenAI models reject legacy parameter names/values that the rest
+    // of the OpenAI-compatible ecosystem still expects, so adapt based on the
+    // server's own error message instead of hardcoding per provider.
+    for (var attempt = 0; ; attempt++) {
+      final response = await _post(body);
+      final payload = _decode(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final content = _firstChoiceContent(payload);
+        if (content == null || content.isEmpty) {
+          throw const LlmException(
+              'Réponse vide ou inattendue du fournisseur IA.');
+        }
+        return content;
+      }
+
+      final message = _errorMessage(payload);
+      if (response.statusCode == 400 && message != null && attempt < 2) {
+        if (body.containsKey('max_tokens') &&
+            message.contains('max_completion_tokens')) {
+          body['max_completion_tokens'] = body.remove('max_tokens');
+          continue;
+        }
+        if (body.containsKey('temperature') &&
+            message.toLowerCase().contains("'temperature'")) {
+          body.remove('temperature');
+          continue;
+        }
+      }
+
+      throw LlmException(
+        message ?? 'Le fournisseur IA a refusé la requête.',
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  Future<http.Response> _post(Map<String, dynamic> body) async {
     final base = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
     final url = Uri.parse('$base/chat/completions');
     final key = apiKey;
-    final authorization =
-        key != null && key.isNotEmpty ? 'Bearer $key' : null;
+    final authorization = key != null && key.isNotEmpty ? 'Bearer $key' : null;
 
-    final http.Response response;
     try {
-      response = await _http
+      return await _http
           .post(
             url,
             headers: {
               'content-type': 'application/json',
               'Authorization': ?authorization,
             },
-            body: jsonEncode({
-              'model': model,
-              'temperature': temperature,
-              'max_tokens': ?maxTokens,
-              'messages': [
-                {'role': 'system', 'content': system},
-                {'role': 'user', 'content': user},
-              ],
-            }),
+            body: jsonEncode(body),
           )
           .timeout(timeout);
     } on TimeoutException {
@@ -66,20 +104,6 @@ class OpenAiCompatibleClient implements LlmClient {
     } on http.ClientException catch (error) {
       throw LlmException('Connexion impossible : ${error.message}');
     }
-
-    final payload = _decode(response);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw LlmException(
-        _errorMessage(payload) ?? 'Le fournisseur IA a refusé la requête.',
-        statusCode: response.statusCode,
-      );
-    }
-
-    final content = _firstChoiceContent(payload);
-    if (content == null || content.isEmpty) {
-      throw const LlmException('Réponse vide ou inattendue du fournisseur IA.');
-    }
-    return content;
   }
 
   Map<String, dynamic>? _decode(http.Response response) {
