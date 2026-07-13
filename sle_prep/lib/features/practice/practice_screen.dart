@@ -8,6 +8,7 @@ import '../../providers.dart';
 import '../drills/drill_screen.dart';
 import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
+import '../writing/writing_screen.dart';
 
 class PracticeScreen extends ConsumerWidget {
   const PracticeScreen({super.key});
@@ -66,6 +67,18 @@ class PracticeScreen extends ConsumerWidget {
                   ),
                 );
                 ref.invalidate(progressSnapshotProvider);
+              },
+            ),
+            _PracticeCard(
+              icon: Icons.rate_review_outlined,
+              title: 'Expression écrite (IA)',
+              subtitle: 'Rédaction guidée · rétroaction corrigée et notée',
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => WritingScreen(themeFr: week.week.themeFr),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 8),
