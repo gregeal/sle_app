@@ -1,38 +1,33 @@
 # SLE Prep / Objectif C
 
-An Android-first Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. The long-term goal is C-level readiness across reading, writing, and oral interaction.
+An Android-first Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. The goal is C-level readiness across reading, writing, and oral interaction, built around a 26-week study plan at 60–90 minutes per day.
 
-The current build is the start of the offline P0 habit engine:
+All four planned phases (P0–P3) are implemented:
 
-- 26-week curriculum seed data
-- 309 French workplace vocabulary cards
-- 92 SLE-style grammar drill items
-- offline spaced-repetition vocabulary review using SM-2 scheduling
-- SLE-style grammar exercises with immediate explanations and weak-topic prioritization
-- a 75-minute daily session plan, completion checklist, resource rail, and local progress summary
-- optional AI-provider settings with encrypted Android API-key storage
-- local SQLite storage; no account, server, or API key is required for the current flow
+- **Daily habit engine (P0)** — 26-week curriculum, 309 workplace vocabulary cards with SM-2 spaced repetition, 92+ SLE-style grammar drills with explanations and weak-topic prioritization, a composed daily session with completion checklist, streaks, and resource links (Mauril, PSC self-assessments). Fully offline.
+- **AI integration (P0/P1)** — provider-agnostic LLM client (OpenAI, OpenRouter, local Ollama, Anthropic, or any OpenAI-compatible endpoint) with connection test, encrypted API-key storage, and validated on-demand generation of new grammar drills and reading passages. Adapts automatically to newer OpenAI parameter requirements (`max_completion_tokens`, locked temperature).
+- **Reading & writing (P1)** — timed SLE-style reading comprehension (memos, emails, policy excerpts) with per-question explanations, and guided composition with AI feedback: inline corrections, a corrected model text, an unofficial A/B/C level estimate, and concrete tips.
+- **Oral coach (P2)** — a daily OLA-style spoken question (difficulty follows the 26-week arc) and a full 5-question simulated interview escalating A → B → C. Questions are read aloud (TTS), answers are transcribed on-device (`fr_CA` speech recognition), and the transcript is assessed against the five official OLA criteria (aisance, compréhension, vocabulaire, grammaire, prononciation) with a report, level estimate, and improvement tips.
+- **Checkpoints & dashboard (P3)** — monthly mock-exam checkpoints for all three skills, scored against approximate published cut lines, feeding a per-skill level-trajectory dashboard with streak, total study hours, and per-topic accuracy.
 
-Use **Accueil** for today’s planned study blocks, **Réviser** for vocabulary or grammar, **Progrès** for local accuracy and streaks, and **Paramètres** for optional AI-provider configuration. Vocabulary and grammar work fully offline; AI generation and feedback are not connected yet.
+Navigation: **Accueil** (today's session), **Réviser** (vocabulary, grammar, reading, writing, AI generation), **Coach** (oral practice), **Progrès** (trajectory, stats, mock exams), **Paramètres** (AI provider).
 
-The full product requirements, design concepts, and implementation sequence live in the repository root:
+Vocabulary, grammar drills, and seeded reading passages work fully offline. AI features (content generation, writing feedback, oral assessment) require a configured provider and API key; the key is stored in Android encrypted storage and never leaves the device — only prompts/transcripts are sent to your chosen provider. All level estimates are **unofficial**; the app makes no official SLE claims.
 
-- [`../PRD.md`](../PRD.md)
-- [`../docs/plans/2026-07-12-p0-implementation-plan.md`](../docs/plans/2026-07-12-p0-implementation-plan.md)
-- [`../docs/design/objectif-c-ecrans-android.dc.html`](../docs/design/objectif-c-ecrans-android.dc.html)
+Project documents in the repository root:
+
+- [`PRD.md`](PRD.md) — full product requirements
+- [`docs/plans/2026-07-12-p0-implementation-plan.md`](docs/plans/2026-07-12-p0-implementation-plan.md)
+- [`docs/design/objectif-c-ecrans-android.dc.html`](docs/design/objectif-c-ecrans-android.dc.html) — design screens
 
 ## Prerequisites
 
 Use a Windows machine with:
 
-1. **Flutter 3.44.6 or newer** on the stable channel. This project requires Dart 3.12 or newer.
-2. **Android Studio**, including:
-   - Android SDK Platform and Build Tools
-   - Android SDK Command-line Tools
-   - Android SDK Platform-Tools (`adb`)
-   - Android Emulator, if you want to use an emulator
-3. Android Studio's bundled **JBR/JDK 17+**. The project targets Java 17.
-4. Either an Android phone with USB debugging enabled or a running Android emulator.
+1. **Flutter 3.44.6 or newer** on the stable channel (Dart 3.12+).
+2. The **Android SDK** with Platform-Tools (`adb`), a platform, and Build-Tools — via Android Studio's SDK Manager or the command-line tools.
+3. A **JDK 17+** for Gradle (Android Studio's bundled JBR, or a standalone JDK configured with `flutter config --jdk-dir`).
+4. An Android phone with USB debugging enabled (recommended — the oral coach needs a real microphone), or an emulator.
 
 ## One-time Windows setup
 
@@ -55,41 +50,9 @@ flutter --version
 flutter doctor
 ```
 
-### 2. Configure Android Studio and the SDK
+### 2. Configure the Android SDK
 
-Open Android Studio once and use **More Actions → SDK Manager** to install the items listed in the prerequisites. Then accept the Android licences:
-
-```powershell
-flutter doctor --android-licenses
-flutter doctor
-```
-
-If `flutter doctor` detects an old Java installation, point Flutter at Android Studio's bundled JBR:
-
-```powershell
-flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"
-```
-
-Run `flutter doctor` again. Android should show no blocking issue before you try to build the app.
-
-#### Fix: Android SDK Command-line Tools missing
-
-If `flutter doctor` reports either **`cmdline-tools component is missing`** or **`Android sdkmanager not found`**, Flutter can see the Android SDK but cannot accept licences or build Android apps yet.
-
-In Android Studio, open **More Actions → SDK Manager** (or **Tools → SDK Manager** when a project is open), then choose the **SDK Tools** tab. Select and apply these components:
-
-- **Android SDK Command-line Tools (latest)** — required
-- Android SDK Platform-Tools
-- Android SDK Build-Tools
-- Android Emulator — optional, for an emulator
-
-Wait until Android Studio finishes the installation. The following command should then return `True`:
-
-```powershell
-Test-Path "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat"
-```
-
-Configure Flutter with the SDK location from Android Studio. The usual Windows location is shown below; replace it only if SDK Manager shows a different path:
+Install the SDK components (via Android Studio's **SDK Manager**, or `sdkmanager` from the command-line tools), then accept the licences:
 
 ```powershell
 flutter config --android-sdk "$env:LOCALAPPDATA\Android\Sdk"
@@ -97,36 +60,40 @@ flutter doctor --android-licenses
 flutter doctor
 ```
 
-Accept every licence prompt with `y`. Do **not** use `C:\Program Files\Android\Android Studio\jbr` as the Android SDK path: it is Android Studio's Java runtime, not the Android SDK.
+If `flutter doctor` detects an old Java installation, point Flutter at a modern JDK:
 
-> **PowerShell tip:** If the prompt changes from `PS ...>` to `>>`, PowerShell is waiting for an unfinished command—usually a missing closing quote. Press `Ctrl+C`, then rerun the complete command above. Do not copy the `PS>` or `>>` prompt characters themselves.
+```powershell
+flutter config --jdk-dir "C:\dev\jdk"          # standalone JDK
+# or: flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"
+```
+
+Run `flutter doctor` again; Android should show no blocking issue before you build.
+
+#### Fix: Android SDK Command-line Tools missing
+
+If `flutter doctor` reports **`cmdline-tools component is missing`** or **`Android sdkmanager not found`**, install **Android SDK Command-line Tools (latest)** (SDK Manager → SDK Tools tab), confirm with:
+
+```powershell
+Test-Path "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat"
+```
+
+then rerun the three commands above. Do **not** use Android Studio's `jbr` directory as the Android SDK path — it is a Java runtime, not the SDK.
 
 ### 3. Choose a device
 
-#### Physical Android phone
+#### Physical Android phone (recommended)
 
-1. On the phone, enable **Developer options** and **USB debugging**.
-2. Connect it by USB and accept the debugging prompt on the phone.
-3. Verify that Flutter can see it:
+1. Enable **Developer options** and **USB debugging** on the phone.
+2. Connect by USB and accept the debugging prompt.
+3. Verify: `adb devices` and `flutter devices`.
 
-   ```powershell
-   adb devices
-   flutter devices
-   ```
-
-If `adb devices` shows `unauthorized`, unlock the phone and accept the RSA fingerprint prompt. If it shows no device, install the phone manufacturer's Windows USB driver, reconnect the cable, and try again.
+If `adb devices` shows `unauthorized`, unlock the phone and accept the RSA prompt. If no device appears, switch the USB mode from "charging only" to file transfer, or install the manufacturer's USB driver.
 
 #### Android emulator
 
-In Android Studio, open **Device Manager**, create a phone emulator, and start it. Then run:
-
-```powershell
-flutter devices
-```
+Create and start an emulator in Android Studio's Device Manager, then check `flutter devices`. Note: speech recognition and TTS quality on emulators is poor; use a phone for the oral coach.
 
 ## Run the app
-
-Run these commands from the Flutter project directory:
 
 ```powershell
 cd "C:\Users\grege\Documents\My Docs\MyApp\sle_prep"
@@ -136,24 +103,22 @@ flutter test
 flutter run
 ```
 
-If more than one device is connected, select one explicitly:
+With several devices connected, pick one: `flutter run -d <device-id>`.
 
-```powershell
-flutter devices
-flutter run -d <device-id>
-```
+During development: `r` hot-reloads, `R` restarts, `q` quits.
 
-Keep `flutter run` open while developing:
+On first launch the app imports its bundled curriculum, vocabulary, drills, reading passages, and oral questions into the on-device database. Upgrades import only new content — existing progress and earlier seed data are never duplicated.
 
-- Press `r` for hot reload after a UI change.
-- Press `R` for a full hot restart.
-- Press `q` to stop the app.
+## AI provider setup (in-app)
 
-On first launch, the app imports its bundled curriculum, vocabulary, and drills into its on-device database. This can take a moment; subsequent launches do not duplicate the content.
+1. Open **Paramètres**, pick a provider (OpenAI, OpenRouter, Ollama local, Anthropic, or custom), enter the base URL, model name, and API key.
+2. Tap **Tester la connexion** — it saves the form and performs a cheap round-trip.
+3. Notes:
+   - OpenAI: use a current text model (e.g. `gpt-5.4-mini`). Realtime/voice-only models do not work with the chat-completions endpoint the app uses.
+   - Ollama on a physical phone: use your PC's LAN IP (e.g. `http://192.168.1.10:11434/v1`); `10.0.2.2` only resolves on the emulator.
+   - Typical text-feature cost is well under $15/month; oral assessments send only text transcripts.
 
 ## Run checks
-
-Before committing a change, run:
 
 ```powershell
 cd "C:\Users\grege\Documents\My Docs\MyApp\sle_prep"
@@ -161,9 +126,9 @@ flutter analyze
 flutter test
 ```
 
-The tests cover the Drift data layer, SM-2 scheduling, seed-content validation/import, and the vocabulary-review interaction.
+The 80+ tests cover the Drift data layer and migrations, SM-2 scheduling, seed validation and incremental import, the session composer, LLM clients (including OpenAI parameter fallbacks), drill/reading/writing/oral generation and parsing, mock-exam scoring, and key widget flows.
 
-If you change a Drift table in `lib/data/db/database.dart`, regenerate the checked-in database code before testing:
+After changing a Drift table in `lib/data/db/database.dart`, regenerate the database code (and add a migration step in the same file):
 
 ```powershell
 dart run build_runner build --delete-conflicting-outputs
@@ -172,77 +137,59 @@ flutter test
 
 ## Build an APK
 
-Create a debug APK for a connected phone or manual installation:
-
-```powershell
-flutter build apk --debug
-```
-
-Output:
-
-```text
-build\app\outputs\flutter-apk\app-debug.apk
-```
-
-For a release-mode test on a connected device:
-
 ```powershell
 flutter build apk --release
 flutter install --release
 ```
 
-> The current Gradle configuration signs release builds with the debug key so local release-mode testing works. Before distributing an APK, configure a real Android release keystore and signing configuration. Do not distribute a debug-signed release build.
+Output: `build\app\outputs\flutter-apk\app-release.apk`
+
+> The current Gradle configuration signs release builds with the debug key so local release-mode testing works. Before distributing an APK, configure a real Android release keystore. Do not distribute a debug-signed build.
 
 ## Data and reset behaviour
 
-- Progress and scheduling data are stored locally in SQLite on the device.
-- The bundled seed content imports once, tracked by a local `seedVersion` setting.
-- No account or network connection is needed for vocabulary review.
-- Clearing the app's storage in **Android Settings → Apps → sle_prep → Storage → Clear data** permanently removes your progress and imports fresh seed content on the next launch.
+- All progress lives in on-device SQLite; there is no account or server.
+- Seed content imports incrementally, tracked by a local `seedVersion` setting; schema upgrades migrate in place without data loss.
+- API keys are stored with `flutter_secure_storage` (Android Keystore-backed) and are write-only in the UI.
+- **Android Settings → Apps → SLE Prep → Storage → Clear data** permanently removes all progress and re-imports fresh seed content.
 
-## Current scope and next work
+## Roadmap
 
-Implemented now:
-
-- local database and seed import
-- SM-2 vocabulary scheduling
-- vocabulary review UI
-- SLE-style grammar-drill UI with explanations and persisted accuracy
-- daily session composer, block completion log, resource links, and progress summary
-- locally stored AI-provider configuration; API keys use encrypted device storage
-
-Next in the P0 plan:
-
-1. OpenAI-compatible and Anthropic request adapters, including connection tests
-2. Validated generation and insertion of new grammar drills
-3. On-device/phone validation and release signing
-
-Reading, writing feedback, the oral coach, mock exams, backups, and release signing are planned later phases. The current app does **not** make official SLE level claims.
+- OpenAI Realtime API (voice-to-voice) upgrade for the simulated interview — the current STT → text-model → report pipeline is designed so this slots in behind the same interfaces.
+- Dynamic follow-up questions in the simulated interview.
+- Session-plan re-weighting from mock-exam results; backup export; release signing.
 
 ## Project layout
 
 ```text
 sle_prep/
-├── assets/seed/              Bundled curriculum, vocabulary, and drill JSON
+├── assets/seed/              Curriculum, vocabulary, drills, reading, oral JSON
 ├── lib/
-│   ├── data/db/              Drift tables and query helpers
-│   ├── data/seed/            Validated one-time seed importer
+│   ├── data/db/              Drift tables, migrations, and query helpers
+│   ├── data/seed/            Validated incremental seed importer
 │   ├── domain/srs/           Pure SM-2 scheduler
 │   ├── domain/session/       Pure daily-session composer
-│   └── features/             Today, practice, progress, settings, and drills
-├── test/                     Database, seed, scheduler, and widget tests
-└── android/                  Android launcher and Gradle project
+│   ├── domain/mock/          Mock-exam scoring and checkpoint math
+│   ├── domain/speech/        Device speech-to-text / TTS wrappers
+│   ├── domain/llm/           LLM clients, generators, writing & oral coaches
+│   └── features/             Today, practice, reading, writing, coach,
+│                             mocks, progress, settings screens
+├── test/                     Unit, parser, DAO, and widget tests
+├── tool/sqlite3/             sqlite3.dll for host-side Drift tests (Windows)
+└── android/                  Android manifest, launcher icon, Gradle project
 ```
 
 ## Troubleshooting
 
 | Problem | What to do |
 |---|---|
-| `flutter` is not recognized | Add `C:\dev\flutter\bin` to `Path`, open a new terminal, and run `flutter --version`. |
-| `flutter doctor` reports Android licences | Run `flutter doctor --android-licenses`, accept each licence, then rerun `flutter doctor`. |
-| `cmdline-tools component is missing` or `sdkmanager not found` | Install **Android SDK Command-line Tools (latest)** in Android Studio's **SDK Tools** tab, then rerun the three commands in [Fix: Android SDK Command-line Tools missing](#fix-android-sdk-command-line-tools-missing). |
-| Java version is too old | Run `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`. |
-| No Android device is found | Start an emulator or reconnect an unlocked USB-debugging-enabled phone; check `adb devices`. |
-| `flutter pub get` fails | Confirm internet access, then run `flutter pub get` again from the `sle_prep` directory. |
-| Database/schema errors after table changes | Run `dart run build_runner build --delete-conflicting-outputs`. |
-| You need a clean test run | Run `flutter clean`, then `flutter pub get` and `flutter test`. |
+| `flutter` is not recognized | Add `C:\dev\flutter\bin` to `Path`, open a new terminal, run `flutter --version`. |
+| Android licences not accepted | `flutter doctor --android-licenses`, accept each, rerun `flutter doctor`. |
+| `cmdline-tools component is missing` | Install **Android SDK Command-line Tools (latest)**, then reconfigure as shown above. |
+| Java version too old | `flutter config --jdk-dir "C:\dev\jdk"` (or Android Studio's `jbr`). |
+| No Android device found | Reconnect an unlocked, USB-debugging-enabled phone; check `adb devices`. |
+| AI test fails with "Connexion impossible" | Check the phone's internet connection; for Ollama use the PC's LAN IP. |
+| AI test fails with HTTP 401 / 404 / 429 | 401: re-paste the key. 404: fix the model name. 429: add credit at your provider. |
+| Microphone not working in the coach | Grant the microphone permission (Android Settings → Apps → SLE Prep → Permissions). |
+| Database/schema errors after table changes | `dart run build_runner build --delete-conflicting-outputs`. |
+| Need a clean test run | `flutter clean`, then `flutter pub get` and `flutter test`. |
