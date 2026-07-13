@@ -10,7 +10,7 @@ const _seedVersionKey = 'seedVersion';
 /// Highest seed version shipped with this build. Content added in later app
 /// versions imports incrementally: only the steps above the device's stored
 /// version run, so upgrades never duplicate earlier content.
-const _targetSeedVersion = 2;
+const _targetSeedVersion = 3;
 
 /// Thrown when bundled seed content does not match the app's expected schema.
 class SeedContentException implements Exception {
@@ -52,6 +52,11 @@ Future<bool> importSeedFromAssets(AppDatabase db) async {
   if (storedVersion < 2) {
     readingSets = _parseReadingSets(
         await rootBundle.loadString('assets/seed/reading_core.json'));
+  }
+  List<_SeedOralQuestion> oralQuestions = const [];
+  if (storedVersion < 3) {
+    oralQuestions = _parseOralQuestions(
+        await rootBundle.loadString('assets/seed/oral_core.json'));
   }
 
   final now = DateTime.now();
@@ -113,6 +118,17 @@ Future<bool> importSeedFromAssets(AppDatabase db) async {
               kind: set.kind,
               bodyFr: set.bodyFr,
               questions: jsonEncode(set.questions),
+            ),
+          );
+    }
+
+    for (final question in oralQuestions) {
+      await db
+          .into(db.oralQuestions)
+          .insert(
+            OralQuestionsCompanion.insert(
+              tier: question.tier,
+              questionFr: question.questionFr,
             ),
           );
     }
@@ -307,6 +323,30 @@ List<_SeedReadingSet> _parseReadingSets(String source) {
       .toList(growable: false);
 }
 
+const _oralTiers = {'A', 'B', 'C'};
+
+List<_SeedOralQuestion> _parseOralQuestions(String source) {
+  final root = _decodeObject(source, 'oral_core.json');
+  final questions = _requiredList(root, 'questions', 'oral_core.json');
+
+  return questions
+      .asMap()
+      .entries
+      .map((entry) {
+        final context = 'oral_core.json questions[${entry.key}]';
+        final item = _asObject(entry.value, context);
+        final tier = _requiredString(item, 'tier', context);
+        if (!_oralTiers.contains(tier)) {
+          throw SeedContentException('$context tier must be A, B or C');
+        }
+        return _SeedOralQuestion(
+          tier: tier,
+          questionFr: _requiredString(item, 'questionFr', context),
+        );
+      })
+      .toList(growable: false);
+}
+
 Map<String, dynamic> _decodeObject(String source, String name) {
   try {
     return _asObject(jsonDecode(source), name);
@@ -387,6 +427,13 @@ class _SeedReadingSet {
   final String kind;
   final String bodyFr;
   final List<Map<String, dynamic>> questions;
+}
+
+class _SeedOralQuestion {
+  const _SeedOralQuestion({required this.tier, required this.questionFr});
+
+  final String tier;
+  final String questionFr;
 }
 
 class _SeedCard {

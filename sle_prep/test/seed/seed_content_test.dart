@@ -129,6 +129,25 @@ void main() {
     });
   });
 
+  group('oral_core.json', () {
+    test('has at least 25 questions across all three tiers', () async {
+      final oral = await loadAsset('oral_core.json');
+      final questions =
+          (oral['questions'] as List).cast<Map<String, dynamic>>();
+      expect(questions.length, greaterThanOrEqualTo(25));
+      final byTier = <String, int>{};
+      for (final question in questions) {
+        expect(['A', 'B', 'C'], contains(question['tier']));
+        expect(question['questionFr'], isNotEmpty);
+        byTier.update(question['tier'] as String, (v) => v + 1,
+            ifAbsent: () => 1);
+      }
+      expect(byTier['A'], greaterThanOrEqualTo(5));
+      expect(byTier['B'], greaterThanOrEqualTo(8));
+      expect(byTier['C'], greaterThanOrEqualTo(8));
+    });
+  });
+
   group('seed loader upgrade', () {
     test('v1 devices gain reading sets without duplicating v1 content',
         () async {
@@ -152,7 +171,24 @@ void main() {
           reason: 'vocab must not be re-imported');
       expect(await db.allReadingSets(), isNotEmpty,
           reason: 'reading sets are the v2 content');
-      expect(await db.getSetting('seedVersion'), '2');
+      expect(await db.oralQuestionsByTier('C'), isNotEmpty,
+          reason: 'oral questions are the v3 content');
+      expect(await db.getSetting('seedVersion'), '3');
+    });
+
+    test('v2 devices gain only the oral bank', () async {
+      final db = inMemoryDatabase();
+      addTearDown(db.close);
+
+      await db.setSetting('seedVersion', '2');
+      final ran = await importSeedFromAssets(db);
+      expect(ran, isTrue);
+      expect(await db.dueCardCount(DateTime(2030)), 0,
+          reason: 'no vocab re-import');
+      expect(await db.allReadingSets(), isEmpty,
+          reason: 'no reading re-import');
+      expect(await db.oralQuestionsByTier('A'), isNotEmpty);
+      expect(await db.getSetting('seedVersion'), '3');
     });
   });
 
