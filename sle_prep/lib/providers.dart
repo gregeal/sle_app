@@ -8,6 +8,7 @@ import 'data/seed/seed_loader.dart';
 import 'domain/session/session_composer.dart';
 import 'domain/llm/llm_client.dart';
 import 'domain/llm/llm_config.dart';
+import 'domain/speech/speech_services.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final database = AppDatabase(driftDatabase(name: 'sle_prep'));
@@ -46,6 +47,11 @@ final llmClientProvider = FutureProvider<LlmClient>((ref) async {
   final apiKey = await ref.watch(secureStorageProvider).read(key: 'llmApiKey');
   return clientFor(config, apiKey: apiKey);
 });
+
+final speechServiceProvider =
+    Provider<SpeechService>((ref) => DeviceSpeechService());
+
+final ttsServiceProvider = Provider<TtsService>((ref) => DeviceTtsService());
 
 final seedImportProvider = FutureProvider<void>((ref) async {
   await importSeedFromAssets(ref.watch(appDatabaseProvider));

@@ -2,6 +2,9 @@
     <!-- AI features (connection test, drill generation) call HTTPS APIs;
          release builds get no network access without this. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Oral coach: device speech recognition of the user's answers. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <application
         android:label="SLE Prep"
         android:name="${applicationName}"
@@ -43,6 +46,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11+: make the on-device speech recognition service visible. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <!-- Text-to-speech engine visibility for flutter_tts. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
 </manifest>
