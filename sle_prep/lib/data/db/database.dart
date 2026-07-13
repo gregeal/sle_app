@@ -62,9 +62,13 @@ class SessionLogs extends Table {
   /// Date-only key, yyyy-MM-dd.
   TextColumn get date => text()();
 
-  /// JSON-encoded lists of block type names.
+  /// JSON-encoded lists of stable block IDs.
   TextColumn get blocksPlanned => text()();
   TextColumn get blocksCompleted => text()();
+
+  /// JSON-encoded immutable block details for the day. IDs alone are not
+  /// enough because minutes, topics, and resources can change after planning.
+  TextColumn get planSnapshot => text().withDefault(const Constant('[]'))();
   IntColumn get minutesActive => integer().withDefault(const Constant(0))();
 
   @override
@@ -123,7 +127,7 @@ class OralAttempts extends Table {
   /// JSON list of {question, answer} transcript pairs.
   TextColumn get exchanges => text()();
 
-  /// JSON feedback (5 OLA criteria, level estimate, tips).
+  /// JSON feedback (5 coaching dimensions, level estimate, tips).
   TextColumn get feedback => text()();
   DateTimeColumn get answeredAt => dateTime()();
 }
@@ -151,42 +155,47 @@ class WritingAttempts extends Table {
   DateTimeColumn get answeredAt => dateTime()();
 }
 
-@DriftDatabase(tables: [
-  VocabCards,
-  ReviewStates,
-  DrillItems,
-  DrillAttempts,
-  CurriculumWeeks,
-  SessionLogs,
-  AppSettings,
-  ReadingSets,
-  ReadingAttempts,
-  WritingAttempts,
-  OralQuestions,
-  OralAttempts,
-  MockResults,
-])
+@DriftDatabase(
+  tables: [
+    VocabCards,
+    ReviewStates,
+    DrillItems,
+    DrillAttempts,
+    CurriculumWeeks,
+    SessionLogs,
+    AppSettings,
+    ReadingSets,
+    ReadingAttempts,
+    WritingAttempts,
+    OralQuestions,
+    OralAttempts,
+    MockResults,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(readingSets);
-            await m.createTable(readingAttempts);
-            await m.createTable(writingAttempts);
-          }
-          if (from < 3) {
-            await m.createTable(oralQuestions);
-            await m.createTable(oralAttempts);
-          }
-          if (from < 4) {
-            await m.createTable(mockResults);
-          }
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(readingSets);
+        await m.createTable(readingAttempts);
+        await m.createTable(writingAttempts);
+      }
+      if (from < 3) {
+        await m.createTable(oralQuestions);
+        await m.createTable(oralAttempts);
+      }
+      if (from < 4) {
+        await m.createTable(mockResults);
+      }
+      if (from < 5) {
+        await m.addColumn(sessionLogs, sessionLogs.planSnapshot);
+      }
+    },
+  );
 }

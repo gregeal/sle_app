@@ -23,6 +23,59 @@ class SessionBlock {
   final String subtitleFr;
   final List<String> grammarTopics;
   final SessionResource? resource;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'type': type.name,
+    'minutes': minutes,
+    'titleFr': titleFr,
+    'subtitleFr': subtitleFr,
+    'grammarTopics': grammarTopics,
+    if (resource case final resource?) 'resource': resource.toJson(),
+  };
+
+  factory SessionBlock.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final typeName = json['type'];
+    final minutes = json['minutes'];
+    final title = json['titleFr'];
+    final subtitle = json['subtitleFr'];
+    final topics = json['grammarTopics'] ?? const <dynamic>[];
+    if (id is! String || id.isEmpty) {
+      throw const FormatException('A session block needs a non-empty id.');
+    }
+    if (typeName is! String) {
+      throw const FormatException('A session block needs a valid type.');
+    }
+    final type = BlockType.values.where((value) => value.name == typeName);
+    if (type.isEmpty) {
+      throw FormatException('Unknown session block type: $typeName');
+    }
+    if (minutes is! int || minutes < 1 || minutes > 90) {
+      throw const FormatException('Session block minutes must be 1 to 90.');
+    }
+    if (title is! String || title.isEmpty || subtitle is! String) {
+      throw const FormatException('A session block needs display text.');
+    }
+    if (topics is! List) {
+      throw const FormatException('grammarTopics must be a list.');
+    }
+    final rawResource = json['resource'];
+    if (rawResource != null && rawResource is! Map<String, dynamic>) {
+      throw const FormatException('resource must be an object.');
+    }
+    return SessionBlock(
+      id: id,
+      type: type.single,
+      minutes: minutes,
+      titleFr: title,
+      subtitleFr: subtitle,
+      grammarTopics: List.unmodifiable(topics.cast<String>()),
+      resource: rawResource == null
+          ? null
+          : SessionResource.fromJson(rawResource),
+    );
+  }
 }
 
 class SessionResource {
@@ -30,6 +83,17 @@ class SessionResource {
 
   final String label;
   final String url;
+
+  Map<String, Object?> toJson() => {'label': label, 'url': url};
+
+  factory SessionResource.fromJson(Map<String, dynamic> json) {
+    final label = json['label'];
+    final url = json['url'];
+    if (label is! String || label.isEmpty || url is! String || url.isEmpty) {
+      throw const FormatException('A session resource needs a label and URL.');
+    }
+    return SessionResource(label: label, url: url);
+  }
 }
 
 /// Composes one achievable session between 60 and 90 minutes.

@@ -70,4 +70,4 @@ Sm2State applyGrade(Sm2State s, ReviewGrade g) {
 }
 
 DateTime nextDue(DateTime now, Sm2State s) =>
-    now.add(Duration(days: s.intervalDays));
+    DateTime(now.year, now.month, now.day + s.intervalDays);

@@ -111,18 +111,21 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
-String _hoursLabel(int minutes) =>
-    minutes < 60 ? '$minutes min' : '${(minutes / 60).round()} h';
+String _hoursLabel(int minutes) {
+  if (minutes < 60) return '$minutes min';
+  final hours = minutes ~/ 60;
+  final remainder = minutes % 60;
+  return remainder == 0 ? '$hours h' : '$hours h $remainder min';
+}
 
 String _checkpointLabel(DateTime checkpoint) {
   final today = DateTime.now();
-  final days =
-      checkpoint.difference(DateTime(today.year, today.month, today.day)).inDays;
+  final days = calendarDayDifference(today, checkpoint);
   final when = days <= 0
       ? 'C\'est aujourd\'hui !'
       : days == 1
-          ? 'Demain'
-          : 'Dans $days jours';
+      ? 'Demain'
+      : 'Dans $days jours';
   return '$when · lecture + écriture + entrevue simulée';
 }
 
@@ -134,30 +137,30 @@ class _TrajectoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Row(
-          children: [
-            SizedBox(width: 168, child: Text(label)),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: LinearProgressIndicator(
-                  value: level == null ? 0 : levelProgress(level!),
-                  minHeight: 10,
-                ),
-              ),
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Row(
+      children: [
+        SizedBox(width: 168, child: Text(label)),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: LinearProgressIndicator(
+              value: level == null ? 0 : levelProgress(level!),
+              minHeight: 10,
             ),
-            SizedBox(
-              width: 34,
-              child: Text(
-                level ?? '—',
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+          ),
         ),
-      );
+        SizedBox(
+          width: 34,
+          child: Text(
+            level ?? '—',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _MetricCard extends StatelessWidget {

@@ -43,9 +43,25 @@ class RealtimeConversationItemEvent extends RealtimeVoiceEvent {
 }
 
 class RealtimeErrorEvent extends RealtimeVoiceEvent {
-  const RealtimeErrorEvent(this.message);
+  const RealtimeErrorEvent(
+    this.message, {
+    this.type,
+    this.code,
+    this.param,
+    this.eventId,
+    this.isFatal = false,
+  });
 
   final String message;
+  final String? type;
+  final String? code;
+  final String? param;
+  final String? eventId;
+
+  /// Server-side Realtime errors are recoverable unless the transport itself
+  /// has failed. This flag is set by the WebRTC implementation for peer or
+  /// data-channel failures; parsed OpenAI `error` events remain non-fatal.
+  final bool isFatal;
 }
 
 class RealtimeVoiceException implements Exception {
@@ -90,22 +106,24 @@ List<RealtimeVoiceEvent> parseRealtimeServerEvent(String raw) {
     case 'conversation.item.input_audio_transcription.completed':
       final transcript = decoded['transcript'];
       if (transcript is String && transcript.trim().isNotEmpty) {
+        final itemId = decoded['item_id'];
         return [
           RealtimeTranscriptEvent(
             isUser: true,
             text: transcript.trim(),
-            itemId: decoded['item_id'] as String?,
+            itemId: itemId is String ? itemId : null,
           ),
         ];
       }
     case 'response.output_audio_transcript.done':
       final transcript = decoded['transcript'];
       if (transcript is String && transcript.trim().isNotEmpty) {
+        final itemId = decoded['item_id'];
         return [
           RealtimeTranscriptEvent(
             isUser: false,
             text: transcript.trim(),
-            itemId: decoded['item_id'] as String?,
+            itemId: itemId is String ? itemId : null,
           ),
         ];
       }
@@ -129,6 +147,18 @@ List<RealtimeVoiceEvent> parseRealtimeServerEvent(String raw) {
           message is String && message.isNotEmpty
               ? message
               : 'La session Realtime a signalé une erreur.',
+          type: error is Map && error['type'] is String
+              ? error['type'] as String
+              : null,
+          code: error is Map && error['code'] is String
+              ? error['code'] as String
+              : null,
+          param: error is Map && error['param'] is String
+              ? error['param'] as String
+              : null,
+          eventId: error is Map && error['event_id'] is String
+              ? error['event_id'] as String
+              : null,
         ),
       ];
   }
@@ -140,32 +170,31 @@ List<RealtimeVoiceEvent> parseRealtimeServerEvent(String raw) {
 /// completed transcript may arrive after the following assistant response.
 class RealtimeTranscriptBuffer {
   final _itemOrder = <String>[];
+  final _itemArrival = <String>[];
+  final _previousByItemId = <String, String?>{};
   final _byItemId = <String, RealtimeTranscriptEvent>{};
   final _withoutItemId = <RealtimeTranscriptEvent>[];
+  var _revision = 0;
 
   void add(RealtimeVoiceEvent event) {
     switch (event) {
       case RealtimeConversationItemEvent():
-        _itemOrder.remove(event.itemId);
-        final previous = event.previousItemId;
-        final previousIndex = previous == null
-            ? -1
-            : _itemOrder.indexOf(previous);
-        if (previous == null) {
-          _itemOrder.insert(0, event.itemId);
-        } else if (previousIndex >= 0) {
-          _itemOrder.insert(previousIndex + 1, event.itemId);
-        } else {
-          _itemOrder.add(event.itemId);
+        if (!_itemArrival.contains(event.itemId)) {
+          _itemArrival.add(event.itemId);
         }
+        _previousByItemId[event.itemId] = event.previousItemId;
+        _rebuildItemOrder();
+        _revision++;
       case RealtimeTranscriptEvent():
         final itemId = event.itemId;
         if (itemId == null || itemId.isEmpty) {
           _withoutItemId.add(event);
         } else {
           _byItemId[itemId] = event;
-          if (!_itemOrder.contains(itemId)) _itemOrder.add(itemId);
+          if (!_itemArrival.contains(itemId)) _itemArrival.add(itemId);
+          _rebuildItemOrder();
         }
+        _revision++;
       case RealtimeActivityEvent() || RealtimeErrorEvent():
         break;
     }
@@ -176,17 +205,95 @@ class RealtimeTranscriptBuffer {
     ..._withoutItemId,
   ];
 
+  void _rebuildItemOrder() {
+    final known = _itemArrival.toSet();
+    final remaining = {...known};
+    final ordered = <String>[];
+    while (remaining.isNotEmpty) {
+      var progressed = false;
+      for (final itemId in _itemArrival) {
+        if (!remaining.contains(itemId)) continue;
+        final previous = _previousByItemId[itemId];
+        if (previous == null ||
+            !known.contains(previous) ||
+            ordered.contains(previous)) {
+          ordered.add(itemId);
+          remaining.remove(itemId);
+          progressed = true;
+        }
+      }
+      if (!progressed) {
+        // A malformed predecessor cycle should not hide transcript content.
+        ordered.addAll(_itemArrival.where(remaining.contains));
+        break;
+      }
+    }
+    _itemOrder
+      ..clear()
+      ..addAll(ordered);
+  }
+
   bool get isEmpty => _byItemId.isEmpty && _withoutItemId.isEmpty;
 
+  /// Monotonically changes whenever ordering or transcript content changes.
+  /// The interview screen uses it to wait briefly for asynchronous final
+  /// transcription events before tearing down WebRTC.
+  int get revision => _revision;
+
+  bool get hasPendingTranscripts =>
+      _itemOrder.any((itemId) => !_byItemId.containsKey(itemId));
+
   void clear() {
+    final hadContent =
+        _itemOrder.isNotEmpty ||
+        _itemArrival.isNotEmpty ||
+        _previousByItemId.isNotEmpty ||
+        _byItemId.isNotEmpty ||
+        _withoutItemId.isNotEmpty;
     _itemOrder.clear();
+    _itemArrival.clear();
+    _previousByItemId.clear();
     _byItemId.clear();
     _withoutItemId.clear();
+    if (hadContent) _revision++;
+  }
+}
+
+/// Gives the Realtime API a bounded window to deliver a final asynchronous
+/// transcription. It returns early after the minimum grace period only when
+/// the buffer is stable and no known conversation item is awaiting text.
+Future<void> waitForRealtimeTranscriptFinalization({
+  required int Function() revision,
+  required bool Function() hasPendingTranscripts,
+  Duration minimumWait = const Duration(milliseconds: 1500),
+  Duration quietPeriod = const Duration(milliseconds: 400),
+  Duration maximumWait = const Duration(seconds: 3),
+  Future<void> Function(Duration duration)? delay,
+}) async {
+  assert(!minimumWait.isNegative);
+  assert(quietPeriod > Duration.zero);
+  assert(maximumWait >= minimumWait);
+  final wait = delay ?? Future<void>.delayed;
+  final initialRevision = revision();
+  await wait(minimumWait);
+
+  var elapsed = minimumWait;
+  var lastRevision = revision();
+  if (!hasPendingTranscripts() && lastRevision == initialRevision) return;
+
+  while (elapsed < maximumWait) {
+    final remaining = maximumWait - elapsed;
+    final interval = remaining < quietPeriod ? remaining : quietPeriod;
+    await wait(interval);
+    elapsed += interval;
+    final currentRevision = revision();
+    if (!hasPendingTranscripts() && currentRevision == lastRevision) return;
+    lastRevision = currentRevision;
   }
 }
 
 /// Pairs the adaptive interview transcript into the format already used by
-/// the five-criterion oral assessor and persistence layer.
+/// the five-dimension oral coach and persistence layer.
 List<Map<String, dynamic>> pairRealtimeTranscript(
   Iterable<RealtimeTranscriptEvent> transcript,
 ) {

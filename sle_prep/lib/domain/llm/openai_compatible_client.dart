@@ -7,20 +7,27 @@ import 'llm_client.dart';
 
 /// Client for any endpoint speaking the OpenAI chat-completions dialect:
 /// OpenAI itself, OpenRouter, a local Ollama, LM Studio, vLLM…
-class OpenAiCompatibleClient implements LlmClient {
+class OpenAiCompatibleClient implements LlmClient, ClosableLlmClient {
   OpenAiCompatibleClient({
     required this.baseUrl,
     required this.model,
     required this.apiKey,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 90),
-  }) : _http = httpClient ?? http.Client();
+  }) : _http = httpClient ?? http.Client(),
+       _ownsHttp = httpClient == null;
 
   final String baseUrl;
   final String model;
   final String? apiKey;
   final Duration timeout;
   final http.Client _http;
+  final bool _ownsHttp;
+
+  @override
+  void close() {
+    if (_ownsHttp) _http.close();
+  }
 
   @override
   Future<String> complete({
@@ -33,6 +40,8 @@ class OpenAiCompatibleClient implements LlmClient {
       'model': model,
       'temperature': temperature,
       'max_tokens': ?maxTokens,
+      if (Uri.tryParse(baseUrl)?.host.toLowerCase() == 'api.openai.com')
+        'store': false,
       'messages': [
         {'role': 'system', 'content': system},
         {'role': 'user', 'content': user},
@@ -50,7 +59,8 @@ class OpenAiCompatibleClient implements LlmClient {
         final content = _firstChoiceContent(payload);
         if (content == null || content.isEmpty) {
           throw const LlmException(
-              'Réponse vide ou inattendue du fournisseur IA.');
+            'Réponse vide ou inattendue du fournisseur IA.',
+          );
         }
         return content;
       }
@@ -97,7 +107,8 @@ class OpenAiCompatibleClient implements LlmClient {
           .timeout(timeout);
     } on TimeoutException {
       throw const LlmException(
-          'Le fournisseur IA n\'a pas répondu à temps. Réessayez.');
+        'Le fournisseur IA n\'a pas répondu à temps. Réessayez.',
+      );
     } on http.ClientException catch (error) {
       // package:http wraps socket-level failures in ClientException on
       // every platform, including the web.
@@ -126,8 +137,11 @@ class OpenAiCompatibleClient implements LlmClient {
   String? _firstChoiceContent(Map<String, dynamic>? payload) {
     final choices = payload?['choices'];
     if (choices is! List || choices.isEmpty) return null;
-    final message = (choices.first as Map<String, dynamic>?)?['message'];
-    final content = (message as Map<String, dynamic>?)?['content'];
+    final first = choices.first;
+    if (first is! Map) return null;
+    final message = first['message'];
+    if (message is! Map) return null;
+    final content = message['content'];
     return content is String ? content : null;
   }
 }

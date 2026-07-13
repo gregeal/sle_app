@@ -27,14 +27,16 @@ class DirectProviderGateway implements AiGateway {
   DirectProviderGateway({required this.loadConfig, required this.loadApiKey});
 
   final Future<LlmConfig> Function() loadConfig;
-  final Future<String?> Function() loadApiKey;
+  final Future<String?> Function(LlmConfig config) loadApiKey;
 
   @override
   bool get supportsDirectConfiguration => true;
 
   @override
-  Future<LlmClient> textClient() async =>
-      clientFor(await loadConfig(), apiKey: await loadApiKey());
+  Future<LlmClient> textClient() async {
+    final config = await loadConfig();
+    return clientFor(config, apiKey: await loadApiKey(config));
+  }
 
   @override
   Future<String> realtimeClientSecret({
@@ -47,7 +49,7 @@ class DirectProviderGateway implements AiGateway {
         'L’entrevue en direct nécessite l’API OpenAI officielle.',
       );
     }
-    final apiKey = (await loadApiKey())?.trim() ?? '';
+    final apiKey = (await loadApiKey(config))?.trim() ?? '';
     if (apiKey.isEmpty) {
       throw const RealtimeVoiceException(
         'Ajoutez d’abord votre clé API OpenAI dans les paramètres.',

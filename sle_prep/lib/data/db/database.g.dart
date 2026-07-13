@@ -2030,6 +2030,18 @@ class $SessionLogsTable extends SessionLogs
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _planSnapshotMeta = const VerificationMeta(
+    'planSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> planSnapshot = GeneratedColumn<String>(
+    'plan_snapshot',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _minutesActiveMeta = const VerificationMeta(
     'minutesActive',
   );
@@ -2047,6 +2059,7 @@ class $SessionLogsTable extends SessionLogs
     date,
     blocksPlanned,
     blocksCompleted,
+    planSnapshot,
     minutesActive,
   ];
   @override
@@ -2091,6 +2104,15 @@ class $SessionLogsTable extends SessionLogs
     } else if (isInserting) {
       context.missing(_blocksCompletedMeta);
     }
+    if (data.containsKey('plan_snapshot')) {
+      context.handle(
+        _planSnapshotMeta,
+        planSnapshot.isAcceptableOrUnknown(
+          data['plan_snapshot']!,
+          _planSnapshotMeta,
+        ),
+      );
+    }
     if (data.containsKey('minutes_active')) {
       context.handle(
         _minutesActiveMeta,
@@ -2121,6 +2143,10 @@ class $SessionLogsTable extends SessionLogs
         DriftSqlType.string,
         data['${effectivePrefix}blocks_completed'],
       )!,
+      planSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_snapshot'],
+      )!,
       minutesActive: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}minutes_active'],
@@ -2138,14 +2164,19 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
   /// Date-only key, yyyy-MM-dd.
   final String date;
 
-  /// JSON-encoded lists of block type names.
+  /// JSON-encoded lists of stable block IDs.
   final String blocksPlanned;
   final String blocksCompleted;
+
+  /// JSON-encoded immutable block details for the day. IDs alone are not
+  /// enough because minutes, topics, and resources can change after planning.
+  final String planSnapshot;
   final int minutesActive;
   const SessionLog({
     required this.date,
     required this.blocksPlanned,
     required this.blocksCompleted,
+    required this.planSnapshot,
     required this.minutesActive,
   });
   @override
@@ -2154,6 +2185,7 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
     map['date'] = Variable<String>(date);
     map['blocks_planned'] = Variable<String>(blocksPlanned);
     map['blocks_completed'] = Variable<String>(blocksCompleted);
+    map['plan_snapshot'] = Variable<String>(planSnapshot);
     map['minutes_active'] = Variable<int>(minutesActive);
     return map;
   }
@@ -2163,6 +2195,7 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
       date: Value(date),
       blocksPlanned: Value(blocksPlanned),
       blocksCompleted: Value(blocksCompleted),
+      planSnapshot: Value(planSnapshot),
       minutesActive: Value(minutesActive),
     );
   }
@@ -2176,6 +2209,7 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
       date: serializer.fromJson<String>(json['date']),
       blocksPlanned: serializer.fromJson<String>(json['blocksPlanned']),
       blocksCompleted: serializer.fromJson<String>(json['blocksCompleted']),
+      planSnapshot: serializer.fromJson<String>(json['planSnapshot']),
       minutesActive: serializer.fromJson<int>(json['minutesActive']),
     );
   }
@@ -2186,6 +2220,7 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
       'date': serializer.toJson<String>(date),
       'blocksPlanned': serializer.toJson<String>(blocksPlanned),
       'blocksCompleted': serializer.toJson<String>(blocksCompleted),
+      'planSnapshot': serializer.toJson<String>(planSnapshot),
       'minutesActive': serializer.toJson<int>(minutesActive),
     };
   }
@@ -2194,11 +2229,13 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
     String? date,
     String? blocksPlanned,
     String? blocksCompleted,
+    String? planSnapshot,
     int? minutesActive,
   }) => SessionLog(
     date: date ?? this.date,
     blocksPlanned: blocksPlanned ?? this.blocksPlanned,
     blocksCompleted: blocksCompleted ?? this.blocksCompleted,
+    planSnapshot: planSnapshot ?? this.planSnapshot,
     minutesActive: minutesActive ?? this.minutesActive,
   );
   SessionLog copyWithCompanion(SessionLogsCompanion data) {
@@ -2210,6 +2247,9 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
       blocksCompleted: data.blocksCompleted.present
           ? data.blocksCompleted.value
           : this.blocksCompleted,
+      planSnapshot: data.planSnapshot.present
+          ? data.planSnapshot.value
+          : this.planSnapshot,
       minutesActive: data.minutesActive.present
           ? data.minutesActive.value
           : this.minutesActive,
@@ -2222,14 +2262,20 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
           ..write('date: $date, ')
           ..write('blocksPlanned: $blocksPlanned, ')
           ..write('blocksCompleted: $blocksCompleted, ')
+          ..write('planSnapshot: $planSnapshot, ')
           ..write('minutesActive: $minutesActive')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(date, blocksPlanned, blocksCompleted, minutesActive);
+  int get hashCode => Object.hash(
+    date,
+    blocksPlanned,
+    blocksCompleted,
+    planSnapshot,
+    minutesActive,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2237,6 +2283,7 @@ class SessionLog extends DataClass implements Insertable<SessionLog> {
           other.date == this.date &&
           other.blocksPlanned == this.blocksPlanned &&
           other.blocksCompleted == this.blocksCompleted &&
+          other.planSnapshot == this.planSnapshot &&
           other.minutesActive == this.minutesActive);
 }
 
@@ -2244,12 +2291,14 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
   final Value<String> date;
   final Value<String> blocksPlanned;
   final Value<String> blocksCompleted;
+  final Value<String> planSnapshot;
   final Value<int> minutesActive;
   final Value<int> rowid;
   const SessionLogsCompanion({
     this.date = const Value.absent(),
     this.blocksPlanned = const Value.absent(),
     this.blocksCompleted = const Value.absent(),
+    this.planSnapshot = const Value.absent(),
     this.minutesActive = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2257,6 +2306,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
     required String date,
     required String blocksPlanned,
     required String blocksCompleted,
+    this.planSnapshot = const Value.absent(),
     this.minutesActive = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : date = Value(date),
@@ -2266,6 +2316,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
     Expression<String>? date,
     Expression<String>? blocksPlanned,
     Expression<String>? blocksCompleted,
+    Expression<String>? planSnapshot,
     Expression<int>? minutesActive,
     Expression<int>? rowid,
   }) {
@@ -2273,6 +2324,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
       if (date != null) 'date': date,
       if (blocksPlanned != null) 'blocks_planned': blocksPlanned,
       if (blocksCompleted != null) 'blocks_completed': blocksCompleted,
+      if (planSnapshot != null) 'plan_snapshot': planSnapshot,
       if (minutesActive != null) 'minutes_active': minutesActive,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2282,6 +2334,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
     Value<String>? date,
     Value<String>? blocksPlanned,
     Value<String>? blocksCompleted,
+    Value<String>? planSnapshot,
     Value<int>? minutesActive,
     Value<int>? rowid,
   }) {
@@ -2289,6 +2342,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
       date: date ?? this.date,
       blocksPlanned: blocksPlanned ?? this.blocksPlanned,
       blocksCompleted: blocksCompleted ?? this.blocksCompleted,
+      planSnapshot: planSnapshot ?? this.planSnapshot,
       minutesActive: minutesActive ?? this.minutesActive,
       rowid: rowid ?? this.rowid,
     );
@@ -2306,6 +2360,9 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
     if (blocksCompleted.present) {
       map['blocks_completed'] = Variable<String>(blocksCompleted.value);
     }
+    if (planSnapshot.present) {
+      map['plan_snapshot'] = Variable<String>(planSnapshot.value);
+    }
     if (minutesActive.present) {
       map['minutes_active'] = Variable<int>(minutesActive.value);
     }
@@ -2321,6 +2378,7 @@ class SessionLogsCompanion extends UpdateCompanion<SessionLog> {
           ..write('date: $date, ')
           ..write('blocksPlanned: $blocksPlanned, ')
           ..write('blocksCompleted: $blocksCompleted, ')
+          ..write('planSnapshot: $planSnapshot, ')
           ..write('minutesActive: $minutesActive, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4141,13 +4199,14 @@ class $OralAttemptsTable extends OralAttempts
 class OralAttempt extends DataClass implements Insertable<OralAttempt> {
   final int id;
 
-  /// 'daily' (one question) or 'interview' (escalating sequence).
+  /// 'daily' (one question), 'interview' (guided STT/TTS sequence), or
+  /// 'realtime' (voice-to-voice WebRTC interview).
   final String mode;
 
   /// JSON list of {question, answer} transcript pairs.
   final String exchanges;
 
-  /// JSON feedback (5 OLA criteria, level estimate, tips).
+  /// JSON feedback (5 coaching dimensions, level estimate, tips).
   final String feedback;
   final DateTime answeredAt;
   const OralAttempt({
@@ -5863,6 +5922,7 @@ typedef $$SessionLogsTableCreateCompanionBuilder =
       required String date,
       required String blocksPlanned,
       required String blocksCompleted,
+      Value<String> planSnapshot,
       Value<int> minutesActive,
       Value<int> rowid,
     });
@@ -5871,6 +5931,7 @@ typedef $$SessionLogsTableUpdateCompanionBuilder =
       Value<String> date,
       Value<String> blocksPlanned,
       Value<String> blocksCompleted,
+      Value<String> planSnapshot,
       Value<int> minutesActive,
       Value<int> rowid,
     });
@@ -5896,6 +5957,11 @@ class $$SessionLogsTableFilterComposer
 
   ColumnFilters<String> get blocksCompleted => $composableBuilder(
     column: $table.blocksCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planSnapshot => $composableBuilder(
+    column: $table.planSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5929,6 +5995,11 @@ class $$SessionLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get planSnapshot => $composableBuilder(
+    column: $table.planSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get minutesActive => $composableBuilder(
     column: $table.minutesActive,
     builder: (column) => ColumnOrderings(column),
@@ -5954,6 +6025,11 @@ class $$SessionLogsTableAnnotationComposer
 
   GeneratedColumn<String> get blocksCompleted => $composableBuilder(
     column: $table.blocksCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get planSnapshot => $composableBuilder(
+    column: $table.planSnapshot,
     builder: (column) => column,
   );
 
@@ -5997,12 +6073,14 @@ class $$SessionLogsTableTableManager
                 Value<String> date = const Value.absent(),
                 Value<String> blocksPlanned = const Value.absent(),
                 Value<String> blocksCompleted = const Value.absent(),
+                Value<String> planSnapshot = const Value.absent(),
                 Value<int> minutesActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionLogsCompanion(
                 date: date,
                 blocksPlanned: blocksPlanned,
                 blocksCompleted: blocksCompleted,
+                planSnapshot: planSnapshot,
                 minutesActive: minutesActive,
                 rowid: rowid,
               ),
@@ -6011,12 +6089,14 @@ class $$SessionLogsTableTableManager
                 required String date,
                 required String blocksPlanned,
                 required String blocksCompleted,
+                Value<String> planSnapshot = const Value.absent(),
                 Value<int> minutesActive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SessionLogsCompanion.insert(
                 date: date,
                 blocksPlanned: blocksPlanned,
                 blocksCompleted: blocksCompleted,
+                planSnapshot: planSnapshot,
                 minutesActive: minutesActive,
                 rowid: rowid,
               ),

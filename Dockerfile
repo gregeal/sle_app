@@ -21,9 +21,11 @@ RUN git config --global --add safe.directory /opt/flutter \
 
 WORKDIR /src/sle_prep
 COPY sle_prep/pubspec.yaml sle_prep/pubspec.lock ./
-RUN flutter pub get
+RUN flutter pub get --enforce-lockfile
 COPY sle_prep/ ./
-RUN flutter build web --no-pub --release --no-web-resources-cdn --no-wasm-dry-run
+RUN flutter build web --no-pub --release --no-web-resources-cdn --no-wasm-dry-run \
+    && dart run tool/finalize_pwa.dart build/web \
+    && dart run tool/validate_pwa.dart build/web
 
 FROM ghcr.io/astral-sh/uv:0.9.4 AS uv
 FROM python:3.12.12-slim AS runtime
@@ -45,7 +47,7 @@ COPY --from=web-builder /src/sle_prep/build/web /app/web
 RUN addgroup --system sleprep \
     && adduser --system --ingroup sleprep sleprep \
     && mkdir -p /var/data \
-    && chown -R sleprep:sleprep /app /var/data
+    && chown -R sleprep:sleprep /var/data
 USER sleprep
 
 EXPOSE 10000

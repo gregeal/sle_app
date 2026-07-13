@@ -28,8 +28,10 @@ void main() {
     test('has 26 uniquely numbered weeks with required fields', () {
       final weeks = (curriculum['weeks'] as List).cast<Map<String, dynamic>>();
       expect(weeks, hasLength(26));
-      expect(weeks.map((w) => w['weekNumber']).toSet(),
-          Set.of(List.generate(26, (i) => i + 1)));
+      expect(
+        weeks.map((w) => w['weekNumber']).toSet(),
+        Set.of(List.generate(26, (i) => i + 1)),
+      );
       for (final w in weeks) {
         expect(w['themeFr'], isNotEmpty);
         expect(w['themeEn'], isNotEmpty);
@@ -50,8 +52,11 @@ void main() {
         expect(c['back'], isNotEmpty);
         expect(c['exampleFr'], isNotEmpty);
         expect(c['domain'], isNotEmpty);
-        expect(fronts.add(c['front'] as String), isTrue,
-            reason: 'duplicate front: ${c['front']}');
+        expect(
+          fronts.add(c['front'] as String),
+          isTrue,
+          reason: 'duplicate front: ${c['front']}',
+        );
       }
     });
 
@@ -82,8 +87,11 @@ void main() {
         expect(item['prompt'], isNotEmpty);
         final options = (item['options'] as List).cast<String>();
         expect(options, hasLength(4), reason: 'item: ${item['prompt']}');
-        expect(options.toSet(), hasLength(4),
-            reason: 'duplicate options in: ${item['prompt']}');
+        expect(
+          options.toSet(),
+          hasLength(4),
+          reason: 'duplicate options in: ${item['prompt']}',
+        );
         final correct = item['correctIndex'] as int;
         expect(correct, inInclusiveRange(0, 3));
         expect(item['explanationFr'], isNotEmpty);
@@ -92,14 +100,18 @@ void main() {
 
     test('every drill topic is scheduled in some curriculum week', () {
       final weekTopics = (curriculum['weeks'] as List)
-          .expand((w) =>
-              ((w as Map<String, dynamic>)['grammarTopics'] as List)
-                  .cast<String>())
+          .expand(
+            (w) => ((w as Map<String, dynamic>)['grammarTopics'] as List)
+                .cast<String>(),
+          )
           .toSet();
       final items = (drills['items'] as List).cast<Map<String, dynamic>>();
       for (final item in items) {
-        expect(weekTopics, contains(item['topic']),
-            reason: 'unscheduled drill topic: ${item['topic']}');
+        expect(
+          weekTopics,
+          contains(item['topic']),
+          reason: 'unscheduled drill topic: ${item['topic']}',
+        );
       }
     });
   });
@@ -112,10 +124,13 @@ void main() {
       for (final set in sets) {
         expect(set['title'], isNotEmpty);
         expect(set['kind'], isNotEmpty);
-        expect((set['bodyFr'] as String).length, greaterThan(200),
-            reason: 'passages should be substantial');
-        final questions =
-            (set['questions'] as List).cast<Map<String, dynamic>>();
+        expect(
+          (set['bodyFr'] as String).length,
+          greaterThan(200),
+          reason: 'passages should be substantial',
+        );
+        final questions = (set['questions'] as List)
+            .cast<Map<String, dynamic>>();
         expect(questions.length, greaterThanOrEqualTo(4));
         for (final question in questions) {
           expect(question['prompt'], isNotEmpty);
@@ -132,15 +147,18 @@ void main() {
   group('oral_core.json', () {
     test('has at least 25 questions across all three tiers', () async {
       final oral = await loadAsset('oral_core.json');
-      final questions =
-          (oral['questions'] as List).cast<Map<String, dynamic>>();
+      final questions = (oral['questions'] as List)
+          .cast<Map<String, dynamic>>();
       expect(questions.length, greaterThanOrEqualTo(25));
       final byTier = <String, int>{};
       for (final question in questions) {
         expect(['A', 'B', 'C'], contains(question['tier']));
         expect(question['questionFr'], isNotEmpty);
-        byTier.update(question['tier'] as String, (v) => v + 1,
-            ifAbsent: () => 1);
+        byTier.update(
+          question['tier'] as String,
+          (v) => v + 1,
+          ifAbsent: () => 1,
+        );
       }
       expect(byTier['A'], greaterThanOrEqualTo(5));
       expect(byTier['B'], greaterThanOrEqualTo(8));
@@ -149,32 +167,43 @@ void main() {
   });
 
   group('seed loader upgrade', () {
-    test('v1 devices gain reading sets without duplicating v1 content',
-        () async {
-      final db = inMemoryDatabase();
-      addTearDown(db.close);
+    test(
+      'v1 devices gain reading sets without duplicating v1 content',
+      () async {
+        final db = inMemoryDatabase();
+        addTearDown(db.close);
 
-      // Simulate a device that already imported seed v1.
-      await db.setSetting('seedVersion', '1');
-      await db.insertCardWithState(
-        front: 'pre-existing card',
-        back: 'x',
-        exampleFr: 'x',
-        domain: 'x',
-        now: DateTime(2026),
-      );
+        // Simulate a device that already imported seed v1.
+        await db.setSetting('seedVersion', '1');
+        await db.insertCardWithState(
+          front: 'pre-existing card',
+          back: 'x',
+          exampleFr: 'x',
+          domain: 'x',
+          now: DateTime(2026),
+        );
 
-      final ran = await importSeedFromAssets(db);
-      expect(ran, isTrue);
+        final ran = await importSeedFromAssets(db);
+        expect(ran, isTrue);
 
-      expect(await db.dueCardCount(DateTime(2030)), 1,
-          reason: 'vocab must not be re-imported');
-      expect(await db.allReadingSets(), isNotEmpty,
-          reason: 'reading sets are the v2 content');
-      expect(await db.oralQuestionsByTier('C'), isNotEmpty,
-          reason: 'oral questions are the v3 content');
-      expect(await db.getSetting('seedVersion'), '3');
-    });
+        expect(
+          await db.dueCardCount(DateTime(2030)),
+          1,
+          reason: 'vocab must not be re-imported',
+        );
+        expect(
+          await db.allReadingSets(),
+          isNotEmpty,
+          reason: 'reading sets are the v2 content',
+        );
+        expect(
+          await db.oralQuestionsByTier('C'),
+          isNotEmpty,
+          reason: 'oral questions are the v3 content',
+        );
+        expect(await db.getSetting('seedVersion'), '3');
+      },
+    );
 
     test('v2 devices gain only the oral bank', () async {
       final db = inMemoryDatabase();
@@ -183,10 +212,16 @@ void main() {
       await db.setSetting('seedVersion', '2');
       final ran = await importSeedFromAssets(db);
       expect(ran, isTrue);
-      expect(await db.dueCardCount(DateTime(2030)), 0,
-          reason: 'no vocab re-import');
-      expect(await db.allReadingSets(), isEmpty,
-          reason: 'no reading re-import');
+      expect(
+        await db.dueCardCount(DateTime(2030)),
+        0,
+        reason: 'no vocab re-import',
+      );
+      expect(
+        await db.allReadingSets(),
+        isEmpty,
+        reason: 'no reading re-import',
+      );
       expect(await db.oralQuestionsByTier('A'), isNotEmpty);
       expect(await db.getSetting('seedVersion'), '3');
     });
@@ -203,14 +238,19 @@ void main() {
       final cards = (vocab['cards'] as List).length;
       final items = (drills['items'] as List).length;
       expect(await db.dueCardCount(DateTime(2030)), cards);
-      expect((await db.randomDrillItems(_allTopics(drills), 10000)).length,
-          items);
+      expect(
+        (await db.randomDrillItems(_allTopics(drills), 10000)).length,
+        items,
+      );
       expect((await db.weekByNumber(8))?.themeFr, isNotEmpty);
 
       final second = await importSeedFromAssets(db);
       expect(second, isFalse, reason: 'same version should be skipped');
-      expect(await db.dueCardCount(DateTime(2030)), cards,
-          reason: 'no duplicate cards after re-import');
+      expect(
+        await db.dueCardCount(DateTime(2030)),
+        cards,
+        reason: 'no duplicate cards after re-import',
+      );
     });
   });
 }

@@ -4,8 +4,9 @@ import 'package:sle_prep/domain/llm/oral_coach.dart';
 import 'package:sle_prep/features/coach/oral_session_screen.dart';
 
 void main() {
-  testWidgets('oral report renders level, five criteria, tips and transcript',
-      (tester) async {
+  testWidgets('oral report renders level, five criteria, tips and transcript', (
+    tester,
+  ) async {
     const feedback = OralFeedback(
       levelEstimate: 'B',
       summary: 'La compréhension atteint déjà le niveau C.',
@@ -25,7 +26,10 @@ void main() {
           body: OralReportView(
             feedback: feedback,
             exchanges: [
-              {'question': 'Décrivez votre poste.', 'answer': 'Je suis analyste.'},
+              {
+                'question': 'Décrivez votre poste.',
+                'answer': 'Je suis analyste.',
+              },
             ],
           ),
         ),

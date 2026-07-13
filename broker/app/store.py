@@ -57,6 +57,7 @@ class BrokerStore:
                   expires_at TEXT NOT NULL,
                   created_at TEXT NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS sessions_expires_idx ON sessions(expires_at);
                 CREATE TABLE IF NOT EXISTS auth_challenges (
                   id TEXT PRIMARY KEY,
                   kind TEXT NOT NULL,
@@ -65,6 +66,8 @@ class BrokerStore:
                   verifier TEXT,
                   expires_at TEXT NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS auth_challenges_expires_idx
+                  ON auth_challenges(expires_at);
                 CREATE TABLE IF NOT EXISTS passkeys (
                   credential_id BLOB PRIMARY KEY,
                   email TEXT NOT NULL,
@@ -85,6 +88,8 @@ class BrokerStore:
                 );
                 CREATE INDEX IF NOT EXISTS usage_email_time_idx
                   ON usage_reservations(email, created_at);
+                CREATE INDEX IF NOT EXISTS usage_status_time_idx
+                  ON usage_reservations(status, created_at);
                 CREATE TABLE IF NOT EXISTS audit_events (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   email TEXT NOT NULL,
@@ -93,6 +98,13 @@ class BrokerStore:
                   status_code INTEGER NOT NULL,
                   created_at TEXT NOT NULL
                 );
+                CREATE INDEX IF NOT EXISTS audit_created_idx ON audit_events(created_at);
+                CREATE TABLE IF NOT EXISTS readiness_probe (
+                  id INTEGER PRIMARY KEY CHECK (id = 1),
+                  checked_at TEXT NOT NULL
+                );
+                INSERT OR IGNORE INTO readiness_probe(id, checked_at)
+                  VALUES (1, '1970-01-01T00:00:00+00:00');
                 """
             )
             self._connection.commit()
@@ -178,15 +190,36 @@ class BrokerStore:
 
     def consume_challenge(self, challenge_id: str, kind: str) -> sqlite3.Row | None:
         with self._lock:
-            row = self._connection.execute(
-                "SELECT * FROM auth_challenges WHERE id = ? AND kind = ?",
-                (challenge_id, kind),
-            ).fetchone()
-            self._connection.execute("DELETE FROM auth_challenges WHERE id = ?", (challenge_id,))
-            self._connection.commit()
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                row = self._connection.execute(
+                    "DELETE FROM auth_challenges WHERE id = ? AND kind = ? RETURNING *",
+                    (challenge_id, kind),
+                ).fetchone()
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
         if row is None or datetime.fromisoformat(row["expires_at"]) <= _now():
             return None
         return row
+
+    def has_any_passkeys(self) -> bool:
+        with self._lock:
+            row = self._connection.execute("SELECT 1 FROM passkeys LIMIT 1").fetchone()
+        return row is not None
+
+    def has_passkey_for_any(self, emails: set[str]) -> bool:
+        normalized = sorted({email.strip().lower() for email in emails if email.strip()})
+        if not normalized:
+            return False
+        placeholders = ",".join("?" for _ in normalized)
+        with self._lock:
+            row = self._connection.execute(
+                f"SELECT 1 FROM passkeys WHERE email IN ({placeholders}) LIMIT 1",
+                normalized,
+            ).fetchone()
+        return row is not None
 
     def passkeys_for_email(self, email: str) -> list[PasskeyCredential]:
         with self._lock:
@@ -235,8 +268,9 @@ class BrokerStore:
     def update_passkey_count(self, credential_id: bytes, sign_count: int) -> None:
         with self._lock:
             self._connection.execute(
-                "UPDATE passkeys SET sign_count = ?, last_used_at = ? WHERE credential_id = ?",
-                (sign_count, _iso(_now()), credential_id),
+                "UPDATE passkeys SET sign_count = ?, last_used_at = ? "
+                "WHERE credential_id = ? AND (sign_count = 0 OR ? = 0 OR sign_count < ?)",
+                (sign_count, _iso(_now()), credential_id, sign_count, sign_count),
             )
             self._connection.commit()
 
@@ -297,3 +331,68 @@ class BrokerStore:
                 (email, route, outcome, status_code, _iso(_now())),
             )
             self._connection.commit()
+
+    def cleanup(
+        self,
+        *,
+        reservation_stale_minutes: int,
+        audit_retention_days: int,
+        usage_retention_days: int,
+    ) -> dict[str, int]:
+        """Bound persistent metadata and reconcile requests abandoned by a crash.
+
+        Stale reservations keep their conservative reserved cost but become
+        settled, so they cannot remain in an ambiguous in-flight state forever.
+        """
+
+        now = _now()
+        reservation_cutoff = _iso(now - timedelta(minutes=reservation_stale_minutes))
+        audit_cutoff = _iso(now - timedelta(days=audit_retention_days))
+        usage_cutoff = _iso(now - timedelta(days=usage_retention_days))
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                sessions = self._connection.execute(
+                    "DELETE FROM sessions WHERE expires_at <= ?", (_iso(now),)
+                ).rowcount
+                challenges = self._connection.execute(
+                    "DELETE FROM auth_challenges WHERE expires_at <= ?", (_iso(now),)
+                ).rowcount
+                reservations = self._connection.execute(
+                    "UPDATE usage_reservations SET status = 'settled' "
+                    "WHERE status = 'reserved' AND created_at <= ?",
+                    (reservation_cutoff,),
+                ).rowcount
+                usage = self._connection.execute(
+                    "DELETE FROM usage_reservations WHERE created_at < ? "
+                    "AND status != 'reserved'",
+                    (usage_cutoff,),
+                ).rowcount
+                audits = self._connection.execute(
+                    "DELETE FROM audit_events WHERE created_at < ?", (audit_cutoff,)
+                ).rowcount
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+        return {
+            "sessions": sessions,
+            "challenges": challenges,
+            "reservations": reservations,
+            "usage": usage,
+            "audits": audits,
+        }
+
+    def check_ready(self) -> None:
+        """Exercise both a read and a transactional write without persisting it."""
+
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                self._connection.execute(
+                    "UPDATE readiness_probe SET checked_at = ? WHERE id = 1",
+                    (_iso(_now()),),
+                )
+                self._connection.execute("SELECT id FROM readiness_probe WHERE id = 1").fetchone()
+            finally:
+                self._connection.rollback()

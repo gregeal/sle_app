@@ -5,14 +5,15 @@ import 'package:http/http.dart' as http;
 
 import 'llm_client.dart';
 
-class AnthropicClient implements LlmClient {
+class AnthropicClient implements LlmClient, ClosableLlmClient {
   AnthropicClient({
     required this.baseUrl,
     required this.model,
     required this.apiKey,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 90),
-  }) : _http = httpClient ?? http.Client();
+  }) : _http = httpClient ?? http.Client(),
+       _ownsHttp = httpClient == null;
 
   static const _apiVersion = '2023-06-01';
 
@@ -21,6 +22,12 @@ class AnthropicClient implements LlmClient {
   final String apiKey;
   final Duration timeout;
   final http.Client _http;
+  final bool _ownsHttp;
+
+  @override
+  void close() {
+    if (_ownsHttp) _http.close();
+  }
 
   @override
   Future<String> complete({
@@ -58,7 +65,8 @@ class AnthropicClient implements LlmClient {
           .timeout(timeout);
     } on TimeoutException {
       throw const LlmException(
-          'Le fournisseur IA n\'a pas répondu à temps. Réessayez.');
+        'Le fournisseur IA n\'a pas répondu à temps. Réessayez.',
+      );
     } on http.ClientException catch (error) {
       throw LlmException('Connexion impossible : ${error.message}');
     }

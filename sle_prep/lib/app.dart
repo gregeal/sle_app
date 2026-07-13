@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,8 +55,10 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
   var _index = 0;
+  Timer? _midnightTimer;
 
   static const _screens = [
     TodayScreen(),
@@ -63,6 +67,42 @@ class _AppShellState extends ConsumerState<AppShell> {
     ProgressScreen(),
     SettingsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scheduleMidnightRefresh();
+  }
+
+  @override
+  void dispose() {
+    _midnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshStudyDay();
+  }
+
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final nextDay = DateTime(now.year, now.month, now.day + 1);
+    _midnightTimer = Timer(
+      nextDay.difference(now) + const Duration(seconds: 1),
+      () {
+        if (mounted) _refreshStudyDay();
+      },
+    );
+  }
+
+  void _refreshStudyDay() {
+    ref.invalidate(studyDayProvider);
+    _scheduleMidnightRefresh();
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr-CA">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -19,6 +19,29 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="SLE Prep — French second-language training for Canadian public-service exams.">
+  <meta name="theme-color" content="#3B5BA9">
+  <meta name="color-scheme" content="light">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #faf9fd; }
+    #sle-loading {
+      min-height: 100vh; display: grid; place-content: center; gap: 12px;
+      box-sizing: border-box; padding: 24px; text-align: center;
+      color: #1b1b1f; font: 16px/1.5 system-ui, sans-serif;
+    }
+    #sle-loading h1 { margin: 0; font-size: 1.4rem; }
+    #sle-loading button, #sle-update button {
+      min-height: 48px; padding: 10px 18px; border: 0; border-radius: 24px;
+      color: white; background: #3b5ba9; font: inherit; cursor: pointer;
+    }
+    #sle-update {
+      position: fixed; z-index: 10000; right: 16px; bottom: 16px;
+      max-width: 360px; padding: 14px; border-radius: 14px;
+      background: #eef0ff; color: #1b1b1f; font: 14px/1.4 system-ui, sans-serif;
+      box-shadow: 0 4px 18px rgb(0 0 0 / 20%);
+    }
+    #sle-update p { margin: 0 0 10px; }
+  </style>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -33,6 +56,15 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <main id="sle-loading" role="status" aria-live="polite">
+    <h1>SLE Prep</h1>
+    <p>Préparation de votre espace d’apprentissage…</p>
+  </main>
+  <aside id="sle-update" aria-live="polite" hidden>
+    <p>Une nouvelle version de SLE Prep est prête.</p>
+    <button id="sle-update-button" type="button">Actualiser</button>
+  </aside>
+  <noscript>Activez JavaScript pour utiliser SLE Prep.</noscript>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

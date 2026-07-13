@@ -32,24 +32,33 @@ class _VocabReviewScreenState extends ConsumerState<VocabReviewScreen> {
       grade,
     );
 
-    await ref
-        .read(appDatabaseProvider)
-        .applyReview(
-          cardId: dueCard.card.id,
-          easeFactor: nextState.easeFactor,
-          intervalDays: nextState.intervalDays,
-          repetitions: nextState.repetitions,
-          lapses: nextState.lapses,
-          dueDate: nextDue(DateTime.now(), nextState),
+    try {
+      await ref
+          .read(appDatabaseProvider)
+          .applyReview(
+            cardId: dueCard.card.id,
+            easeFactor: nextState.easeFactor,
+            intervalDays: nextState.intervalDays,
+            repetitions: nextState.repetitions,
+            lapses: nextState.lapses,
+            dueDate: nextDue(DateTime.now(), nextState),
+          );
+      ref.invalidate(remainingDueCardsProvider);
+      if (!mounted) return;
+      setState(() {
+        _cardIndex++;
+        _reviewed++;
+        _showAnswer = false;
+      });
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Enregistrement impossible : $error')),
         );
-
-    if (!mounted) return;
-    setState(() {
-      _cardIndex++;
-      _reviewed++;
-      _showAnswer = false;
-      _isSaving = false;
-    });
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -70,7 +79,18 @@ class _VocabReviewScreenState extends ConsumerState<VocabReviewScreen> {
 
   Widget _buildReview(BuildContext context, List<DueCard> cards) {
     if (cards.isEmpty || _cardIndex >= cards.length) {
-      return _ReviewSummary(reviewed: _reviewed);
+      return _ReviewSummary(
+        reviewed: _reviewed,
+        remaining: ref.watch(remainingDueCardsProvider),
+        onContinue: () {
+          setState(() {
+            _cardIndex = 0;
+            _showAnswer = false;
+          });
+          ref.invalidate(dueCardsProvider);
+          ref.invalidate(remainingDueCardsProvider);
+        },
+      );
     }
 
     final dueCard = cards[_cardIndex];
@@ -245,9 +265,15 @@ class _GradeButton extends StatelessWidget {
 }
 
 class _ReviewSummary extends StatelessWidget {
-  const _ReviewSummary({required this.reviewed});
+  const _ReviewSummary({
+    required this.reviewed,
+    required this.remaining,
+    required this.onContinue,
+  });
 
   final int reviewed;
+  final AsyncValue<int> remaining;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -272,11 +298,37 @@ class _ReviewSummary extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(
-              hasReviewed
-                  ? '$reviewed carte${reviewed > 1 ? 's' : ''} révisée${reviewed > 1 ? 's' : ''}. Revenez demain pour la prochaine révision.'
-                  : 'Vos cartes dues apparaîtront ici. Revenez demain ou ajoutez du vocabulaire.',
-              textAlign: TextAlign.center,
+            remaining.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(),
+              ),
+              error: (_, _) => Text(
+                '$reviewed carte${reviewed > 1 ? 's' : ''} révisée${reviewed > 1 ? 's' : ''}.',
+                textAlign: TextAlign.center,
+              ),
+              data: (count) => Column(
+                children: [
+                  Text(
+                    count > 0
+                        ? '$reviewed carte${reviewed > 1 ? 's' : ''} révisée${reviewed > 1 ? 's' : ''}. '
+                              '$count carte${count > 1 ? 's restent' : ' reste'} due${count > 1 ? 's' : ''}.'
+                        : hasReviewed
+                        ? '$reviewed carte${reviewed > 1 ? 's' : ''} révisée${reviewed > 1 ? 's' : ''}. '
+                              'La file du jour est terminée.'
+                        : 'Vos cartes dues apparaîtront ici.',
+                    textAlign: TextAlign.center,
+                  ),
+                  if (count > 0) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: onContinue,
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Réviser 20 autres cartes'),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
         ),

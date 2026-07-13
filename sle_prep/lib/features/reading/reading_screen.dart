@@ -10,12 +10,12 @@ import '../../domain/llm/reading_generator.dart';
 import '../../providers.dart';
 
 String kindLabel(String kind) => switch (kind) {
-      'note_service' => 'Note de service',
-      'courriel' => 'Courriel',
-      'politique' => 'Politique',
-      'article' => 'Article',
-      _ => kind,
-    };
+  'note_service' => 'Note de service',
+  'courriel' => 'Courriel',
+  'politique' => 'Politique',
+  'article' => 'Article',
+  _ => kind,
+};
 
 class ReadingListScreen extends ConsumerStatefulWidget {
   const ReadingListScreen({super.key, required this.themeFr});
@@ -101,46 +101,47 @@ class _ReadingListScreenState extends ConsumerState<ReadingListScreen> {
         child: _error != null
             ? Center(child: Text('$_error'))
             : sets == null
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-                    children: [
-                      const Text(
-                        'Textes administratifs de type ELS · questions à '
-                        'choix multiple · durée cible : 10 minutes.',
-                      ),
-                      const SizedBox(height: 12),
-                      ...sets.map(
-                        (set) => Card(
-                          clipBehavior: Clip.antiAlias,
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 10),
-                            leading: const Icon(Icons.menu_book_outlined,
-                                size: 30),
-                            title: Text(set.title),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                '${kindLabel(set.kind)} · '
-                                '${set.questionsList.length} questions'
-                                '${set.source == 'generated' ? ' · IA' : ''}',
-                              ),
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ReadingSessionScreen(readingSet: set),
-                                ),
-                              );
-                            },
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+                children: [
+                  const Text(
+                    'Textes administratifs de type ELS · questions à '
+                    'choix multiple · durée cible : 10 minutes.',
+                  ),
+                  const SizedBox(height: 12),
+                  ...sets.map(
+                    (set) => Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        leading: const Icon(Icons.menu_book_outlined, size: 30),
+                        title: Text(set.title),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '${kindLabel(set.kind)} · '
+                            '${set.questionsList.length} questions'
+                            '${set.source == 'generated' ? ' · IA' : ''}',
                           ),
                         ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ReadingSessionScreen(readingSet: set),
+                            ),
+                          );
+                        },
                       ),
-                    ],
+                    ),
                   ),
+                ],
+              ),
       ),
     );
   }
@@ -164,9 +165,9 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
   var _selectedIndex = -1;
   var _correctAnswers = 0;
   var _done = false;
+  var _saving = false;
 
-  List<Map<String, dynamic>> get _questions =>
-      widget.readingSet.questionsList;
+  List<Map<String, dynamic>> get _questions => widget.readingSet.questionsList;
 
   @override
   void initState() {
@@ -198,6 +199,7 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
   }
 
   Future<void> _next() async {
+    if (_saving) return;
     if (_index + 1 < _questions.length) {
       setState(() {
         _index++;
@@ -208,75 +210,87 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
 
     _stopwatch.stop();
     _ticker?.cancel();
-    await ref.read(appDatabaseProvider).recordReadingAttempt(
-          setId: widget.readingSet.id,
-          correct: _correctAnswers,
-          total: _questions.length,
-          seconds: _stopwatch.elapsed.inSeconds,
-          at: DateTime.now(),
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(appDatabaseProvider)
+          .recordReadingAttempt(
+            setId: widget.readingSet.id,
+            correct: _correctAnswers,
+            total: _questions.length,
+            seconds: _stopwatch.elapsed.inSeconds,
+            at: DateTime.now(),
+          );
+      if (mounted) setState(() => _done = true);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Résultat non enregistré : $error')),
         );
-    if (mounted) setState(() => _done = true);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: Text(kindLabel(widget.readingSet.kind)),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  _elapsed,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
+    appBar: AppBar(
+      title: Text(kindLabel(widget.readingSet.kind)),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Center(
+            child: Text(
+              _elapsed,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ],
+          ),
         ),
-        body: SafeArea(
-          child: _done
-              ? _ReadingSummary(
-                  correct: _correctAnswers,
-                  total: _questions.length,
-                  elapsed: _elapsed,
-                )
-              : _readingPhase
-                  ? _buildPassage(context)
-                  : _buildQuestion(context),
-        ),
-      );
+      ],
+    ),
+    body: SafeArea(
+      child: _done
+          ? _ReadingSummary(
+              correct: _correctAnswers,
+              total: _questions.length,
+              elapsed: _elapsed,
+            )
+          : _readingPhase
+          ? _buildPassage(context)
+          : _buildQuestion(context),
+    ),
+  );
 
   Widget _buildPassage(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  Text(
-                    widget.readingSet.title,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.readingSet.bodyFr,
-                    style: const TextStyle(fontSize: 16, height: 1.55),
-                  ),
-                ],
+    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+    child: Column(
+      children: [
+        Expanded(
+          child: ListView(
+            children: [
+              Text(
+                widget.readingSet.title,
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              key: const Key('start-questions'),
-              onPressed: () => setState(() => _readingPhase = false),
-              icon: const Icon(Icons.quiz_outlined),
-              label: Text(
-                  'Passer aux questions (${_questions.length})'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                widget.readingSet.bodyFr,
+                style: const TextStyle(fontSize: 16, height: 1.55),
+              ),
+            ],
+          ),
         ),
-      );
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          key: const Key('start-questions'),
+          onPressed: () => setState(() => _readingPhase = false),
+          icon: const Icon(Icons.quiz_outlined),
+          label: Text('Passer aux questions (${_questions.length})'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildQuestion(BuildContext context) {
     final question = _questions[_index];
@@ -308,41 +322,39 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
           ),
           const SizedBox(height: 20),
           ...options.asMap().entries.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: !answered
-                          ? null
-                          : entry.key == correctIndex
-                              ? Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer
-                              : entry.key == _selectedIndex
-                                  ? Theme.of(context).colorScheme.errorContainer
-                                  : null,
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.all(16),
+                  backgroundColor: !answered
+                      ? null
+                      : entry.key == correctIndex
+                      ? Theme.of(context).colorScheme.secondaryContainer
+                      : entry.key == _selectedIndex
+                      ? Theme.of(context).colorScheme.errorContainer
+                      : null,
+                ),
+                onPressed: answered
+                    ? null
+                    : () => _selectAnswer(question, entry.key),
+                child: Row(
+                  children: [
+                    Icon(
+                      answered && entry.key == correctIndex
+                          ? Icons.check_circle_outline
+                          : answered && entry.key == _selectedIndex
+                          ? Icons.cancel_outlined
+                          : Icons.radio_button_unchecked,
                     ),
-                    onPressed: answered
-                        ? null
-                        : () => _selectAnswer(question, entry.key),
-                    child: Row(
-                      children: [
-                        Icon(
-                          answered && entry.key == correctIndex
-                              ? Icons.check_circle_outline
-                              : answered && entry.key == _selectedIndex
-                                  ? Icons.cancel_outlined
-                                  : Icons.radio_button_unchecked,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(entry.value)),
-                      ],
-                    ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(entry.value)),
+                  ],
                 ),
               ),
+            ),
+          ),
           if (answered) ...[
             Container(
               key: const Key('reading-explanation'),
@@ -358,9 +370,13 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
             const SizedBox(height: 16),
             FilledButton(
               key: const Key('next-reading-question'),
-              onPressed: _next,
+              onPressed: _saving ? null : _next,
               child: Text(
-                _index + 1 == _questions.length ? 'Voir le bilan' : 'Suivant',
+                _saving
+                    ? 'Enregistrement…'
+                    : _index + 1 == _questions.length
+                    ? 'Voir le bilan'
+                    : 'Suivant',
               ),
             ),
           ],
@@ -383,33 +399,30 @@ class _ReadingSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.menu_book_outlined,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Lecture terminée',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$correct sur $total en $elapsed.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'À l\'ELS, visez environ 80 % en gestion serrée du temps.',
-                textAlign: TextAlign.center,
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.menu_book_outlined,
+            size: 56,
+            color: Theme.of(context).colorScheme.primary,
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          Text(
+            'Lecture terminée',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text('$correct sur $total en $elapsed.', textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          const Text(
+            'À l\'ELS, visez environ 80 % en gestion serrée du temps.',
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  );
 }

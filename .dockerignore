@@ -10,5 +10,5 @@
 **/.env
 sle_prep/android
 sle_prep/test
-sle_prep/tool
+sle_prep/tool/sqlite3
 broker/tests

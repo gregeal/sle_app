@@ -35,7 +35,7 @@ class TodayScreen extends ConsumerWidget {
             ),
             onOpen: (block) => _openBlock(context, ref, block),
             onToggleComplete: (block) =>
-                _toggleComplete(ref, loadedPlan, log, block),
+                _toggleComplete(context, ref, loadedPlan, block),
           ),
         ),
       ),
@@ -90,28 +90,28 @@ class TodayScreen extends ConsumerWidget {
   }
 
   Future<void> _toggleComplete(
+    BuildContext context,
     WidgetRef ref,
     TodayPlan plan,
-    SessionLog? existingLog,
     SessionBlock block,
   ) async {
-    final completed = <String>{...?existingLog?.blocksCompletedList};
-    if (!completed.add(block.id)) {
-      completed.remove(block.id);
-    }
-    final completedMinutes = plan.blocks
-        .where((candidate) => completed.contains(candidate.id))
-        .fold(0, (total, candidate) => total + candidate.minutes);
-    await ref
-        .read(appDatabaseProvider)
-        .upsertSessionLog(
-          day: plan.day,
-          blocksPlanned: plan.blocks.map((candidate) => candidate.id).toList(),
-          blocksCompleted: completed.toList(),
-          minutesActive: completedMinutes,
+    try {
+      await ref
+          .read(appDatabaseProvider)
+          .toggleSessionBlock(
+            day: plan.day,
+            blockId: block.id,
+            fallbackPlan: plan.blocks,
+          );
+      ref.invalidate(todaySessionLogProvider);
+      ref.invalidate(progressSnapshotProvider);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Mise à jour impossible : $error')),
         );
-    ref.invalidate(todaySessionLogProvider);
-    ref.invalidate(progressSnapshotProvider);
+      }
+    }
   }
 }
 
@@ -128,7 +128,7 @@ class _TodayContent extends StatelessWidget {
   final SessionLog? sessionLog;
   final int streak;
   final ValueChanged<SessionBlock> onOpen;
-  final ValueChanged<SessionBlock> onToggleComplete;
+  final Future<void> Function(SessionBlock) onToggleComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +211,7 @@ class _TodayContent extends StatelessWidget {
   }
 }
 
-class _SessionBlockCard extends StatelessWidget {
+class _SessionBlockCard extends StatefulWidget {
   const _SessionBlockCard({
     required this.block,
     required this.completed,
@@ -222,32 +222,58 @@ class _SessionBlockCard extends StatelessWidget {
   final SessionBlock block;
   final bool completed;
   final VoidCallback onOpen;
-  final VoidCallback onToggleComplete;
+  final Future<void> Function() onToggleComplete;
+
+  @override
+  State<_SessionBlockCard> createState() => _SessionBlockCardState();
+}
+
+class _SessionBlockCardState extends State<_SessionBlockCard> {
+  var _saving = false;
+
+  Future<void> _toggleComplete() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onToggleComplete();
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Card(
     clipBehavior: Clip.antiAlias,
     child: ListTile(
-      onTap: onOpen,
-      leading: Icon(_iconFor(block.type)),
+      onTap: _saving ? null : widget.onOpen,
+      leading: Icon(_iconFor(widget.block.type)),
       title: Text(
-        block.titleFr,
+        widget.block.titleFr,
         style: TextStyle(
-          decoration: completed ? TextDecoration.lineThrough : null,
+          decoration: widget.completed ? TextDecoration.lineThrough : null,
         ),
       ),
-      subtitle: Text(block.subtitleFr),
+      subtitle: Text(widget.block.subtitleFr),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('${block.minutes} min'),
+          Text('${widget.block.minutes} min'),
           IconButton(
-            tooltip: completed ? 'Marquer à faire' : 'Marquer terminé',
-            onPressed: onToggleComplete,
-            icon: Icon(
-              completed ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: completed ? Theme.of(context).colorScheme.primary : null,
-            ),
+            tooltip: widget.completed ? 'Marquer à faire' : 'Marquer terminé',
+            onPressed: _saving ? null : _toggleComplete,
+            icon: _saving
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    widget.completed
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: widget.completed
+                        ? Theme.of(context).colorScheme.primary
+                        : null,
+                  ),
           ),
         ],
       ),

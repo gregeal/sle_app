@@ -68,12 +68,12 @@ void main() {
   group('nextDue', () {
     test('schedules intervalDays after now', () {
       final s = applyGrade(fresh, ReviewGrade.good);
-      expect(nextDue(now, s), now.add(const Duration(days: 1)));
+      expect(nextDue(now, s), DateTime(2026, 7, 13));
     });
 
     test('again is due again within the same day (interval 1 → tomorrow)', () {
       final s = applyGrade(fresh, ReviewGrade.again);
-      expect(nextDue(now, s), now.add(const Duration(days: 1)));
+      expect(nextDue(now, s), DateTime(2026, 7, 13));
     });
   });
 }

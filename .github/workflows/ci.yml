@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   flutter:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: sle_prep
@@ -21,13 +26,33 @@ jobs:
           flutter-version: 3.44.6
           channel: stable
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test tool
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: git diff --exit-code
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub
       - run: flutter build web --no-pub --release --no-web-resources-cdn --no-wasm-dry-run
+      - run: dart run tool/finalize_pwa.dart build/web
+      - run: dart run tool/validate_pwa.dart build/web
+      - name: Create disposable Android CI signing key
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore android/ci-upload-keystore.jks \
+            -storepass ci-password -keypass ci-password \
+            -alias upload -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=SLE Prep CI,O=CI,C=CA"
+          printf '%s\n' \
+            'storePassword=ci-password' \
+            'keyPassword=ci-password' \
+            'keyAlias=upload' \
+            'storeFile=ci-upload-keystore.jks' \
+            > android/key.properties
+      - run: flutter build apk --no-pub --release
 
   broker:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: broker
@@ -42,3 +67,40 @@ jobs:
       - run: uv sync --frozen --dev
       - run: uv run --frozen ruff check app tests
       - run: uv run --frozen pytest
+
+  deployable-image:
+    needs: [flutter, broker]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: docker build --tag sle-prep:ci .
+      - run: >-
+          docker run --detach --rm --name sle-prep-ci --publish 10000:10000
+          --env ENVIRONMENT=production
+          --env PUBLIC_ORIGIN=https://sle-prep.example.test
+          --env ALLOWED_EMAILS=owner@example.com
+          --env IDENTIFIER_SECRET=ci-only-identifier-secret-32-characters
+          --env GOOGLE_CLIENT_ID=ci-client-id
+          --env GOOGLE_CLIENT_SECRET=ci-client-secret
+          --env OPENAI_API_KEY=test-key sle-prep:ci
+      - run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:10000/api/ready; then exit 0; fi
+            sleep 1
+          done
+          docker logs sle-prep-ci
+          exit 1
+      - run: curl --fail --silent http://127.0.0.1:10000/ | grep --quiet "SLE Prep"
+      - run: curl --fail --silent http://127.0.0.1:10000/sle_prep_sw.js | grep --quiet "sle-prep-shell"
+      - run: >-
+          curl --fail --silent --dump-header - --output /dev/null
+          http://127.0.0.1:10000/sle_prep_sw.js
+          | grep --ignore-case --quiet '^cache-control: no-cache'
+      - run: >-
+          curl --fail --silent --dump-header - --output /dev/null
+          http://127.0.0.1:10000/api/ready
+          | grep --ignore-case --quiet '^cache-control: no-store'
+      - run: test "$(docker exec sle-prep-ci id -u)" != "0"
+      - if: always()
+        run: docker stop sle-prep-ci || true

@@ -12,25 +12,27 @@ void main() {
   tearDown(() => db.close());
 
   group('vocab cards and review states', () {
-    test('inserting a card creates a default review state due immediately',
-        () async {
-      final id = await db.insertCardWithState(
-        front: 'the deadline',
-        back: "l'échéance (n. f.)",
-        exampleFr: 'Il faut respecter l\'échéance.',
-        domain: 'gestion_projet',
-        now: now,
-      );
+    test(
+      'inserting a card creates a default review state due immediately',
+      () async {
+        final id = await db.insertCardWithState(
+          front: 'the deadline',
+          back: "l'échéance (n. f.)",
+          exampleFr: 'Il faut respecter l\'échéance.',
+          domain: 'gestion_projet',
+          now: now,
+        );
 
-      final state = await db.reviewStateFor(id);
-      expect(state.easeFactor, 2.5);
-      expect(state.intervalDays, 0);
-      expect(state.repetitions, 0);
-      expect(state.lapses, 0);
+        final state = await db.reviewStateFor(id);
+        expect(state.easeFactor, 2.5);
+        expect(state.intervalDays, 0);
+        expect(state.repetitions, 0);
+        expect(state.lapses, 0);
 
-      final due = await db.dueCards(now);
-      expect(due.map((c) => c.card.id), contains(id));
-    });
+        final due = await db.dueCards(now);
+        expect(due.map((c) => c.card.id), contains(id));
+      },
+    );
 
     test('dueCards excludes cards scheduled in the future', () async {
       final id = await db.insertCardWithState(
@@ -56,7 +58,12 @@ void main() {
 
     test('applyReview persists the new scheduling state', () async {
       final id = await db.insertCardWithState(
-        front: 'a', back: 'b', exampleFr: 'c', domain: 'd', now: now);
+        front: 'a',
+        back: 'b',
+        exampleFr: 'c',
+        domain: 'd',
+        now: now,
+      );
       await db.applyReview(
         cardId: id,
         easeFactor: 2.36,
@@ -75,12 +82,12 @@ void main() {
 
   group('drill items and attempts', () {
     Future<int> seedItem(String topic) => db.insertDrillItem(
-          topic: topic,
-          prompt: 'La gestionnaire exige que le rapport ___ remis.',
-          options: const ['est', 'soit', 'sera', 'serait'],
-          correctIndex: 1,
-          explanationFr: 'Exiger que déclenche le subjonctif.',
-        );
+      topic: topic,
+      prompt: 'La gestionnaire exige que le rapport ___ remis.',
+      options: const ['est', 'soit', 'sera', 'serait'],
+      correctIndex: 1,
+      explanationFr: 'Exiger que déclenche le subjonctif.',
+    );
 
     test('randomDrillItems filters by topic and respects the limit', () async {
       for (var i = 0; i < 5; i++) {
@@ -154,24 +161,26 @@ void main() {
       expect(log.minutesActive, 30);
     });
 
-    test('currentStreak counts consecutive active days ending today or yesterday',
-        () async {
-      Future<void> logDay(DateTime d) => db.upsertSessionLog(
-            day: d,
-            blocksPlanned: const ['vocabReview'],
-            blocksCompleted: const ['vocabReview'],
-            minutesActive: 20,
-          );
+    test(
+      'currentStreak counts consecutive active days ending today or yesterday',
+      () async {
+        Future<void> logDay(DateTime d) => db.upsertSessionLog(
+          day: d,
+          blocksPlanned: const ['vocabReview'],
+          blocksCompleted: const ['vocabReview'],
+          minutesActive: 20,
+        );
 
-      final today = DateTime(2026, 7, 12);
-      await logDay(today);
-      await logDay(today.subtract(const Duration(days: 1)));
-      await logDay(today.subtract(const Duration(days: 2)));
-      // gap at day -3
-      await logDay(today.subtract(const Duration(days: 4)));
+        final today = DateTime(2026, 7, 12);
+        await logDay(today);
+        await logDay(today.subtract(const Duration(days: 1)));
+        await logDay(today.subtract(const Duration(days: 2)));
+        // gap at day -3
+        await logDay(today.subtract(const Duration(days: 4)));
 
-      expect(await db.currentStreak(today), 3);
-    });
+        expect(await db.currentStreak(today), 3);
+      },
+    );
 
     test('streak survives when today has no session yet', () async {
       final today = DateTime(2026, 7, 12);

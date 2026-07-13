@@ -14,11 +14,14 @@ void main() {
       addTearDown(db.close);
 
       await db.insertOralQuestion(
-          tier: 'A', questionFr: 'Décrivez votre poste actuel.');
+        tier: 'A',
+        questionFr: 'Décrivez votre poste actuel.',
+      );
       await db.insertOralQuestion(
-          tier: 'C',
-          questionFr:
-              'Si votre budget était réduit de 15 %, que proposeriez-vous ?');
+        tier: 'C',
+        questionFr:
+            'Si votre budget était réduit de 15 %, que proposeriez-vous ?',
+      );
 
       final aTier = await db.oralQuestionsByTier('A');
       expect(aTier, hasLength(1));
@@ -54,8 +57,7 @@ void main() {
       expect(history, hasLength(2));
       expect(history.first.mode, 'interview');
       expect(history.first.exchangesList, hasLength(2));
-      expect(history.last.exchangesList.single['question'],
-          contains('poste'));
+      expect(history.last.exchangesList.single['question'], contains('poste'));
     });
   });
 }

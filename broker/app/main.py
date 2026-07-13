@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import secrets
+import sqlite3
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
@@ -13,9 +16,11 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from jwt.algorithms import RSAAlgorithm
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .config import Settings, get_settings
+from .middleware import RequestBodyLimitMiddleware
 from .openai_service import (
     OpenAiService,
     actual_chat_cost_micros,
@@ -38,12 +43,14 @@ from .security import (
     allowed_email,
     delete_session_cookie,
     oauth_pkce,
+    pseudonymous_user_id,
     require_csrf,
     set_session_cookie,
 )
 from .store import BrokerStore, Session
 
 CsrfSession = Annotated[Session, Depends(require_csrf)]
+logger = logging.getLogger("sle_prep.broker")
 
 
 def create_app(
@@ -52,15 +59,62 @@ def create_app(
     openai_client: httpx.AsyncClient | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
-    if settings.environment == "production" and not settings.allowed_emails:
-        raise RuntimeError("ALLOWED_EMAILS must not be empty in production")
-
     store = BrokerStore(settings.database_path)
+    if settings.environment == "production":
+        if not settings.allowed_emails:
+            store.close()
+            raise RuntimeError("ALLOWED_EMAILS must not be empty in production")
+        if (
+            len(settings.identifier_secret) < 32
+            or settings.identifier_secret == "development-only-identifier-secret"
+        ):
+            store.close()
+            raise RuntimeError("IDENTIFIER_SECRET must be a stable random secret in production")
+        if not settings.openai_api_key:
+            store.close()
+            raise RuntimeError("OPENAI_API_KEY must not be empty in production")
+        if not settings.official_openai_endpoint:
+            store.close()
+            raise RuntimeError("OPENAI_BASE_URL must use the official OpenAI API in production")
+        if not settings.google_enabled and not store.has_passkey_for_any(settings.allowed_emails):
+            store.close()
+            raise RuntimeError(
+                "A fresh production database requires Google OAuth to bootstrap the first passkey"
+            )
+        static_dir = Path(settings.static_dir) if settings.static_dir is not None else None
+        required_web_files = ("index.html", "main.dart.js", "sle_prep_sw.js")
+        if static_dir is None or not static_dir.is_dir() or any(
+            not (static_dir / name).is_file() for name in required_web_files
+        ):
+            store.close()
+            raise RuntimeError(
+                "STATIC_DIR must contain the finalized Flutter web build in production"
+            )
+        if "__SLE_PREP_BUILD_ID__" in (static_dir / "sle_prep_sw.js").read_text(
+            encoding="utf-8"
+        ):
+            store.close()
+            raise RuntimeError("The production service worker has not been finalized")
+
     openai = OpenAiService(settings, openai_client)
-    rate_limiter = MinuteRateLimiter(settings.requests_per_minute)
+    rate_limiter = MinuteRateLimiter(
+        settings.requests_per_minute,
+        max_identities=settings.rate_limit_max_identities,
+    )
+    auth_rate_limiter = MinuteRateLimiter(
+        settings.auth_requests_per_minute,
+        max_identities=settings.rate_limit_max_identities,
+        detail="Trop de tentatives de connexion. Attendez une minute puis réessayez.",
+    )
+    last_cleanup = 0.0
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        store.cleanup(
+            reservation_stale_minutes=settings.reservation_stale_minutes,
+            audit_retention_days=settings.audit_retention_days,
+            usage_retention_days=settings.usage_retention_days,
+        )
         yield
         await openai.close()
         store.close()
@@ -76,6 +130,7 @@ def create_app(
     app.state.store = store
     app.state.openai = openai
     app.state.rate_limiter = rate_limiter
+    app.state.auth_rate_limiter = auth_rate_limiter
 
     host = urlparse(settings.public_origin).hostname or "localhost"
     app.add_middleware(
@@ -88,10 +143,53 @@ def create_app(
             *sorted(settings.trusted_hosts),
         ],
     )
+    app.add_middleware(GZipMiddleware, minimum_size=1_024)
+    app.add_middleware(
+        RequestBodyLimitMiddleware,
+        max_bytes=settings.max_request_body_bytes,
+    )
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
-        response = await call_next(request)
+        nonlocal last_cleanup
+        started = time.perf_counter()
+        request_id = request.headers.get("x-request-id", "")
+        if (
+            not request_id
+            or len(request_id) > 64
+            or not all(char.isalnum() or char in "-_" for char in request_id)
+        ):
+            request_id = secrets.token_urlsafe(12)
+
+        now = time.monotonic()
+        if now - last_cleanup >= settings.cleanup_interval_minutes * 60:
+            last_cleanup = now
+            try:
+                store.cleanup(
+                    reservation_stale_minutes=settings.reservation_stale_minutes,
+                    audit_retention_days=settings.audit_retention_days,
+                    usage_retention_days=settings.usage_retention_days,
+                )
+            except sqlite3.Error:
+                logger.exception("broker metadata cleanup failed")
+
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception(
+                json.dumps(
+                    {
+                        "event": "request",
+                        "request_id": request_id,
+                        "method": request.method,
+                        "path": request.url.path,
+                        "status": 500,
+                        "duration_ms": round((time.perf_counter() - started) * 1_000, 1),
+                    }
+                )
+            )
+            raise
+        response.headers["X-Request-ID"] = request_id
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; base-uri 'self'; object-src 'none'; "
             "frame-ancestors 'none'; img-src 'self' data: blob:; "
@@ -112,13 +210,48 @@ def create_app(
             response.headers["Strict-Transport-Security"] = (
                 "max-age=63072000; includeSubDomains; preload"
             )
-        if request.url.path.startswith("/api/"):
+        if request.url.path.startswith(("/api/", "/auth/")):
             response.headers["Cache-Control"] = "no-store"
+        elif request.url.path in {
+            "/",
+            "/index.html",
+            "/flutter_bootstrap.js",
+            "/sle_prep_sw.js",
+            "/manifest.json",
+        }:
+            response.headers["Cache-Control"] = "no-cache"
+        else:
+            response.headers["Cache-Control"] = (
+                "public, max-age=86400, stale-while-revalidate=604800"
+            )
+        logger.info(
+            json.dumps(
+                {
+                    "event": "request",
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": response.status_code,
+                    "duration_ms": round((time.perf_counter() - started) * 1_000, 1),
+                }
+            )
+        )
         return response
 
-    @app.get("/api/health")
-    async def health() -> dict[str, str]:
+    @app.get("/api/live")
+    async def live() -> dict[str, str]:
         return {"status": "ok"}
+
+    async def _ready() -> dict[str, str]:
+        try:
+            store.check_ready()
+        except sqlite3.Error as error:
+            raise HTTPException(status_code=503, detail="Le stockage n'est pas prêt.") from error
+        return {"status": "ready"}
+
+    app.add_api_route("/api/ready", _ready, methods=["GET"])
+    # Backwards-compatible readiness alias used by older deployments.
+    app.add_api_route("/api/health", _ready, methods=["GET"])
 
     @app.get("/api/auth/session")
     async def auth_session(request: Request) -> dict:
@@ -127,11 +260,12 @@ def create_app(
             return {
                 "authenticated": False,
                 "googleEnabled": settings.google_enabled,
-                "passkeysEnabled": True,
+                "passkeysEnabled": store.has_passkey_for_any(settings.allowed_emails),
             }
         return {
             "authenticated": True,
             "email": session.email,
+            "userId": pseudonymous_user_id(settings, session.email),
             "csrfToken": session.csrf_token,
             "googleEnabled": settings.google_enabled,
             "passkeysEnabled": True,
@@ -147,11 +281,17 @@ def create_app(
         return response
 
     @app.get("/auth/google/start")
-    async def google_start() -> Response:
+    async def google_start(request: Request) -> Response:
+        auth_rate_limiter.check(f"google-start:{_client_identity(request)}")
         if not settings.google_enabled:
             raise HTTPException(status_code=503, detail="Google OAuth n'est pas configuré.")
         verifier, code_challenge = oauth_pkce()
-        state_value = store.put_challenge(kind="google-oauth", verifier=verifier)
+        nonce = secrets.token_urlsafe(24)
+        state_value = store.put_challenge(
+            kind="google-oauth",
+            verifier=verifier,
+            challenge=nonce.encode("utf-8"),
+        )
         redirect_uri = f"{settings.public_origin}/auth/google/callback"
         params = {
             "client_id": settings.google_client_id,
@@ -162,6 +302,7 @@ def create_app(
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
             "prompt": "select_account",
+            "nonce": nonce,
         }
         response = RedirectResponse(
             f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}",
@@ -180,6 +321,7 @@ def create_app(
 
     @app.get("/auth/google/callback")
     async def google_callback(request: Request, code: str, state: str) -> Response:
+        auth_rate_limiter.check(f"google-callback:{_client_identity(request)}")
         cookie_state = request.cookies.get("sle_oauth_state", "")
         if not cookie_state or not secrets.compare_digest(cookie_state, state):
             raise HTTPException(status_code=400, detail="État OAuth invalide.")
@@ -209,6 +351,7 @@ def create_app(
                     client,
                     id_token,
                     settings.google_client_id,
+                    expected_nonce=bytes(row["challenge"]).decode("utf-8"),
                 )
             except (httpx.HTTPError, jwt.PyJWTError, ValueError) as error:
                 raise HTTPException(
@@ -238,6 +381,7 @@ def create_app(
 
     @app.post("/api/auth/passkeys/register/options")
     async def passkey_register_options(session: CsrfSession) -> dict:
+        auth_rate_limiter.check(f"passkey-register:{session.email}")
         return registration_options(store, settings, session.email)
 
     @app.post("/api/auth/passkeys/register/finish")
@@ -245,6 +389,7 @@ def create_app(
         body: PasskeyFinishRequest,
         session: CsrfSession,
     ) -> dict[str, bool]:
+        auth_rate_limiter.check(f"passkey-register:{session.email}")
         try:
             finish_registration(
                 store,
@@ -265,7 +410,7 @@ def create_app(
         request: Request,
     ) -> dict:
         email = body.email.lower()
-        rate_limiter.check(f"passkey:{email}:{request.client.host if request.client else ''}")
+        auth_rate_limiter.check(f"passkey-options:{_client_identity(request)}")
         if not allowed_email(settings, email):
             # Deliberately match the no-credential response to limit account discovery.
             raise HTTPException(status_code=404, detail="Aucune passkey disponible.")
@@ -275,7 +420,8 @@ def create_app(
             raise HTTPException(status_code=404, detail="Aucune passkey disponible.") from error
 
     @app.post("/api/auth/passkeys/login/finish")
-    async def passkey_login_finish(body: PasskeyFinishRequest) -> Response:
+    async def passkey_login_finish(body: PasskeyFinishRequest, request: Request) -> Response:
+        auth_rate_limiter.check(f"passkey-finish:{_client_identity(request)}")
         try:
             email = finish_authentication(
                 store,
@@ -304,19 +450,40 @@ def create_app(
                 detail="Le modèle texte du serveur n'est pas autorisé.",
             )
         estimated = estimated_chat_cost_micros(body, settings)
-        reservation = _reserve(store, settings, session.email, "/api/chat", estimated)
         try:
-            result = await openai.chat(body)
+            reservation_id = _reserve(
+                store,
+                settings,
+                session.email,
+                "/api/chat",
+                estimated,
+            )
+        except HTTPException:
+            raise
+        except BaseException:
+            store.audit(session.email, "/api/chat", "internal-error", 500)
+            raise
+        try:
+            with _UsageReservation(
+                store,
+                reservation_id,
+            ) as reservation:
+                result = await openai.chat(
+                    body,
+                    safety_identifier=pseudonymous_user_id(settings, session.email),
+                )
+                actual_cost = actual_chat_cost_micros(result, settings)
+                if result.input_tokens == 0 and result.output_tokens == 0:
+                    # Do not turn missing provider usage into a near-zero
+                    # charge that bypasses the configured budget ceiling.
+                    actual_cost = estimated
+                reservation.settle(actual_cost)
         except HTTPException as error:
-            store.settle_usage(reservation, 0, released=True)
             store.audit(session.email, "/api/chat", "upstream-error", error.status_code)
             raise
-        actual_cost = actual_chat_cost_micros(result, settings)
-        if result.input_tokens == 0 and result.output_tokens == 0:
-            # Do not turn a provider's missing usage metadata into a near-zero
-            # charge that can bypass the configured budget ceiling.
-            actual_cost = estimated
-        store.settle_usage(reservation, actual_cost)
+        except BaseException:
+            store.audit(session.email, "/api/chat", "internal-error", 500)
+            raise
         store.audit(session.email, "/api/chat", "ok", 200)
         return {"text": result.text}
 
@@ -327,20 +494,35 @@ def create_app(
     ) -> dict[str, str]:
         rate_limiter.check(session.email)
         reserve_micros = max(1, round(settings.realtime_session_reserve_usd * 1_000_000))
-        reservation = _reserve(
-            store,
-            settings,
-            session.email,
-            "/api/realtime/session",
-            reserve_micros,
-        )
         try:
-            value = await openai.realtime_secret(body)
+            reservation_id = _reserve(
+                store,
+                settings,
+                session.email,
+                "/api/realtime/session",
+                reserve_micros,
+            )
+        except HTTPException:
+            raise
+        except BaseException:
+            store.audit(session.email, "/api/realtime/session", "internal-error", 500)
+            raise
+        try:
+            with _UsageReservation(
+                store,
+                reservation_id,
+            ) as reservation:
+                value = await openai.realtime_secret(
+                    body,
+                    safety_identifier=pseudonymous_user_id(settings, session.email),
+                )
+                reservation.settle(reserve_micros)
         except HTTPException as error:
-            store.settle_usage(reservation, 0, released=True)
             store.audit(session.email, "/api/realtime/session", "upstream-error", error.status_code)
             raise
-        store.settle_usage(reservation, reserve_micros)
+        except BaseException:
+            store.audit(session.email, "/api/realtime/session", "internal-error", 500)
+            raise
         store.audit(session.email, "/api/realtime/session", "ok", 200)
         return {"value": value}
 
@@ -348,6 +530,31 @@ def create_app(
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="web")
     return app
+
+
+class _UsageReservation:
+    """Always releases an unsettled reservation, including on cancellation."""
+
+    def __init__(self, store: BrokerStore, request_id: str):
+        self._store = store
+        self._request_id = request_id
+        self._closed = False
+
+    def __enter__(self) -> _UsageReservation:
+        return self
+
+    def settle(self, cost_micros: int) -> None:
+        self._store.settle_usage(self._request_id, cost_micros)
+        self._closed = True
+
+    def __exit__(self, _type, _value, _traceback) -> None:
+        if not self._closed:
+            self._store.settle_usage(self._request_id, 0, released=True)
+            self._closed = True
+
+
+def _client_identity(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
 
 
 def _reserve(
@@ -377,6 +584,8 @@ async def _verify_google_id_token(
     client: httpx.AsyncClient,
     id_token: str,
     audience: str,
+    *,
+    expected_nonce: str,
 ) -> str:
     jwks_response = await client.get("https://www.googleapis.com/oauth2/v3/certs")
     jwks_response.raise_for_status()
@@ -395,6 +604,9 @@ async def _verify_google_id_token(
     payload = jwt.decode(id_token, public_key, algorithms=["RS256"], audience=audience)
     if payload.get("iss") not in {"accounts.google.com", "https://accounts.google.com"}:
         raise HTTPException(status_code=401, detail="Émetteur Google invalide.")
+    nonce = payload.get("nonce")
+    if not isinstance(nonce, str) or not secrets.compare_digest(nonce, expected_nonce):
+        raise HTTPException(status_code=401, detail="Nonce Google invalide.")
     if payload.get("email_verified") is not True:
         raise HTTPException(status_code=403, detail="Adresse Google non vérifiée.")
     email = payload.get("email")

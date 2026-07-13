@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/db/daos.dart';
 import '../../data/db/database.dart';
@@ -8,6 +9,9 @@ import 'oral_session_screen.dart';
 import 'realtime_interview_screen.dart';
 
 const coachAccent = Color(0xffa93b44);
+const officialOralAssessmentUrl =
+    'https://www.canada.ca/fr/commission-fonction-publique/services/'
+    'evaluation-langue-seconde/gestionnaires/evaluation-linguistique-oral-sle.html';
 
 /// OLA-style interview: 1 warm-up (A), then 2 B and 2 C questions.
 Future<List<OralQuestion>> pickInterviewQuestions(AppDatabase db) async {
@@ -37,7 +41,8 @@ class CoachScreen extends ConsumerWidget {
     final pool = await db.oralQuestionsByTier(tier);
     if (pool.isEmpty) return const [];
     // Deterministic per day so re-opening shows the same question.
-    return [pool[day.difference(DateTime(2026)).inDays % pool.length]];
+    final dayIndex = calendarDayDifference(DateTime(2026), day);
+    return [pool[dayIndex % pool.length]];
   }
 
   @override
@@ -97,7 +102,7 @@ class CoachScreen extends ConsumerWidget {
               title: 'Entrevue guidée',
               subtitle:
                   'STT/TTS sur l’appareil · 5 questions · rapport selon les '
-                  '5 critères officiels',
+                  '5 dimensions alignées sur les critères CFP',
               onTap: () async {
                 final questions = await pickInterviewQuestions(db);
                 if (!context.mounted || questions.isEmpty) return;
@@ -112,16 +117,36 @@ class CoachScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 8),
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Vos réponses sont transcrites par votre appareil, puis '
-                  'évaluées par votre fournisseur IA selon les cinq critères '
-                  'de l\'ELO. Les estimations sont non officielles; la '
-                  'prononciation n\'est qu\'approximée à partir de la '
-                  'transcription.',
-                  style: TextStyle(fontSize: 13),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Vos réponses sont transcrites par votre appareil, puis '
+                      'évaluées par votre fournisseur IA selon cinq dimensions '
+                      'pédagogiques alignées sur les critères publiés. Les '
+                      'estimations sont non officielles; la prononciation '
+                      'n’est qu’approximée à partir de la transcription.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'La vraie évaluation CFP dure actuellement de 20 à 40 '
+                      'minutes. Cette app sert uniquement à vous préparer : '
+                      'les outils d’IA sont interdits pendant le test officiel.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => _openOfficialCriteria(context),
+                        icon: const Icon(Icons.open_in_new, size: 18),
+                        label: const Text('Voir les critères officiels CFP'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -129,6 +154,18 @@ class CoachScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openOfficialCriteria(BuildContext context) async {
+    final opened = await launchUrl(
+      Uri.parse(officialOralAssessmentUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d’ouvrir la page de la CFP.')),
+      );
+    }
   }
 }
 

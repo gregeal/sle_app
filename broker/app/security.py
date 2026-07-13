@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import secrets
 import threading
-from collections import defaultdict, deque
-from datetime import UTC, datetime, timedelta
+import time
+from collections import OrderedDict, deque
 from urllib.parse import urlparse
 
 from fastapi import HTTPException, Request, status
@@ -16,6 +17,17 @@ from .store import BrokerStore, Session
 
 def allowed_email(settings: Settings, email: str) -> bool:
     return email.lower() in settings.allowed_emails
+
+
+def pseudonymous_user_id(settings: Settings, email: str) -> str:
+    """Stable per-user identifier that never exposes the email to clients/providers."""
+
+    digest = hmac.new(
+        settings.identifier_secret.encode("utf-8"),
+        email.strip().lower().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"sle_{digest}"
 
 
 def require_session(request: Request) -> Session:
@@ -77,21 +89,43 @@ def relying_party_id(settings: Settings) -> str:
 
 
 class MinuteRateLimiter:
-    def __init__(self, requests_per_minute: int):
+    """Bounded in-process sliding-window limiter for the single-worker broker."""
+
+    def __init__(
+        self,
+        requests_per_minute: int,
+        *,
+        max_identities: int = 5_000,
+        detail: str = "Trop de demandes IA. Attendez une minute puis réessayez.",
+    ):
         self.limit = requests_per_minute
-        self._events: dict[str, deque[datetime]] = defaultdict(deque)
+        self.max_identities = max_identities
+        self.detail = detail
+        self._events: OrderedDict[str, deque[float]] = OrderedDict()
         self._lock = threading.Lock()
 
     def check(self, identity: str) -> None:
-        now = datetime.now(UTC)
-        cutoff = now - timedelta(minutes=1)
+        now = time.monotonic()
+        cutoff = now - 60
         with self._lock:
-            events = self._events[identity]
+            events = self._events.get(identity)
+            if events is None:
+                while len(self._events) >= self.max_identities:
+                    self._events.popitem(last=False)
+                events = deque()
+                self._events[identity] = events
+            else:
+                self._events.move_to_end(identity)
             while events and events[0] <= cutoff:
                 events.popleft()
             if len(events) >= self.limit:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Trop de demandes IA. Attendez une minute puis réessayez.",
+                    detail=self.detail,
                 )
             events.append(now)
+
+    @property
+    def identity_count(self) -> int:
+        with self._lock:
+            return len(self._events)

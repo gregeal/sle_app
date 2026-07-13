@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /sle_prep
+    schedule:
+      interval: weekly
+    groups:
+      flutter-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /broker
+    schedule:
+      interval: weekly
+    groups:
+      broker-dependencies:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      container-images:
+        patterns: ["*"]

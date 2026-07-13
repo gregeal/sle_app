@@ -48,8 +48,35 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   final _apiKeyController = TextEditingController();
   late LlmProvider _provider;
   late String _realtimeVoice;
+  String? _draftKeyDestination;
   var _isSaving = false;
   var _isTesting = false;
+
+  String get _currentDestination =>
+      apiKeyStorageKey(_provider, _baseUrlController.text);
+
+  bool get _hasBoundDraftKey =>
+      _apiKeyController.text.trim().isNotEmpty &&
+      _draftKeyDestination == _currentDestination;
+
+  bool get _destinationChanged => !sameProviderDestination(
+    widget.config.provider,
+    widget.config.baseUrl,
+    _provider,
+    _baseUrlController.text,
+  );
+
+  bool get _draftWillSendKey =>
+      _provider != LlmProvider.ollama &&
+      (_hasBoundDraftKey || (!_destinationChanged && widget.config.hasApiKey));
+
+  void _clearDraftKeyIfDestinationChanged() {
+    if (_apiKeyController.text.isNotEmpty &&
+        _draftKeyDestination != _currentDestination) {
+      _apiKeyController.clear();
+      _draftKeyDestination = null;
+    }
+  }
 
   @override
   void initState() {
@@ -75,10 +102,28 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   Future<void> _testConnection() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isTesting = true);
+    LlmClient? client;
     try {
-      // Persist the form first so the test exercises exactly what will be used.
-      await _persist();
-      final client = await ref.read(llmClientProvider.future);
+      final baseUrl = normalizeBaseUrl(_baseUrlController.text);
+      var apiKey = _hasBoundDraftKey ? _apiKeyController.text.trim() : '';
+      if (apiKey.isEmpty && !_destinationChanged) {
+        apiKey =
+            await ref
+                .read(secureStorageProvider)
+                .read(key: apiKeyStorageKey(_provider, baseUrl)) ??
+            '';
+      }
+      client = clientFor(
+        LlmConfig(
+          provider: _provider,
+          baseUrl: baseUrl,
+          model: _modelController.text.trim(),
+          hasApiKey: apiKey.isNotEmpty,
+          realtimeModel: _realtimeModelController.text.trim(),
+          realtimeVoice: _realtimeVoice,
+        ),
+        apiKey: apiKey,
+      );
       await client.testConnection();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,25 +145,32 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ).showSnackBar(SnackBar(content: Text('Échec du test : $error')));
       }
     } finally {
+      if (client != null) closeLlmClient(client);
       if (mounted) setState(() => _isTesting = false);
     }
   }
 
   Future<void> _persist() async {
     final database = ref.read(appDatabaseProvider);
-    await database.setSetting('llmProvider', _provider.name);
-    await database.setSetting('llmBaseUrl', _baseUrlController.text.trim());
-    await database.setSetting('llmModel', _modelController.text.trim());
-    await database.setSetting(
-      'realtimeModel',
-      _realtimeModelController.text.trim(),
-    );
-    await database.setSetting('realtimeVoice', _realtimeVoice);
-    if (_apiKeyController.text.trim().isNotEmpty) {
+    final baseUrl = normalizeBaseUrl(_baseUrlController.text);
+    final draftKey = _hasBoundDraftKey ? _apiKeyController.text.trim() : '';
+    if (draftKey.isNotEmpty) {
       await ref
           .read(secureStorageProvider)
-          .write(key: 'llmApiKey', value: _apiKeyController.text.trim());
+          .write(key: apiKeyStorageKey(_provider, baseUrl), value: draftKey);
     }
+    await database.transaction(() async {
+      await database.setSetting('llmProvider', _provider.name);
+      await database.setSetting('llmBaseUrl', baseUrl);
+      await database.setSetting('llmModel', _modelController.text.trim());
+      await database.setSetting(
+        'realtimeModel',
+        _realtimeModelController.text.trim(),
+      );
+      await database.setSetting('realtimeVoice', _realtimeVoice);
+    });
+    _apiKeyController.clear();
+    _draftKeyDestination = null;
     ref.invalidate(llmConfigProvider);
     ref.invalidate(llmClientProvider);
   }
@@ -133,6 +185,42 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           const SnackBar(
             content: Text('Paramètres IA enregistrés localement.'),
           ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Enregistrement impossible : $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _deleteKey() async {
+    setState(() => _isSaving = true);
+    try {
+      await ref
+          .read(secureStorageProvider)
+          .delete(
+            key: apiKeyStorageKey(
+              widget.config.provider,
+              widget.config.baseUrl,
+            ),
+          );
+      await ref.read(secureStorageProvider).delete(key: 'llmApiKey');
+      ref.invalidate(llmConfigProvider);
+      ref.invalidate(llmClientProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Clé API supprimée de cet appareil.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Suppression impossible : $error')),
         );
       }
     } finally {
@@ -173,6 +261,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   setState(() {
                     _provider = provider;
                     _baseUrlController.text = defaultBaseUrl(provider);
+                    _clearDraftKeyIfDestinationChanged();
                   });
                 },
         ),
@@ -190,15 +279,21 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ? 'Sur un téléphone physique, utilisez l’adresse IP de votre '
                       'PC sur le réseau local (p. ex. '
                       'http://192.168.1.10:11434/v1). L’adresse 10.0.2.2 ne '
-                      'fonctionne que sur l’émulateur Android.'
+                      'fonctionne que sur l’émulateur Android. HTTP local est '
+                      'réservé au développement; une version Android publiée '
+                      'doit passer par un relais HTTPS.'
                 : null,
           ),
           validator: (value) {
-            final uri = Uri.tryParse(value?.trim() ?? '');
-            if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-              return 'Entrez une URL complète.';
-            }
-            return null;
+            return validateProviderEndpoint(
+              provider: _provider,
+              baseUrl: value?.trim() ?? '',
+              willSendApiKey: _draftWillSendKey,
+            );
+          },
+          onChanged: (_) {
+            _clearDraftKeyIfDestinationChanged();
+            setState(() {});
           },
         ),
         if (_provider == LlmProvider.openAiCompatible) ...[
@@ -271,20 +366,51 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         const SizedBox(height: 14),
         TextFormField(
           controller: _apiKeyController,
-          enabled: !_isSaving,
+          enabled: !_isSaving && _provider != LlmProvider.ollama,
           obscureText: true,
           autocorrect: false,
           enableSuggestions: false,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
-            labelText: widget.config.hasApiKey
+            labelText: _provider == LlmProvider.ollama
+                ? 'Clé API non requise'
+                : widget.config.hasApiKey
                 ? 'Nouvelle clé API (facultatif)'
                 : 'Clé API',
-            helperText: widget.config.hasApiKey
-                ? 'Une clé est déjà enregistrée. Laissez vide pour la conserver.'
+            helperText: _provider == LlmProvider.ollama
+                ? 'SLE Prep n’envoie jamais de clé à Ollama.'
+                : widget.config.hasApiKey
+                ? _destinationChanged
+                      ? 'La destination a changé : entrez sa propre clé. '
+                            'L’ancienne ne sera jamais transférée.'
+                      : 'Une clé est déjà enregistrée pour cette destination. '
+                            'Laissez vide pour la conserver.'
                 : 'Stockée dans le stockage chiffré Android.',
           ),
+          onChanged: (value) {
+            setState(() {
+              _draftKeyDestination = value.trim().isEmpty
+                  ? null
+                  : _currentDestination;
+            });
+          },
+          validator: (value) {
+            if (_provider == LlmProvider.ollama) return null;
+            if ((value?.trim().isEmpty ?? true) &&
+                (_destinationChanged || !widget.config.hasApiKey)) {
+              return 'Entrez la clé propre à cette destination.';
+            }
+            return null;
+          },
         ),
+        if (widget.config.hasApiKey && !_destinationChanged) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _isSaving || _isTesting ? null : _deleteKey,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Supprimer la clé enregistrée'),
+          ),
+        ],
         const SizedBox(height: 20),
         FilledButton.icon(
           onPressed: _isSaving || _isTesting ? null : _save,

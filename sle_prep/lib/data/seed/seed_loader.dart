@@ -43,20 +43,25 @@ Future<bool> importSeedFromAssets(AppDatabase db) async {
 
   if (storedVersion < 1) {
     curriculum = _parseCurriculum(
-        await rootBundle.loadString('assets/seed/curriculum.json'));
-    cards =
-        _parseCards(await rootBundle.loadString('assets/seed/vocab_core.json'));
+      await rootBundle.loadString('assets/seed/curriculum.json'),
+    );
+    cards = _parseCards(
+      await rootBundle.loadString('assets/seed/vocab_core.json'),
+    );
     drills = _parseDrills(
-        await rootBundle.loadString('assets/seed/drills_core.json'));
+      await rootBundle.loadString('assets/seed/drills_core.json'),
+    );
   }
   if (storedVersion < 2) {
     readingSets = _parseReadingSets(
-        await rootBundle.loadString('assets/seed/reading_core.json'));
+      await rootBundle.loadString('assets/seed/reading_core.json'),
+    );
   }
   List<_SeedOralQuestion> oralQuestions = const [];
   if (storedVersion < 3) {
     oralQuestions = _parseOralQuestions(
-        await rootBundle.loadString('assets/seed/oral_core.json'));
+      await rootBundle.loadString('assets/seed/oral_core.json'),
+    );
   }
 
   final now = DateTime.now();
@@ -280,11 +285,16 @@ List<_SeedReadingSet> _parseReadingSets(String source) {
               final questionContext = '$context questions[${question.key}]';
               final value = _asObject(question.value, questionContext);
               final options = _requiredList(value, 'options', questionContext)
-                  .map((option) =>
-                      _asNonEmptyString(option, '$questionContext options'))
+                  .map(
+                    (option) =>
+                        _asNonEmptyString(option, '$questionContext options'),
+                  )
                   .toList(growable: false);
-              final correctIndex =
-                  _requiredInt(value, 'correctIndex', questionContext);
+              final correctIndex = _requiredInt(
+                value,
+                'correctIndex',
+                questionContext,
+              );
               if (options.length != 4) {
                 throw SeedContentException(
                   '$questionContext options must contain exactly four values',
@@ -292,7 +302,8 @@ List<_SeedReadingSet> _parseReadingSets(String source) {
               }
               if (options.toSet().length != options.length) {
                 throw SeedContentException(
-                    '$questionContext options must be unique');
+                  '$questionContext options must be unique',
+                );
               }
               if (correctIndex < 0 || correctIndex >= options.length) {
                 throw SeedContentException(
@@ -303,14 +314,18 @@ List<_SeedReadingSet> _parseReadingSets(String source) {
                 'prompt': _requiredString(value, 'prompt', questionContext),
                 'options': options,
                 'correctIndex': correctIndex,
-                'explanationFr':
-                    _requiredString(value, 'explanationFr', questionContext),
+                'explanationFr': _requiredString(
+                  value,
+                  'explanationFr',
+                  questionContext,
+                ),
               };
             })
             .toList(growable: false);
         if (questions.isEmpty) {
           throw SeedContentException(
-              '$context must contain at least one question');
+            '$context must contain at least one question',
+          );
         }
 
         return _SeedReadingSet(

@@ -25,14 +25,23 @@ abstract class LlmClient {
   });
 }
 
+/// Implemented only by clients that own transport resources.
+abstract interface class ClosableLlmClient {
+  void close();
+}
+
+void closeLlmClient(LlmClient client) {
+  if (client case ClosableLlmClient closable) closable.close();
+}
+
 extension LlmConnectionTest on LlmClient {
   /// Cheap round-trip used by the settings screen's "Tester la connexion".
   Future<void> testConnection() => complete(
-        system: 'Réponds uniquement « OK ».',
-        user: 'Test de connexion.',
-        temperature: 0,
-        maxTokens: 16,
-      );
+    system: 'Réponds uniquement « OK ».',
+    user: 'Test de connexion.',
+    temperature: 0,
+    maxTokens: 16,
+  );
 }
 
 /// Builds the right client for the stored configuration.
@@ -41,6 +50,12 @@ extension LlmConnectionTest on LlmClient {
 /// gives the settings screen a precise French error instead of a 401 later.
 LlmClient clientFor(LlmConfig config, {required String? apiKey}) {
   final needsKey = config.provider != LlmProvider.ollama;
+  final endpointError = validateProviderEndpoint(
+    provider: config.provider,
+    baseUrl: config.baseUrl,
+    willSendApiKey: needsKey && (apiKey?.isNotEmpty ?? false),
+  );
+  if (endpointError != null) throw LlmException(endpointError);
   if (needsKey && (apiKey == null || apiKey.isEmpty)) {
     throw const LlmException(
       'Aucune clé API enregistrée. Ajoutez votre clé dans les paramètres.',
@@ -49,14 +64,14 @@ LlmClient clientFor(LlmConfig config, {required String? apiKey}) {
 
   return switch (config.provider) {
     LlmProvider.anthropic => AnthropicClient(
-        baseUrl: config.baseUrl,
-        model: config.model,
-        apiKey: apiKey!,
-      ),
+      baseUrl: config.baseUrl,
+      model: config.model,
+      apiKey: apiKey!,
+    ),
     _ => OpenAiCompatibleClient(
-        baseUrl: config.baseUrl,
-        model: config.model,
-        apiKey: apiKey,
-      ),
+      baseUrl: config.baseUrl,
+      model: config.model,
+      apiKey: config.provider == LlmProvider.ollama ? null : apiKey,
+    ),
   };
 }

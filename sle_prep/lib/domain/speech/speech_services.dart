@@ -23,11 +23,18 @@ abstract class SpeechService {
 class DeviceSpeechService implements SpeechService {
   final _speech = stt.SpeechToText();
   var _initialized = false;
+  void Function()? _onDone;
+  var _didFinish = false;
 
   @override
   Future<bool> initialize() async {
     if (_initialized) return true;
-    _initialized = await _speech.initialize();
+    _initialized = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') _finishOnce();
+      },
+      onError: (_) => _finishOnce(),
+    );
     return _initialized;
   }
 
@@ -36,6 +43,8 @@ class DeviceSpeechService implements SpeechService {
     required void Function(String transcript) onResult,
     required void Function() onDone,
   }) async {
+    _onDone = onDone;
+    _didFinish = false;
     await _speech.listen(
       listenOptions: stt.SpeechListenOptions(
         localeId: 'fr_CA',
@@ -46,13 +55,25 @@ class DeviceSpeechService implements SpeechService {
       ),
       onResult: (result) {
         onResult(result.recognizedWords);
-        if (result.finalResult) onDone();
+        if (result.finalResult) _finishOnce();
       },
     );
   }
 
+  void _finishOnce() {
+    if (_didFinish || _onDone == null) return;
+    _didFinish = true;
+    final callback = _onDone;
+    _onDone = null;
+    callback?.call();
+  }
+
   @override
-  Future<void> stop() => _speech.stop();
+  Future<void> stop() {
+    _onDone = null;
+    _didFinish = true;
+    return _speech.stop();
+  }
 
   @override
   bool get isListening => _speech.isListening;
@@ -66,19 +87,27 @@ abstract class TtsService {
 
 class DeviceTtsService implements TtsService {
   DeviceTtsService() {
-    _tts
-      ..setLanguage('fr-CA')
-      ..setSpeechRate(0.48);
+    _ready = _initialize();
   }
 
   final _tts = FlutterTts();
+  late final Future<void> _ready;
+
+  Future<void> _initialize() async {
+    await _tts.setLanguage('fr-CA');
+    await _tts.setSpeechRate(0.48);
+  }
 
   @override
   Future<void> speak(String textFr) async {
+    await _ready;
     await _tts.stop();
     await _tts.speak(textFr);
   }
 
   @override
-  Future<void> stop() => _tts.stop();
+  Future<void> stop() async {
+    await _ready;
+    await _tts.stop();
+  }
 }

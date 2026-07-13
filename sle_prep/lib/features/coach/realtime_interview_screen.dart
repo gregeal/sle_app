@@ -19,6 +19,12 @@ class RealtimeInterviewScreen extends ConsumerStatefulWidget {
       _RealtimeInterviewScreenState();
 }
 
+/// Realtime API `error` events generally describe a failed client operation,
+/// not a dead session. Only transport failures marked fatal by the session
+/// implementation should tear down the active interview.
+bool shouldTerminateRealtimeInterview(RealtimeVoiceEvent event) =>
+    event is RealtimeErrorEvent && event.isFatal;
+
 class _RealtimeInterviewScreenState
     extends ConsumerState<RealtimeInterviewScreen> {
   final _transcript = RealtimeTranscriptBuffer();
@@ -29,24 +35,35 @@ class _RealtimeInterviewScreenState
   OralFeedback? _feedback;
   Object? _error;
   var _started = false;
+  var _starting = false;
   var _muted = false;
   var _finishing = false;
   var _assessmentFailed = false;
 
   @override
   void dispose() {
-    unawaited(_subscription?.cancel());
     _maximumDurationTimer?.cancel();
+    _maximumDurationTimer = null;
+    final subscription = _subscription;
+    _subscription = null;
     final session = _session;
-    if (session != null) unawaited(session.close());
+    _session = null;
+    unawaited(_disposeDetached(subscription, session));
     super.dispose();
   }
 
   Future<void> _start() async {
+    if (_starting) return;
+    _starting = true;
+    _transcript.clear();
     setState(() {
       _started = true;
       _error = null;
       _activity = RealtimeVoiceActivity.connecting;
+      _feedback = null;
+      _muted = false;
+      _finishing = false;
+      _assessmentFailed = false;
     });
     try {
       final config = await ref.read(llmConfigProvider.future);
@@ -61,40 +78,97 @@ class _RealtimeInterviewScreenState
         voice: config.realtimeVoice,
       );
       _session = session;
-      _subscription = session.events.listen(_handleEvent);
+      _subscription = session.events.listen(
+        (event) => _handleEvent(session, event),
+      );
       await session.connect();
+      if (_session != session) return;
       _maximumDurationTimer = Timer(const Duration(minutes: 20), () {
         if (mounted && _session == session && !_finishing) {
           unawaited(_finish());
         }
       });
     } catch (error) {
-      final session = _session;
-      _session = null;
-      if (session != null) await session.close();
+      await _disposeActiveSession();
       if (mounted) {
         setState(() {
           _error = error;
           _activity = RealtimeVoiceActivity.disconnected;
         });
       }
+    } finally {
+      _starting = false;
     }
   }
 
-  void _handleEvent(RealtimeVoiceEvent event) {
-    if (!mounted) return;
+  void _handleEvent(RealtimeVoiceSession source, RealtimeVoiceEvent event) {
+    if (!mounted || _session != source) return;
+    var failed = false;
     setState(() {
       switch (event) {
         case RealtimeActivityEvent():
           _activity = event.activity;
+          if (event.activity != RealtimeVoiceActivity.disconnected) {
+            // A later successful event confirms that a recoverable request
+            // error did not end the interview.
+            _error = null;
+          }
         case RealtimeTranscriptEvent():
           _transcript.add(event);
         case RealtimeConversationItemEvent():
           _transcript.add(event);
         case RealtimeErrorEvent():
           _error = RealtimeVoiceException(event.message);
+          failed = shouldTerminateRealtimeInterview(event);
       }
     });
+    if (failed && !_finishing) {
+      unawaited(_handleUnexpectedFailure(source));
+    }
+  }
+
+  Future<void> _handleUnexpectedFailure(RealtimeVoiceSession source) async {
+    if (_session != source || _finishing) return;
+    _maximumDurationTimer?.cancel();
+    _maximumDurationTimer = null;
+    _session = null;
+    final subscription = _subscription;
+    _subscription = null;
+    await _disposeDetached(subscription, source);
+    if (mounted && !_finishing) {
+      setState(() {
+        _activity = RealtimeVoiceActivity.disconnected;
+        _error ??= const RealtimeVoiceException(
+          'La session Realtime a été interrompue. Réessayez.',
+        );
+      });
+    }
+  }
+
+  Future<void> _disposeActiveSession() async {
+    _maximumDurationTimer?.cancel();
+    _maximumDurationTimer = null;
+    final subscription = _subscription;
+    _subscription = null;
+    final session = _session;
+    _session = null;
+    await _disposeDetached(subscription, session);
+  }
+
+  Future<void> _disposeDetached(
+    StreamSubscription<RealtimeVoiceEvent>? subscription,
+    RealtimeVoiceSession? session,
+  ) async {
+    try {
+      await subscription?.cancel();
+    } catch (_) {
+      // Still close WebRTC if a stream implementation fails to cancel.
+    }
+    try {
+      await session?.close();
+    } catch (_) {
+      // Session cleanup is best effort during route disposal and retries.
+    }
   }
 
   Future<void> _toggleMute() async {
@@ -107,6 +181,8 @@ class _RealtimeInterviewScreenState
 
   Future<void> _finish() async {
     if (_finishing) return;
+    final session = _session;
+    if (session == null) return;
     _maximumDurationTimer?.cancel();
     _maximumDurationTimer = null;
     setState(() {
@@ -114,9 +190,46 @@ class _RealtimeInterviewScreenState
       _error = null;
       _assessmentFailed = false;
     });
-    await _session?.close();
-    _session = null;
+    try {
+      await session.setMuted(true);
+      if (mounted) setState(() => _muted = true);
+    } catch (_) {
+      // Muting is helpful but teardown must continue if the track disappeared.
+    }
+
+    // Input transcription completes asynchronously and can arrive after the
+    // next assistant turn. Keep the data channel alive for a short, bounded
+    // grace period so the learner's final answer reaches the assessment.
+    await waitForRealtimeTranscriptFinalization(
+      revision: () => _transcript.revision,
+      hasPendingTranscripts: () => _transcript.hasPendingTranscripts,
+    );
+
+    if (_session == session) {
+      _session = null;
+      final subscription = _subscription;
+      _subscription = null;
+      await _disposeDetached(subscription, session);
+    } else {
+      await session.close();
+    }
+    if (!mounted) return;
     await _assessTranscript();
+  }
+
+  Future<void> _resetToIntroduction() async {
+    await _disposeActiveSession();
+    if (!mounted) return;
+    _transcript.clear();
+    setState(() {
+      _started = false;
+      _activity = RealtimeVoiceActivity.disconnected;
+      _feedback = null;
+      _error = null;
+      _muted = false;
+      _finishing = false;
+      _assessmentFailed = false;
+    });
   }
 
   Future<void> _assessTranscript() async {
@@ -316,14 +429,7 @@ class _RealtimeInterviewScreenState
           if (_error != null && _session == null) ...[
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _started = false;
-                  _error = null;
-                  _transcript.clear();
-                  _assessmentFailed = false;
-                });
-              },
+              onPressed: () => unawaited(_resetToIntroduction()),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Revenir aux instructions'),
             ),
@@ -455,7 +561,7 @@ class _AssessingView extends StatelessWidget {
       children: [
         CircularProgressIndicator(),
         SizedBox(height: 16),
-        Text('Analyse des cinq critères de l’ELO…'),
+        Text('Analyse des cinq dimensions de compétence…'),
       ],
     ),
   );

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/database.dart';
 import '../../domain/llm/oral_coach.dart';
+import '../../domain/speech/speech_services.dart';
 import '../../providers.dart';
 import 'coach_screen.dart';
 
@@ -29,6 +32,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   var _stage = _Stage.answering;
   var _transcript = '';
   var _isListening = false;
+  var _startingListening = false;
   var _speechUnavailable = false;
   var _ttsUnavailable = false;
   OralFeedback? _feedback;
@@ -44,8 +48,9 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
 
   @override
   void dispose() {
-    ref.read(ttsServiceProvider).stop();
-    ref.read(speechServiceProvider).stop();
+    final tts = ref.read(ttsServiceProvider);
+    final speech = ref.read(speechServiceProvider);
+    unawaited(_stopSpeechServices(tts, speech));
     super.dispose();
   }
 
@@ -58,9 +63,15 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   }
 
   Future<void> _toggleListening() async {
+    if (_startingListening) return;
     final speech = ref.read(speechServiceProvider);
     if (_isListening) {
-      await speech.stop();
+      try {
+        await speech.stop();
+      } on Object {
+        if (mounted) setState(() => _speechUnavailable = true);
+      }
+      if (!mounted) return;
       setState(() {
         _isListening = false;
         if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
@@ -68,22 +79,29 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
       return;
     }
 
-    await ref.read(ttsServiceProvider).stop();
-    bool ready;
+    setState(() => _startingListening = true);
     try {
-      ready = await speech.initialize();
-    } catch (_) {
-      ready = false;
-    }
-    if (!ready) {
-      setState(() => _speechUnavailable = true);
-      return;
-    }
-    setState(() {
-      _isListening = true;
-      _transcript = '';
-    });
-    try {
+      try {
+        await ref.read(ttsServiceProvider).stop();
+      } on Object {
+        if (mounted) setState(() => _ttsUnavailable = true);
+      }
+      if (!mounted) return;
+      bool ready;
+      try {
+        ready = await speech.initialize();
+      } on Object {
+        ready = false;
+      }
+      if (!mounted) return;
+      if (!ready) {
+        setState(() => _speechUnavailable = true);
+        return;
+      }
+      setState(() {
+        _isListening = true;
+        _transcript = '';
+      });
       await speech.listen(
         onResult: (transcript) {
           if (mounted) setState(() => _transcript = transcript);
@@ -97,13 +115,15 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
           }
         },
       );
-    } catch (_) {
+    } on Object {
       if (mounted) {
         setState(() {
           _isListening = false;
           _speechUnavailable = true;
         });
       }
+    } finally {
+      if (mounted) setState(() => _startingListening = false);
     }
   }
 
@@ -335,7 +355,9 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
           ] else
             Center(
               child: GestureDetector(
-                onTap: _speechUnavailable ? null : _toggleListening,
+                onTap: _speechUnavailable || _startingListening
+                    ? null
+                    : _toggleListening,
                 child: Container(
                   width: 76,
                   height: 76,
@@ -356,11 +378,19 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    _isListening ? Icons.stop : Icons.mic,
-                    color: Colors.white,
-                    size: 34,
-                  ),
+                  child: _startingListening
+                      ? const Padding(
+                          padding: EdgeInsets.all(25),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : Icon(
+                          _isListening ? Icons.stop : Icons.mic,
+                          color: Colors.white,
+                          size: 34,
+                        ),
                 ),
               ),
             ),
@@ -369,6 +399,8 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
             Text(
               _isListening
                   ? 'Touchez pour terminer votre réponse'
+                  : _startingListening
+                  ? 'Préparation du microphone…'
                   : 'Touchez pour répondre',
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -424,7 +456,7 @@ class OralReportView extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${feedback.summary} Estimation non officielle, '
-                        'calibrée sur les critères publiés de la CFP.',
+                        'alignée sur les descripteurs publiés de la CFP.',
                         style: const TextStyle(fontSize: 13, height: 1.4),
                       ),
                     ],
@@ -442,7 +474,7 @@ class OralReportView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'LES 5 CRITÈRES DE L\'ELO',
+                  '5 DIMENSIONS PÉDAGOGIQUES',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 const SizedBox(height: 14),
@@ -548,6 +580,19 @@ class OralReportView extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+Future<void> _stopSpeechServices(TtsService tts, SpeechService speech) async {
+  try {
+    await tts.stop();
+  } on Object {
+    // Disposal is best-effort; plugin shutdown failures are not actionable.
+  }
+  try {
+    await speech.stop();
+  } on Object {
+    // Disposal is best-effort; plugin shutdown failures are not actionable.
   }
 }
 

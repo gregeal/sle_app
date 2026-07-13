@@ -34,6 +34,12 @@ class _DrillScreenState extends ConsumerState<DrillScreen> {
   }
 
   Future<void> _loadItems() async {
+    if (mounted) {
+      setState(() {
+        _error = null;
+        _items = null;
+      });
+    }
     try {
       final database = ref.read(appDatabaseProvider);
       final allItems = await database.randomDrillItems(widget.topics, 1000);
@@ -54,15 +60,23 @@ class _DrillScreenState extends ConsumerState<DrillScreen> {
     if (_selectedIndex >= 0 || _savingAttempt) return;
 
     final wasCorrect = optionIndex == item.correctIndex;
-    setState(() {
-      _selectedIndex = optionIndex;
-      _savingAttempt = true;
-      if (wasCorrect) _correctAnswers++;
-    });
+    setState(() => _savingAttempt = true);
     try {
       await ref
           .read(appDatabaseProvider)
           .recordAttempt(item.id, wasCorrect: wasCorrect, at: DateTime.now());
+      if (mounted) {
+        setState(() {
+          _selectedIndex = optionIndex;
+          if (wasCorrect) _correctAnswers++;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Réponse non enregistrée : $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _savingAttempt = false);
     }

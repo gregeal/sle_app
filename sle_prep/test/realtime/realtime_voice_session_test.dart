@@ -50,18 +50,39 @@ void main() {
         parseRealtimeServerEvent(jsonEncode({'type': 'rate_limits.updated'})),
         isEmpty,
       );
+      final transcript =
+          parseRealtimeServerEvent(
+                jsonEncode({
+                  'type': 'response.output_audio_transcript.done',
+                  'transcript': 'Bonjour',
+                  'item_id': 42,
+                }),
+              ).single
+              as RealtimeTranscriptEvent;
+      expect(transcript.itemId, isNull);
     });
 
-    test('surfaces server error messages', () {
+    test('preserves recoverable server error details', () {
       final event =
           parseRealtimeServerEvent(
                 jsonEncode({
                   'type': 'error',
-                  'error': {'message': 'invalid session'},
+                  'error': {
+                    'type': 'invalid_request_error',
+                    'code': 'invalid_value',
+                    'message': 'invalid session',
+                    'param': 'session.voice',
+                    'event_id': 'evt_123',
+                  },
                 }),
               ).single
               as RealtimeErrorEvent;
       expect(event.message, 'invalid session');
+      expect(event.type, 'invalid_request_error');
+      expect(event.code, 'invalid_value');
+      expect(event.param, 'session.voice');
+      expect(event.eventId, 'evt_123');
+      expect(event.isFatal, isFalse);
     });
   });
 
@@ -146,6 +167,125 @@ void main() {
     expect(exchanges.single['question'], 'Question A');
     expect(exchanges.single['answer'], 'Réponse A');
   });
+
+  test('reorders a predecessor chain that arrives in reverse', () {
+    final buffer = RealtimeTranscriptBuffer();
+    buffer
+      ..add(
+        const RealtimeConversationItemEvent(itemId: 'c', previousItemId: 'b'),
+      )
+      ..add(
+        const RealtimeConversationItemEvent(itemId: 'b', previousItemId: 'a'),
+      )
+      ..add(
+        const RealtimeConversationItemEvent(itemId: 'a', previousItemId: null),
+      )
+      ..add(
+        const RealtimeTranscriptEvent(isUser: false, text: 'C', itemId: 'c'),
+      )
+      ..add(const RealtimeTranscriptEvent(isUser: true, text: 'B', itemId: 'b'))
+      ..add(
+        const RealtimeTranscriptEvent(isUser: false, text: 'A', itemId: 'a'),
+      );
+    expect(buffer.orderedTurns.map((turn) => turn.text), ['A', 'B', 'C']);
+  });
+
+  test('tracks conversation items awaiting asynchronous transcription', () {
+    final buffer = RealtimeTranscriptBuffer();
+    final initialRevision = buffer.revision;
+
+    buffer.add(
+      const RealtimeConversationItemEvent(
+        itemId: 'user-pending',
+        previousItemId: null,
+      ),
+    );
+    expect(buffer.hasPendingTranscripts, isTrue);
+    expect(buffer.revision, greaterThan(initialRevision));
+
+    buffer.add(
+      const RealtimeTranscriptEvent(
+        isUser: true,
+        text: 'Ma dernière réponse.',
+        itemId: 'user-pending',
+      ),
+    );
+    expect(buffer.hasPendingTranscripts, isFalse);
+  });
+
+  test('clear removes predecessor state before a new interview', () {
+    final buffer = RealtimeTranscriptBuffer()
+      ..add(
+        const RealtimeConversationItemEvent(
+          itemId: 'old',
+          previousItemId: null,
+        ),
+      )
+      ..clear()
+      ..add(
+        const RealtimeConversationItemEvent(
+          itemId: 'new',
+          previousItemId: null,
+        ),
+      )
+      ..add(
+        const RealtimeTranscriptEvent(
+          isUser: true,
+          text: 'Nouvelle réponse',
+          itemId: 'new',
+        ),
+      );
+    expect(buffer.orderedTurns.map((turn) => turn.itemId), ['new']);
+    expect(buffer.hasPendingTranscripts, isFalse);
+  });
+
+  test(
+    'finalization grace waits for a pending transcript then quiet',
+    () async {
+      var revision = 1;
+      var pending = true;
+      final delays = <Duration>[];
+
+      await waitForRealtimeTranscriptFinalization(
+        revision: () => revision,
+        hasPendingTranscripts: () => pending,
+        minimumWait: const Duration(milliseconds: 10),
+        quietPeriod: const Duration(milliseconds: 5),
+        maximumWait: const Duration(milliseconds: 30),
+        delay: (duration) async {
+          delays.add(duration);
+          if (delays.length == 2) {
+            revision++;
+            pending = false;
+          }
+        },
+      );
+
+      expect(delays, [
+        const Duration(milliseconds: 10),
+        const Duration(milliseconds: 5),
+        const Duration(milliseconds: 5),
+      ]);
+    },
+  );
+
+  test(
+    'finalization grace is capped while a transcript stays pending',
+    () async {
+      var elapsed = Duration.zero;
+
+      await waitForRealtimeTranscriptFinalization(
+        revision: () => 1,
+        hasPendingTranscripts: () => true,
+        minimumWait: const Duration(milliseconds: 10),
+        quietPeriod: const Duration(milliseconds: 7),
+        maximumWait: const Duration(milliseconds: 25),
+        delay: (duration) async => elapsed += duration,
+      );
+
+      expect(elapsed, const Duration(milliseconds: 25));
+    },
+  );
 
   group('OpenAI Realtime REST bootstrap', () {
     test(

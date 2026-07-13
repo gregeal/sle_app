@@ -23,7 +23,12 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   RTCPeerConnection? _peerConnection;
   RTCDataChannel? _dataChannel;
   MediaStream? _localStream;
+  MediaStream? _fallbackRemoteStream;
+  RTCVideoRenderer? _remoteAudioRenderer;
   Completer<void>? _channelReady;
+  Future<void>? _connectFuture;
+  Future<void>? _closeFuture;
+  Future<void>? _releaseFuture;
   var _muted = false;
   var _closed = false;
   var _openingSent = false;
@@ -35,15 +40,48 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   bool get isMuted => _muted;
 
   @override
-  Future<void> connect() async {
+  Future<void> connect() {
     if (_closed) {
-      throw const RealtimeVoiceException('Cette session est déjà terminée.');
+      return Future.error(
+        const RealtimeVoiceException('Cette session est déjà terminée.'),
+      );
     }
-    if (_peerConnection != null) return;
+    final pending = _connectFuture;
+    if (pending != null) return pending;
+
+    // Keep exactly one bootstrap in flight. In particular, concurrent taps
+    // must not mint multiple secrets or open multiple microphone captures.
+    late final Future<void> tracked;
+    tracked = _connect().whenComplete(() {
+      if (identical(_connectFuture, tracked) && _peerConnection == null) {
+        _connectFuture = null;
+      }
+    });
+    _connectFuture = tracked;
+    return tracked;
+  }
+
+  Future<void> _connect() async {
     _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connecting));
 
     try {
-      _localStream = await navigator.mediaDevices.getUserMedia({
+      // Authenticate and enforce broker quota before prompting for microphone
+      // permission. A rejected secret request should never activate the mic.
+      final clientSecret = await api.createClientSecret(
+        model: model,
+        voice: voice,
+      );
+      _ensureOpen();
+
+      // flutter_webrtc creates the web audio element from an initialized
+      // renderer. Assigning the remote MediaStream below is also important on
+      // native platforms; merely enabling the incoming track is insufficient.
+      final renderer = RTCVideoRenderer();
+      _remoteAudioRenderer = renderer;
+      await renderer.initialize();
+      _ensureOpen();
+
+      final localStream = await navigator.mediaDevices.getUserMedia({
         'audio': {
           'echoCancellation': true,
           'noiseSuppression': true,
@@ -51,33 +89,35 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         },
         'video': false,
       });
+      _localStream = localStream;
+      _ensureOpen();
 
-      final clientSecret = await api.createClientSecret(
-        model: model,
-        voice: voice,
-      );
       final peer = await createPeerConnection({'sdpSemantics': 'unified-plan'});
       _peerConnection = peer;
+      _ensureOpen();
       peer.onConnectionState = _handleConnectionState;
       peer.onTrack = (event) {
         if (event.track.kind == 'audio') {
-          event.track.enabled = true;
-          if (!kIsWeb) {
-            unawaited(Helper.setSpeakerphoneOnButPreferBluetooth());
-          }
+          unawaited(_attachRemoteAudio(event));
         }
       };
 
-      for (final track in _localStream!.getAudioTracks()) {
-        await peer.addTrack(track, _localStream!);
+      for (final track in localStream.getAudioTracks()) {
+        track.enabled = !_muted;
+        await peer.addTrack(track, localStream);
       }
+      _ensureOpen();
 
       final channel = await peer.createDataChannel(
         'oai-events',
         RTCDataChannelInit(),
       );
       _dataChannel = channel;
+      _ensureOpen();
       _channelReady = Completer<void>();
+      // Register an error handler now. The channel can close while the SDP
+      // request is in flight, before connect() reaches its await below.
+      unawaited(_channelReady!.future.catchError((Object _) {}));
       channel.onMessage = (message) {
         if (message.isBinary) return;
         for (final event in parseRealtimeServerEvent(message.text)) {
@@ -92,14 +132,16 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
           _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connected));
           _sendOpeningTurn();
         } else if (state == RTCDataChannelState.RTCDataChannelClosed) {
-          _emit(
-            const RealtimeActivityEvent(RealtimeVoiceActivity.disconnected),
+          _failConnection(
+            'Le canal Realtime s’est fermé avant la fin de l’entrevue.',
           );
         }
       };
 
       final offer = await peer.createOffer({'offerToReceiveAudio': true});
+      _ensureOpen();
       await peer.setLocalDescription(offer);
+      _ensureOpen();
       final offerSdp = offer.sdp;
       if (offerSdp == null || offerSdp.isEmpty) {
         throw const RealtimeVoiceException(
@@ -110,9 +152,11 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         clientSecret: clientSecret,
         offerSdp: offerSdp,
       );
+      _ensureOpen();
       await peer.setRemoteDescription(
         RTCSessionDescription(answerSdp, 'answer'),
       );
+      _ensureOpen();
       await _channelReady!.future.timeout(
         const Duration(seconds: 20),
         onTimeout: () => throw const RealtimeVoiceException(
@@ -125,6 +169,49 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       throw RealtimeVoiceException(
         'Impossible de démarrer l’entrevue Realtime : $error',
       );
+    }
+  }
+
+  void _ensureOpen() {
+    if (_closed) {
+      throw const RealtimeVoiceException('Cette session est déjà terminée.');
+    }
+  }
+
+  Future<void> _attachRemoteAudio(RTCTrackEvent event) async {
+    try {
+      _ensureOpen();
+      event.track.enabled = true;
+      final MediaStream stream;
+      if (event.streams.isNotEmpty) {
+        stream = event.streams.first;
+      } else {
+        // Unified Plan normally supplies a stream, but handle streamless
+        // onTrack events so playback remains reliable across implementations.
+        var fallback = _fallbackRemoteStream;
+        if (fallback == null) {
+          fallback = await createLocalMediaStream('realtime-remote-audio');
+          _fallbackRemoteStream = fallback;
+        }
+        await fallback.addTrack(event.track);
+        stream = fallback;
+      }
+      _ensureOpen();
+      _remoteAudioRenderer?.srcObject = stream;
+    } catch (_) {
+      _failConnection(
+        'Impossible de lire l’audio de l’évaluatrice. Réessayez.',
+      );
+      return;
+    }
+    if (!kIsWeb) {
+      try {
+        // Routing is an enhancement. Missing Bluetooth permission or an OEM
+        // routing failure must not tear down otherwise working remote audio.
+        await Helper.setSpeakerphoneOnButPreferBluetooth();
+      } on Object {
+        // Keep the platform's current output route as a safe fallback.
+      }
     }
   }
 
@@ -143,7 +230,15 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   void _send(Map<String, dynamic> event) {
     final channel = _dataChannel;
     if (channel?.state != RTCDataChannelState.RTCDataChannelOpen) return;
-    unawaited(channel!.send(RTCDataChannelMessage(jsonEncode(event))));
+    unawaited(
+      channel!.send(RTCDataChannelMessage(jsonEncode(event))).catchError((
+        Object _,
+      ) {
+        _failConnection(
+          'Le canal Realtime s’est fermé avant l’envoi. Réessayez.',
+        );
+      }),
+    );
   }
 
   void _handleConnectionState(RTCPeerConnectionState state) {
@@ -151,10 +246,8 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
         _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connected));
       case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-        _emit(
-          const RealtimeErrorEvent(
-            'La connexion WebRTC a échoué. Vérifiez votre réseau et réessayez.',
-          ),
+        _failConnection(
+          'La connexion WebRTC a échoué. Vérifiez votre réseau et réessayez.',
         );
       case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
       case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
@@ -163,6 +256,19 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       case RTCPeerConnectionState.RTCPeerConnectionStateConnecting:
         break;
     }
+  }
+
+  void _failConnection(String message) {
+    if (_closed) return;
+    final ready = _channelReady;
+    if (ready != null && !ready.isCompleted) {
+      ready.completeError(RealtimeVoiceException(message));
+    }
+    _emit(RealtimeErrorEvent(message, type: 'transport_error', isFatal: true));
+    _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.disconnected));
+    // A failed peer/channel must not retain microphone, renderer, or network
+    // resources while the learner decides whether to retry.
+    unawaited(close());
   }
 
   @override
@@ -174,11 +280,29 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   }
 
   @override
-  Future<void> close() async {
-    if (_closed) return;
+  Future<void> close() {
+    final pending = _closeFuture;
+    if (pending != null) return pending;
     _closed = true;
+    final closing = _close();
+    _closeFuture = closing;
+    return closing;
+  }
+
+  Future<void> _close() async {
+    final ready = _channelReady;
+    if (ready != null && !ready.isCompleted) {
+      ready.completeError(
+        const RealtimeVoiceException('La session Realtime a été fermée.'),
+      );
+    }
     await _releaseMedia();
-    api.close();
+    try {
+      api.close();
+    } catch (_) {
+      // Cleanup is deliberately best effort. One client failure must not
+      // prevent the remaining resources and event stream from closing.
+    }
     if (!_events.isClosed) {
       _events.add(
         const RealtimeActivityEvent(RealtimeVoiceActivity.disconnected),
@@ -187,25 +311,67 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
     }
   }
 
-  Future<void> _releaseMedia() async {
+  Future<void> _releaseMedia() {
+    final pending = _releaseFuture;
+    if (pending != null) return pending;
+    late final Future<void> tracked;
+    tracked = _releaseMediaResources().whenComplete(() {
+      if (identical(_releaseFuture, tracked)) _releaseFuture = null;
+    });
+    _releaseFuture = tracked;
+    return tracked;
+  }
+
+  Future<void> _releaseMediaResources() async {
+    // Detach every resource from the object before awaiting. Concurrent close
+    // calls therefore see an already-drained state and remain idempotent.
     final channel = _dataChannel;
     _dataChannel = null;
-    if (channel != null) await channel.close();
+    _channelReady = null;
+    _openingSent = false;
+    if (channel != null) {
+      channel.onMessage = null;
+      channel.onDataChannelState = null;
+      await _bestEffort(channel.close);
+    }
 
     final peer = _peerConnection;
     _peerConnection = null;
     if (peer != null) {
-      await peer.close();
-      await peer.dispose();
+      peer.onConnectionState = null;
+      peer.onTrack = null;
+      await _bestEffort(peer.close);
+      await _bestEffort(peer.dispose);
     }
 
     final stream = _localStream;
     _localStream = null;
     if (stream != null) {
       for (final track in stream.getTracks()) {
-        await track.stop();
+        await _bestEffort(track.stop);
       }
-      await stream.dispose();
+      await _bestEffort(stream.dispose);
+    }
+
+    final fallbackRemoteStream = _fallbackRemoteStream;
+    _fallbackRemoteStream = null;
+    if (fallbackRemoteStream != null) {
+      await _bestEffort(fallbackRemoteStream.dispose);
+    }
+
+    final renderer = _remoteAudioRenderer;
+    _remoteAudioRenderer = null;
+    if (renderer != null) {
+      await _bestEffort(() async => renderer.srcObject = null);
+      await _bestEffort(renderer.dispose);
+    }
+  }
+
+  Future<void> _bestEffort(FutureOr<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      // Continue releasing all other independent WebRTC resources.
     }
   }
 

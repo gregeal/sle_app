@@ -1,0 +1,6 @@
+# Copy this file to key.properties and keep the real file out of source control.
+# Relative storeFile paths are resolved from the android directory.
+storePassword=replace-with-your-keystore-password
+keyPassword=replace-with-your-key-password
+keyAlias=upload
+storeFile=upload-keystore.jks

@@ -21,6 +21,8 @@ def settings(tmp_path) -> Settings:
         allowed_chat_models={"gpt-test"},
         realtime_model="gpt-realtime",
         allowed_realtime_models={"gpt-realtime"},
+        identifier_secret="test-identifier-secret-that-is-long-enough",
+        openai_retry_base_seconds=0,
         daily_budget_usd=10,
         monthly_budget_usd=100,
     )

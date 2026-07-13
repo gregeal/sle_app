@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:drift/drift.dart';
 
+import '../../domain/session/session_composer.dart';
 import 'database.dart';
 
 /// A due vocabulary card together with its scheduling state.
@@ -36,11 +37,78 @@ extension OralAttemptJson on OralAttempt {
 }
 
 extension SessionLogJson on SessionLog {
-  List<String> get blocksPlannedList =>
-      (jsonDecode(blocksPlanned) as List).cast<String>();
+  List<String> get blocksPlannedList => _decodeStringList(blocksPlanned);
 
-  List<String> get blocksCompletedList =>
-      (jsonDecode(blocksCompleted) as List).cast<String>();
+  List<String> get blocksCompletedList => _decodeStringList(blocksCompleted);
+
+  /// Returns an empty list for a legacy or corrupt snapshot so the planner can
+  /// recover it from the current block definitions without crashing startup.
+  List<SessionBlock> get planSnapshotList {
+    try {
+      final decoded = jsonDecode(planSnapshot);
+      if (decoded is! List) return const [];
+      return List.unmodifiable(
+        decoded.map(
+          (entry) =>
+              SessionBlock.fromJson(Map<String, dynamic>.from(entry as Map)),
+        ),
+      );
+    } on Object {
+      return const [];
+    }
+  }
+}
+
+List<String> _decodeStringList(String value) {
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is! List || decoded.any((entry) => entry is! String)) {
+      return const [];
+    }
+    return List<String>.unmodifiable(decoded.cast<String>());
+  } on Object {
+    return const [];
+  }
+}
+
+bool _sameStrings(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+List<SessionBlock> _recoverLegacyPlan({
+  required List<String> legacyIds,
+  required List<String> completedIds,
+  required int recordedMinutes,
+  required List<List<SessionBlock>> candidates,
+}) {
+  final snapshots = <List<SessionBlock>>[];
+  for (final candidate in candidates) {
+    final byId = {for (final block in candidate) block.id: block};
+    if (byId.length != candidate.length) continue;
+    final recovered = legacyIds.map((id) => byId[id]).toList(growable: false);
+    if (recovered.any((block) => block == null)) continue;
+    snapshots.add(
+      List<SessionBlock>.unmodifiable(recovered.whereType<SessionBlock>()),
+    );
+  }
+  if (snapshots.isEmpty) {
+    throw StateError(
+      'Impossible de restaurer tous les blocs de la séance enregistrée.',
+    );
+  }
+  if (completedIds.isNotEmpty) {
+    for (final snapshot in snapshots) {
+      final completedMinutes = snapshot
+          .where((block) => completedIds.contains(block.id))
+          .fold(0, (total, block) => total + block.minutes);
+      if (completedMinutes == recordedMinutes) return snapshot;
+    }
+  }
+  return snapshots.first;
 }
 
 String _dateKey(DateTime day) =>
@@ -243,17 +311,121 @@ extension AppDaos on AppDatabase {
     required List<String> blocksPlanned,
     required List<String> blocksCompleted,
     required int minutesActive,
-  }) {
-    return into(sessionLogs)
-        .insertOnConflictUpdate(
-          SessionLogsCompanion.insert(
-            date: _dateKey(day),
-            blocksPlanned: jsonEncode(blocksPlanned),
-            blocksCompleted: jsonEncode(blocksCompleted),
-            minutesActive: Value(minutesActive),
-          ),
-        )
-        .then((_) {});
+    List<SessionBlock>? planSnapshot,
+  }) async {
+    final existingSnapshot = planSnapshot == null
+        ? (await sessionLogFor(day))?.planSnapshot
+        : null;
+    await into(sessionLogs).insertOnConflictUpdate(
+      SessionLogsCompanion.insert(
+        date: _dateKey(day),
+        blocksPlanned: jsonEncode(blocksPlanned),
+        blocksCompleted: jsonEncode(blocksCompleted),
+        planSnapshot: Value(
+          existingSnapshot ??
+              jsonEncode(
+                (planSnapshot ?? const <SessionBlock>[])
+                    .map((block) => block.toJson())
+                    .toList(growable: false),
+              ),
+        ),
+        minutesActive: Value(minutesActive),
+      ),
+    );
+  }
+
+  /// Freezes the full block snapshot for a study day the first time it is
+  /// shown. Existing completion state is never overwritten by a refresh.
+  Future<SessionLog> ensureSessionPlan({
+    required DateTime day,
+    required List<SessionBlock> blocks,
+    List<List<SessionBlock>> legacyRecoveryPlans = const [],
+  }) => transaction(() async {
+    if (blocks.isEmpty) {
+      throw ArgumentError.value(
+        blocks,
+        'blocks',
+        'A session plan cannot be empty.',
+      );
+    }
+    if ({for (final block in blocks) block.id}.length != blocks.length) {
+      throw ArgumentError.value(
+        blocks,
+        'blocks',
+        'Session block IDs must be unique.',
+      );
+    }
+    final existing = await sessionLogFor(day);
+    if (existing != null) {
+      final plannedIds = existing.blocksPlannedList;
+      final snapshot = existing.planSnapshotList;
+      if (plannedIds.isNotEmpty &&
+          snapshot.length == plannedIds.length &&
+          _sameStrings(
+            snapshot.map((block) => block.id).toList(growable: false),
+            plannedIds,
+          )) {
+        return existing;
+      }
+    }
+
+    final legacyIds = existing?.blocksPlannedList ?? const <String>[];
+    final completed = existing?.blocksCompletedList ?? const <String>[];
+    final minutes = existing?.minutesActive ?? 0;
+    final snapshot = legacyIds.isEmpty
+        ? List<SessionBlock>.unmodifiable(blocks)
+        : _recoverLegacyPlan(
+            legacyIds: legacyIds,
+            completedIds: completed,
+            recordedMinutes: minutes,
+            candidates: [...legacyRecoveryPlans, blocks],
+          );
+    await upsertSessionLog(
+      day: day,
+      blocksPlanned: snapshot.map((block) => block.id).toList(growable: false),
+      blocksCompleted: completed,
+      minutesActive: minutes,
+      planSnapshot: snapshot,
+    );
+    return (await sessionLogFor(day))!;
+  });
+
+  /// Atomically toggles one block using the latest persisted state. This
+  /// avoids lost updates when two quick taps were rendered from the same log.
+  Future<SessionLog> toggleSessionBlock({
+    required DateTime day,
+    required String blockId,
+    required List<SessionBlock> fallbackPlan,
+  }) async {
+    await ensureSessionPlan(day: day, blocks: fallbackPlan);
+    return transaction(() async {
+      final log = (await sessionLogFor(day))!;
+      final planned = log.blocksPlannedList;
+      if (!planned.contains(blockId)) {
+        throw StateError(
+          'Le bloc ne fait pas partie de la séance enregistrée.',
+        );
+      }
+      final snapshot = log.planSnapshotList;
+      final block = snapshot.where((candidate) => candidate.id == blockId);
+      if (block.isEmpty) {
+        throw StateError('Les détails du bloc enregistré sont introuvables.');
+      }
+      final completed = log.blocksCompletedList.toSet();
+      final wasCompleted = !completed.add(blockId);
+      if (wasCompleted) completed.remove(blockId);
+      final minutes = wasCompleted
+          ? max(0, log.minutesActive - block.single.minutes)
+          : log.minutesActive + block.single.minutes;
+      await upsertSessionLog(
+        day: day,
+        blocksPlanned: planned,
+        blocksCompleted: completed.toList(growable: false),
+        minutesActive: minutes,
+        planSnapshot: snapshot,
+      );
+      return (await sessionLogFor(day))!;
+    });
   }
 
   Future<SessionLog?> sessionLogFor(DateTime day) => (select(
@@ -271,12 +443,12 @@ extension AppDaos on AppDatabase {
 
     var day = DateTime(today.year, today.month, today.day);
     if (!activeDays.contains(_dateKey(day))) {
-      day = day.subtract(const Duration(days: 1));
+      day = DateTime(day.year, day.month, day.day - 1);
     }
     var streak = 0;
     while (activeDays.contains(_dateKey(day))) {
       streak++;
-      day = day.subtract(const Duration(days: 1));
+      day = DateTime(day.year, day.month, day.day - 1);
     }
     return streak;
   }
@@ -324,10 +496,9 @@ extension AppDaos on AppDatabase {
   }
 
   /// Newest first.
-  Future<List<ReadingAttempt>> readingHistory() =>
-      (select(readingAttempts)
-            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
-          .get();
+  Future<List<ReadingAttempt>> readingHistory() => (select(
+    readingAttempts,
+  )..orderBy([(a) => OrderingTerm.desc(a.answeredAt)])).get();
 
   // ── Mock exams ────────────────────────────────────────────────────────────
 
@@ -353,9 +524,9 @@ extension AppDaos on AppDatabase {
 
   /// Newest result per skill.
   Future<Map<String, MockResult>> latestMockPerSkill() async {
-    final rows = await (select(mockResults)
-          ..orderBy([(r) => OrderingTerm.asc(r.answeredAt)]))
-        .get();
+    final rows = await (select(
+      mockResults,
+    )..orderBy([(r) => OrderingTerm.asc(r.answeredAt)])).get();
     return {for (final row in rows) row.skill: row};
   }
 
@@ -378,10 +549,9 @@ extension AppDaos on AppDatabase {
     return (correct: row.read(correct) ?? 0, total: row.read(total) ?? 0);
   }
 
-  Future<List<CurriculumWeek>> allCurriculumWeeks() =>
-      (select(curriculumWeeks)
-            ..orderBy([(w) => OrderingTerm.asc(w.weekNumber)]))
-          .get();
+  Future<List<CurriculumWeek>> allCurriculumWeeks() => (select(
+    curriculumWeeks,
+  )..orderBy([(w) => OrderingTerm.asc(w.weekNumber)])).get();
 
   // ── Oral ──────────────────────────────────────────────────────────────────
 
@@ -421,10 +591,9 @@ extension AppDaos on AppDatabase {
   }
 
   /// Newest first.
-  Future<List<OralAttempt>> oralHistory() =>
-      (select(oralAttempts)
-            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
-          .get();
+  Future<List<OralAttempt>> oralHistory() => (select(
+    oralAttempts,
+  )..orderBy([(a) => OrderingTerm.desc(a.answeredAt)])).get();
 
   // ── Writing ───────────────────────────────────────────────────────────────
 
@@ -447,10 +616,9 @@ extension AppDaos on AppDatabase {
   }
 
   /// Newest first.
-  Future<List<WritingAttempt>> writingHistory() =>
-      (select(writingAttempts)
-            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
-          .get();
+  Future<List<WritingAttempt>> writingHistory() => (select(
+    writingAttempts,
+  )..orderBy([(a) => OrderingTerm.desc(a.answeredAt)])).get();
 
   // ── Settings ──────────────────────────────────────────────────────────────
 

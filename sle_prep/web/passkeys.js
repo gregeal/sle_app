@@ -68,12 +68,14 @@
       publicKey: requestOptions(source),
     })),
     navigate: (url) => window.location.assign(url),
-    getAuthHint: () => window.localStorage.getItem("sle_prep_auth_hint"),
-    setAuthHint: (email) => {
-      if (email) {
-        window.localStorage.setItem("sle_prep_auth_hint", email);
+    getAuthHint: () => window.localStorage.getItem("sle_prep_offline_profile_v1"),
+    setAuthHint: (profile) => {
+      // Remove the pre-hardening hint, which contained the account email.
+      window.localStorage.removeItem("sle_prep_auth_hint");
+      if (profile) {
+        window.localStorage.setItem("sle_prep_offline_profile_v1", profile);
       } else {
-        window.localStorage.removeItem("sle_prep_auth_hint");
+        window.localStorage.removeItem("sle_prep_offline_profile_v1");
       }
     },
   };
