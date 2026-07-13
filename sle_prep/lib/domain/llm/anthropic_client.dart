@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -60,8 +59,6 @@ class AnthropicClient implements LlmClient {
     } on TimeoutException {
       throw const LlmException(
           'Le fournisseur IA n\'a pas répondu à temps. Réessayez.');
-    } on SocketException catch (error) {
-      throw LlmException('Connexion impossible : ${error.message}');
     } on http.ClientException catch (error) {
       throw LlmException('Connexion impossible : ${error.message}');
     }

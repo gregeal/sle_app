@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/db/daos.dart';
 import 'data/db/database.dart';
 import 'data/seed/seed_loader.dart';
+import 'domain/llm/ai_gateway.dart';
 import 'domain/mock/mock_scoring.dart';
 import 'domain/session/session_composer.dart';
 import 'domain/llm/llm_client.dart';
@@ -12,7 +15,15 @@ import 'domain/llm/llm_config.dart';
 import 'domain/speech/speech_services.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final database = AppDatabase(driftDatabase(name: 'sle_prep'));
+  final database = AppDatabase(
+    driftDatabase(
+      name: 'sle_prep',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    ),
+  );
   ref.onDispose(database.close);
   return database;
 });
@@ -46,12 +57,21 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
   );
 });
 
-/// Ready-to-use client for the stored provider/key. Throws [LlmException]
-/// (surfaced as an AsyncError) when a required API key is missing.
-final llmClientProvider = FutureProvider<LlmClient>((ref) async {
-  final config = await ref.watch(llmConfigProvider.future);
-  final apiKey = await ref.watch(secureStorageProvider).read(key: 'llmApiKey');
-  return clientFor(config, apiKey: apiKey);
+/// Platform gateway to AI providers: direct-with-own-key on mobile, the
+/// AI Broker on the web (pending — see docs/plans/2026-07-13-p4-web-plan.md).
+final aiGatewayProvider = Provider<AiGateway>((ref) {
+  if (kIsWeb) return const WebPendingGateway();
+  return DirectProviderGateway(
+    loadConfig: () => ref.read(llmConfigProvider.future),
+    loadApiKey: () => ref.read(secureStorageProvider).read(key: 'llmApiKey'),
+  );
+});
+
+/// Ready-to-use client for text AI features. Throws [LlmException]
+/// (surfaced as an AsyncError) when the platform gateway cannot provide one.
+final llmClientProvider = FutureProvider<LlmClient>((ref) {
+  ref.watch(llmConfigProvider);
+  return ref.watch(aiGatewayProvider).textClient();
 });
 
 final speechServiceProvider = Provider<SpeechService>(

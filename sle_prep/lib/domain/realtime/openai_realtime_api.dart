@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -129,10 +128,6 @@ class OpenAiRealtimeApi {
     } on TimeoutException {
       throw const RealtimeVoiceException(
         'OpenAI n’a pas répondu à temps. Réessayez.',
-      );
-    } on SocketException catch (error) {
-      throw RealtimeVoiceException(
-        'Connexion Realtime impossible : ${error.message}',
       );
     } on http.ClientException catch (error) {
       throw RealtimeVoiceException(

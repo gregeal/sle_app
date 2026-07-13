@@ -12,6 +12,9 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(aiGatewayProvider).supportsDirectConfiguration) {
+      return const SafeArea(child: _WebSettingsNotice());
+    }
     final config = ref.watch(llmConfigProvider);
     return SafeArea(
       child: config.when(
@@ -326,5 +329,51 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ),
       ],
     ),
+  );
+}
+
+class _WebSettingsNotice extends StatelessWidget {
+  const _WebSettingsNotice();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+    children: [
+      Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
+      const SizedBox(height: 16),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.shield_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Version web : IA à venir',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Par sécurité, aucune clé API ne peut être enregistrée dans '
+                'un navigateur. Les fonctions IA du web passeront par un '
+                'serveur sécurisé avec ouverture de session; le vocabulaire, '
+                'la grammaire et les lectures fonctionnent dès maintenant, '
+                'entièrement dans votre navigateur.',
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
 }
