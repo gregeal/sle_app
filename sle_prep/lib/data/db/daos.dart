@@ -30,6 +30,11 @@ extension ReadingSetJson on ReadingSet {
       (jsonDecode(questions) as List).cast<Map<String, dynamic>>();
 }
 
+extension OralAttemptJson on OralAttempt {
+  List<Map<String, dynamic>> get exchangesList =>
+      (jsonDecode(exchanges) as List).cast<Map<String, dynamic>>();
+}
+
 extension SessionLogJson on SessionLog {
   List<String> get blocksPlannedList =>
       (jsonDecode(blocksPlanned) as List).cast<String>();
@@ -321,6 +326,49 @@ extension AppDaos on AppDatabase {
   /// Newest first.
   Future<List<ReadingAttempt>> readingHistory() =>
       (select(readingAttempts)
+            ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
+          .get();
+
+  // ── Oral ──────────────────────────────────────────────────────────────────
+
+  Future<int> insertOralQuestion({
+    required String tier,
+    required String questionFr,
+    String source = 'seed',
+  }) {
+    return into(oralQuestions).insert(
+      OralQuestionsCompanion.insert(
+        tier: tier,
+        questionFr: questionFr,
+        source: Value(source),
+      ),
+    );
+  }
+
+  Future<List<OralQuestion>> oralQuestionsByTier(String tier) =>
+      (select(oralQuestions)..where((q) => q.tier.equals(tier))).get();
+
+  Future<void> recordOralAttempt({
+    required String mode,
+    required List<Map<String, dynamic>> exchanges,
+    required String feedback,
+    required DateTime at,
+  }) {
+    return into(oralAttempts)
+        .insert(
+          OralAttemptsCompanion.insert(
+            mode: mode,
+            exchanges: jsonEncode(exchanges),
+            feedback: feedback,
+            answeredAt: at,
+          ),
+        )
+        .then((_) {});
+  }
+
+  /// Newest first.
+  Future<List<OralAttempt>> oralHistory() =>
+      (select(oralAttempts)
             ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
           .get();
 

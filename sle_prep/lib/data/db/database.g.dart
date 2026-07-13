@@ -3685,6 +3685,663 @@ class WritingAttemptsCompanion extends UpdateCompanion<WritingAttempt> {
   }
 }
 
+class $OralQuestionsTable extends OralQuestions
+    with TableInfo<$OralQuestionsTable, OralQuestion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OralQuestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tierMeta = const VerificationMeta('tier');
+  @override
+  late final GeneratedColumn<String> tier = GeneratedColumn<String>(
+    'tier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionFrMeta = const VerificationMeta(
+    'questionFr',
+  );
+  @override
+  late final GeneratedColumn<String> questionFr = GeneratedColumn<String>(
+    'question_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('seed'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, tier, questionFr, source];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'oral_questions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OralQuestion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('tier')) {
+      context.handle(
+        _tierMeta,
+        tier.isAcceptableOrUnknown(data['tier']!, _tierMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tierMeta);
+    }
+    if (data.containsKey('question_fr')) {
+      context.handle(
+        _questionFrMeta,
+        questionFr.isAcceptableOrUnknown(data['question_fr']!, _questionFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_questionFrMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OralQuestion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OralQuestion(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      tier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tier'],
+      )!,
+      questionFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_fr'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+    );
+  }
+
+  @override
+  $OralQuestionsTable createAlias(String alias) {
+    return $OralQuestionsTable(attachedDatabase, alias);
+  }
+}
+
+class OralQuestion extends DataClass implements Insertable<OralQuestion> {
+  final int id;
+
+  /// OLA question tier: A (concrete/routine), B (narration/explanation),
+  /// C (opinion/hypothetical/sensitive).
+  final String tier;
+  final String questionFr;
+  final String source;
+  const OralQuestion({
+    required this.id,
+    required this.tier,
+    required this.questionFr,
+    required this.source,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['tier'] = Variable<String>(tier);
+    map['question_fr'] = Variable<String>(questionFr);
+    map['source'] = Variable<String>(source);
+    return map;
+  }
+
+  OralQuestionsCompanion toCompanion(bool nullToAbsent) {
+    return OralQuestionsCompanion(
+      id: Value(id),
+      tier: Value(tier),
+      questionFr: Value(questionFr),
+      source: Value(source),
+    );
+  }
+
+  factory OralQuestion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OralQuestion(
+      id: serializer.fromJson<int>(json['id']),
+      tier: serializer.fromJson<String>(json['tier']),
+      questionFr: serializer.fromJson<String>(json['questionFr']),
+      source: serializer.fromJson<String>(json['source']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'tier': serializer.toJson<String>(tier),
+      'questionFr': serializer.toJson<String>(questionFr),
+      'source': serializer.toJson<String>(source),
+    };
+  }
+
+  OralQuestion copyWith({
+    int? id,
+    String? tier,
+    String? questionFr,
+    String? source,
+  }) => OralQuestion(
+    id: id ?? this.id,
+    tier: tier ?? this.tier,
+    questionFr: questionFr ?? this.questionFr,
+    source: source ?? this.source,
+  );
+  OralQuestion copyWithCompanion(OralQuestionsCompanion data) {
+    return OralQuestion(
+      id: data.id.present ? data.id.value : this.id,
+      tier: data.tier.present ? data.tier.value : this.tier,
+      questionFr: data.questionFr.present
+          ? data.questionFr.value
+          : this.questionFr,
+      source: data.source.present ? data.source.value : this.source,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OralQuestion(')
+          ..write('id: $id, ')
+          ..write('tier: $tier, ')
+          ..write('questionFr: $questionFr, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, tier, questionFr, source);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OralQuestion &&
+          other.id == this.id &&
+          other.tier == this.tier &&
+          other.questionFr == this.questionFr &&
+          other.source == this.source);
+}
+
+class OralQuestionsCompanion extends UpdateCompanion<OralQuestion> {
+  final Value<int> id;
+  final Value<String> tier;
+  final Value<String> questionFr;
+  final Value<String> source;
+  const OralQuestionsCompanion({
+    this.id = const Value.absent(),
+    this.tier = const Value.absent(),
+    this.questionFr = const Value.absent(),
+    this.source = const Value.absent(),
+  });
+  OralQuestionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String tier,
+    required String questionFr,
+    this.source = const Value.absent(),
+  }) : tier = Value(tier),
+       questionFr = Value(questionFr);
+  static Insertable<OralQuestion> custom({
+    Expression<int>? id,
+    Expression<String>? tier,
+    Expression<String>? questionFr,
+    Expression<String>? source,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tier != null) 'tier': tier,
+      if (questionFr != null) 'question_fr': questionFr,
+      if (source != null) 'source': source,
+    });
+  }
+
+  OralQuestionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? tier,
+    Value<String>? questionFr,
+    Value<String>? source,
+  }) {
+    return OralQuestionsCompanion(
+      id: id ?? this.id,
+      tier: tier ?? this.tier,
+      questionFr: questionFr ?? this.questionFr,
+      source: source ?? this.source,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
+    if (questionFr.present) {
+      map['question_fr'] = Variable<String>(questionFr.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OralQuestionsCompanion(')
+          ..write('id: $id, ')
+          ..write('tier: $tier, ')
+          ..write('questionFr: $questionFr, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OralAttemptsTable extends OralAttempts
+    with TableInfo<$OralAttemptsTable, OralAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OralAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _modeMeta = const VerificationMeta('mode');
+  @override
+  late final GeneratedColumn<String> mode = GeneratedColumn<String>(
+    'mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _exchangesMeta = const VerificationMeta(
+    'exchanges',
+  );
+  @override
+  late final GeneratedColumn<String> exchanges = GeneratedColumn<String>(
+    'exchanges',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feedbackMeta = const VerificationMeta(
+    'feedback',
+  );
+  @override
+  late final GeneratedColumn<String> feedback = GeneratedColumn<String>(
+    'feedback',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answeredAtMeta = const VerificationMeta(
+    'answeredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+    'answered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    mode,
+    exchanges,
+    feedback,
+    answeredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'oral_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OralAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('mode')) {
+      context.handle(
+        _modeMeta,
+        mode.isAcceptableOrUnknown(data['mode']!, _modeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modeMeta);
+    }
+    if (data.containsKey('exchanges')) {
+      context.handle(
+        _exchangesMeta,
+        exchanges.isAcceptableOrUnknown(data['exchanges']!, _exchangesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_exchangesMeta);
+    }
+    if (data.containsKey('feedback')) {
+      context.handle(
+        _feedbackMeta,
+        feedback.isAcceptableOrUnknown(data['feedback']!, _feedbackMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_feedbackMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+        _answeredAtMeta,
+        answeredAt.isAcceptableOrUnknown(data['answered_at']!, _answeredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OralAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OralAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      mode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mode'],
+      )!,
+      exchanges: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exchanges'],
+      )!,
+      feedback: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feedback'],
+      )!,
+      answeredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OralAttemptsTable createAlias(String alias) {
+    return $OralAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class OralAttempt extends DataClass implements Insertable<OralAttempt> {
+  final int id;
+
+  /// 'daily' (one question) or 'interview' (escalating sequence).
+  final String mode;
+
+  /// JSON list of {question, answer} transcript pairs.
+  final String exchanges;
+
+  /// JSON feedback (5 OLA criteria, level estimate, tips).
+  final String feedback;
+  final DateTime answeredAt;
+  const OralAttempt({
+    required this.id,
+    required this.mode,
+    required this.exchanges,
+    required this.feedback,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['mode'] = Variable<String>(mode);
+    map['exchanges'] = Variable<String>(exchanges);
+    map['feedback'] = Variable<String>(feedback);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    return map;
+  }
+
+  OralAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return OralAttemptsCompanion(
+      id: Value(id),
+      mode: Value(mode),
+      exchanges: Value(exchanges),
+      feedback: Value(feedback),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory OralAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OralAttempt(
+      id: serializer.fromJson<int>(json['id']),
+      mode: serializer.fromJson<String>(json['mode']),
+      exchanges: serializer.fromJson<String>(json['exchanges']),
+      feedback: serializer.fromJson<String>(json['feedback']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'mode': serializer.toJson<String>(mode),
+      'exchanges': serializer.toJson<String>(exchanges),
+      'feedback': serializer.toJson<String>(feedback),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  OralAttempt copyWith({
+    int? id,
+    String? mode,
+    String? exchanges,
+    String? feedback,
+    DateTime? answeredAt,
+  }) => OralAttempt(
+    id: id ?? this.id,
+    mode: mode ?? this.mode,
+    exchanges: exchanges ?? this.exchanges,
+    feedback: feedback ?? this.feedback,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  OralAttempt copyWithCompanion(OralAttemptsCompanion data) {
+    return OralAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      mode: data.mode.present ? data.mode.value : this.mode,
+      exchanges: data.exchanges.present ? data.exchanges.value : this.exchanges,
+      feedback: data.feedback.present ? data.feedback.value : this.feedback,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OralAttempt(')
+          ..write('id: $id, ')
+          ..write('mode: $mode, ')
+          ..write('exchanges: $exchanges, ')
+          ..write('feedback: $feedback, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, mode, exchanges, feedback, answeredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OralAttempt &&
+          other.id == this.id &&
+          other.mode == this.mode &&
+          other.exchanges == this.exchanges &&
+          other.feedback == this.feedback &&
+          other.answeredAt == this.answeredAt);
+}
+
+class OralAttemptsCompanion extends UpdateCompanion<OralAttempt> {
+  final Value<int> id;
+  final Value<String> mode;
+  final Value<String> exchanges;
+  final Value<String> feedback;
+  final Value<DateTime> answeredAt;
+  const OralAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.mode = const Value.absent(),
+    this.exchanges = const Value.absent(),
+    this.feedback = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+  });
+  OralAttemptsCompanion.insert({
+    this.id = const Value.absent(),
+    required String mode,
+    required String exchanges,
+    required String feedback,
+    required DateTime answeredAt,
+  }) : mode = Value(mode),
+       exchanges = Value(exchanges),
+       feedback = Value(feedback),
+       answeredAt = Value(answeredAt);
+  static Insertable<OralAttempt> custom({
+    Expression<int>? id,
+    Expression<String>? mode,
+    Expression<String>? exchanges,
+    Expression<String>? feedback,
+    Expression<DateTime>? answeredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (mode != null) 'mode': mode,
+      if (exchanges != null) 'exchanges': exchanges,
+      if (feedback != null) 'feedback': feedback,
+      if (answeredAt != null) 'answered_at': answeredAt,
+    });
+  }
+
+  OralAttemptsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? mode,
+    Value<String>? exchanges,
+    Value<String>? feedback,
+    Value<DateTime>? answeredAt,
+  }) {
+    return OralAttemptsCompanion(
+      id: id ?? this.id,
+      mode: mode ?? this.mode,
+      exchanges: exchanges ?? this.exchanges,
+      feedback: feedback ?? this.feedback,
+      answeredAt: answeredAt ?? this.answeredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (mode.present) {
+      map['mode'] = Variable<String>(mode.value);
+    }
+    if (exchanges.present) {
+      map['exchanges'] = Variable<String>(exchanges.value);
+    }
+    if (feedback.present) {
+      map['feedback'] = Variable<String>(feedback.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OralAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('mode: $mode, ')
+          ..write('exchanges: $exchanges, ')
+          ..write('feedback: $feedback, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3704,6 +4361,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WritingAttemptsTable writingAttempts = $WritingAttemptsTable(
     this,
   );
+  late final $OralQuestionsTable oralQuestions = $OralQuestionsTable(this);
+  late final $OralAttemptsTable oralAttempts = $OralAttemptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3719,6 +4378,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     readingSets,
     readingAttempts,
     writingAttempts,
+    oralQuestions,
+    oralAttempts,
   ];
 }
 
@@ -5752,6 +6413,379 @@ typedef $$WritingAttemptsTableProcessedTableManager =
       WritingAttempt,
       PrefetchHooks Function()
     >;
+typedef $$OralQuestionsTableCreateCompanionBuilder =
+    OralQuestionsCompanion Function({
+      Value<int> id,
+      required String tier,
+      required String questionFr,
+      Value<String> source,
+    });
+typedef $$OralQuestionsTableUpdateCompanionBuilder =
+    OralQuestionsCompanion Function({
+      Value<int> id,
+      Value<String> tier,
+      Value<String> questionFr,
+      Value<String> source,
+    });
+
+class $$OralQuestionsTableFilterComposer
+    extends Composer<_$AppDatabase, $OralQuestionsTable> {
+  $$OralQuestionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get questionFr => $composableBuilder(
+    column: $table.questionFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OralQuestionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OralQuestionsTable> {
+  $$OralQuestionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tier => $composableBuilder(
+    column: $table.tier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get questionFr => $composableBuilder(
+    column: $table.questionFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OralQuestionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OralQuestionsTable> {
+  $$OralQuestionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get tier =>
+      $composableBuilder(column: $table.tier, builder: (column) => column);
+
+  GeneratedColumn<String> get questionFr => $composableBuilder(
+    column: $table.questionFr,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+}
+
+class $$OralQuestionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OralQuestionsTable,
+          OralQuestion,
+          $$OralQuestionsTableFilterComposer,
+          $$OralQuestionsTableOrderingComposer,
+          $$OralQuestionsTableAnnotationComposer,
+          $$OralQuestionsTableCreateCompanionBuilder,
+          $$OralQuestionsTableUpdateCompanionBuilder,
+          (
+            OralQuestion,
+            BaseReferences<_$AppDatabase, $OralQuestionsTable, OralQuestion>,
+          ),
+          OralQuestion,
+          PrefetchHooks Function()
+        > {
+  $$OralQuestionsTableTableManager(_$AppDatabase db, $OralQuestionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OralQuestionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OralQuestionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OralQuestionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> tier = const Value.absent(),
+                Value<String> questionFr = const Value.absent(),
+                Value<String> source = const Value.absent(),
+              }) => OralQuestionsCompanion(
+                id: id,
+                tier: tier,
+                questionFr: questionFr,
+                source: source,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String tier,
+                required String questionFr,
+                Value<String> source = const Value.absent(),
+              }) => OralQuestionsCompanion.insert(
+                id: id,
+                tier: tier,
+                questionFr: questionFr,
+                source: source,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OralQuestionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OralQuestionsTable,
+      OralQuestion,
+      $$OralQuestionsTableFilterComposer,
+      $$OralQuestionsTableOrderingComposer,
+      $$OralQuestionsTableAnnotationComposer,
+      $$OralQuestionsTableCreateCompanionBuilder,
+      $$OralQuestionsTableUpdateCompanionBuilder,
+      (
+        OralQuestion,
+        BaseReferences<_$AppDatabase, $OralQuestionsTable, OralQuestion>,
+      ),
+      OralQuestion,
+      PrefetchHooks Function()
+    >;
+typedef $$OralAttemptsTableCreateCompanionBuilder =
+    OralAttemptsCompanion Function({
+      Value<int> id,
+      required String mode,
+      required String exchanges,
+      required String feedback,
+      required DateTime answeredAt,
+    });
+typedef $$OralAttemptsTableUpdateCompanionBuilder =
+    OralAttemptsCompanion Function({
+      Value<int> id,
+      Value<String> mode,
+      Value<String> exchanges,
+      Value<String> feedback,
+      Value<DateTime> answeredAt,
+    });
+
+class $$OralAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $OralAttemptsTable> {
+  $$OralAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exchanges => $composableBuilder(
+    column: $table.exchanges,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OralAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OralAttemptsTable> {
+  $$OralAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mode => $composableBuilder(
+    column: $table.mode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exchanges => $composableBuilder(
+    column: $table.exchanges,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OralAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OralAttemptsTable> {
+  $$OralAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get mode =>
+      $composableBuilder(column: $table.mode, builder: (column) => column);
+
+  GeneratedColumn<String> get exchanges =>
+      $composableBuilder(column: $table.exchanges, builder: (column) => column);
+
+  GeneratedColumn<String> get feedback =>
+      $composableBuilder(column: $table.feedback, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$OralAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OralAttemptsTable,
+          OralAttempt,
+          $$OralAttemptsTableFilterComposer,
+          $$OralAttemptsTableOrderingComposer,
+          $$OralAttemptsTableAnnotationComposer,
+          $$OralAttemptsTableCreateCompanionBuilder,
+          $$OralAttemptsTableUpdateCompanionBuilder,
+          (
+            OralAttempt,
+            BaseReferences<_$AppDatabase, $OralAttemptsTable, OralAttempt>,
+          ),
+          OralAttempt,
+          PrefetchHooks Function()
+        > {
+  $$OralAttemptsTableTableManager(_$AppDatabase db, $OralAttemptsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OralAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OralAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OralAttemptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> mode = const Value.absent(),
+                Value<String> exchanges = const Value.absent(),
+                Value<String> feedback = const Value.absent(),
+                Value<DateTime> answeredAt = const Value.absent(),
+              }) => OralAttemptsCompanion(
+                id: id,
+                mode: mode,
+                exchanges: exchanges,
+                feedback: feedback,
+                answeredAt: answeredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String mode,
+                required String exchanges,
+                required String feedback,
+                required DateTime answeredAt,
+              }) => OralAttemptsCompanion.insert(
+                id: id,
+                mode: mode,
+                exchanges: exchanges,
+                feedback: feedback,
+                answeredAt: answeredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OralAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OralAttemptsTable,
+      OralAttempt,
+      $$OralAttemptsTableFilterComposer,
+      $$OralAttemptsTableOrderingComposer,
+      $$OralAttemptsTableAnnotationComposer,
+      $$OralAttemptsTableCreateCompanionBuilder,
+      $$OralAttemptsTableUpdateCompanionBuilder,
+      (
+        OralAttempt,
+        BaseReferences<_$AppDatabase, $OralAttemptsTable, OralAttempt>,
+      ),
+      OralAttempt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5776,4 +6810,8 @@ class $AppDatabaseManager {
       $$ReadingAttemptsTableTableManager(_db, _db.readingAttempts);
   $$WritingAttemptsTableTableManager get writingAttempts =>
       $$WritingAttemptsTableTableManager(_db, _db.writingAttempts);
+  $$OralQuestionsTableTableManager get oralQuestions =>
+      $$OralQuestionsTableTableManager(_db, _db.oralQuestions);
+  $$OralAttemptsTableTableManager get oralAttempts =>
+      $$OralAttemptsTableTableManager(_db, _db.oralAttempts);
 }

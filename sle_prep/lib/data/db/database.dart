@@ -103,6 +103,30 @@ class ReadingAttempts extends Table {
   DateTimeColumn get answeredAt => dateTime()();
 }
 
+class OralQuestions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// OLA question tier: A (concrete/routine), B (narration/explanation),
+  /// C (opinion/hypothetical/sensitive).
+  TextColumn get tier => text()();
+  TextColumn get questionFr => text()();
+  TextColumn get source => text().withDefault(const Constant('seed'))();
+}
+
+class OralAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 'daily' (one question) or 'interview' (escalating sequence).
+  TextColumn get mode => text()();
+
+  /// JSON list of {question, answer} transcript pairs.
+  TextColumn get exchanges => text()();
+
+  /// JSON feedback (5 OLA criteria, level estimate, tips).
+  TextColumn get feedback => text()();
+  DateTimeColumn get answeredAt => dateTime()();
+}
+
 class WritingAttempts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get promptFr => text()();
@@ -124,12 +148,14 @@ class WritingAttempts extends Table {
   ReadingSets,
   ReadingAttempts,
   WritingAttempts,
+  OralQuestions,
+  OralAttempts,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,6 +164,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(readingSets);
             await m.createTable(readingAttempts);
             await m.createTable(writingAttempts);
+          }
+          if (from < 3) {
+            await m.createTable(oralQuestions);
+            await m.createTable(oralAttempts);
           }
         },
       );
