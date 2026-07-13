@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/llm/oral_coach.dart' show levelProgress;
 import '../../providers.dart';
+import '../mocks/mock_exam_screen.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -19,7 +21,46 @@ class ProgressScreen extends ConsumerWidget {
             Text('Progrès', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 4),
             const Text(
-              'Les estimations de niveau seront ajoutées après les examens blancs.',
+              'Estimations non officielles, fondées sur vos examens blancs.',
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TRAJECTOIRE PAR COMPÉTENCE',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 14),
+                    for (final skill in const ['reading', 'writing', 'oral'])
+                      _TrajectoryRow(
+                        label: skillLabel(skill),
+                        level: snapshot.latestMocks[skill]?.levelEstimate,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(18),
+                leading: const Icon(Icons.flag_outlined, size: 32),
+                title: const Text('Examen blanc'),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(_checkpointLabel(snapshot.nextCheckpoint)),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MockExamScreen()),
+                ),
+              ),
             ),
             const SizedBox(height: 18),
             Row(
@@ -31,15 +72,15 @@ class ProgressScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 10),
                 _MetricCard(
-                  icon: Icons.style_outlined,
-                  value: '${snapshot.studiedCards}',
-                  label: 'cartes étudiées',
+                  icon: Icons.schedule_outlined,
+                  value: _hoursLabel(snapshot.totalMinutes),
+                  label: 'd\'étude au total',
                 ),
                 const SizedBox(width: 10),
                 _MetricCard(
-                  icon: Icons.schedule_outlined,
-                  value: '${snapshot.dueCards}',
-                  label: 'cartes dues',
+                  icon: Icons.style_outlined,
+                  value: '${snapshot.studiedCards}',
+                  label: 'cartes étudiées',
                 ),
               ],
             ),
@@ -68,6 +109,55 @@ class ProgressScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _hoursLabel(int minutes) =>
+    minutes < 60 ? '$minutes min' : '${(minutes / 60).round()} h';
+
+String _checkpointLabel(DateTime checkpoint) {
+  final today = DateTime.now();
+  final days =
+      checkpoint.difference(DateTime(today.year, today.month, today.day)).inDays;
+  final when = days <= 0
+      ? 'C\'est aujourd\'hui !'
+      : days == 1
+          ? 'Demain'
+          : 'Dans $days jours';
+  return '$when · lecture + écriture + entrevue simulée';
+}
+
+class _TrajectoryRow extends StatelessWidget {
+  const _TrajectoryRow({required this.label, required this.level});
+
+  final String label;
+  final String? level;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          children: [
+            SizedBox(width: 168, child: Text(label)),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: LinearProgressIndicator(
+                  value: level == null ? 0 : levelProgress(level!),
+                  minHeight: 10,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 34,
+              child: Text(
+                level ?? '—',
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _MetricCard extends StatelessWidget {

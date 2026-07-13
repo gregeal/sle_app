@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/db/daos.dart';
 import 'data/db/database.dart';
 import 'data/seed/seed_loader.dart';
+import 'domain/mock/mock_scoring.dart';
 import 'domain/session/session_composer.dart';
 import 'domain/llm/llm_client.dart';
 import 'domain/llm/llm_config.dart';
@@ -89,12 +90,18 @@ class ProgressSnapshot {
     required this.dueCards,
     required this.studiedCards,
     required this.topicAccuracy,
+    required this.totalMinutes,
+    required this.latestMocks,
+    required this.nextCheckpoint,
   });
 
   final int streak;
   final int dueCards;
   final int studiedCards;
   final Map<String, double> topicAccuracy;
+  final int totalMinutes;
+  final Map<String, MockResult> latestMocks;
+  final DateTime nextCheckpoint;
 }
 
 final activeWeekProvider = FutureProvider<ActiveWeek>((ref) async {
@@ -156,12 +163,20 @@ final progressSnapshotProvider = FutureProvider<ProgressSnapshot>((ref) async {
     database.dueCardCount(day),
     database.studiedCardCount(),
     database.topicAccuracy(),
+    database.totalActiveMinutes(),
+    database.latestMockPerSkill(),
   ]);
+  final savedStart = await database.getSetting('planStartDate');
+  final planStart =
+      savedStart == null ? day : DateTime.tryParse(savedStart) ?? day;
   return ProgressSnapshot(
     streak: values[0] as int,
     dueCards: values[1] as int,
     studiedCards: values[2] as int,
     topicAccuracy: values[3] as Map<String, double>,
+    totalMinutes: values[4] as int,
+    latestMocks: values[5] as Map<String, MockResult>,
+    nextCheckpoint: nextCheckpoint(planStart, day),
   );
 });
 

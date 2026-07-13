@@ -8,6 +8,16 @@ import 'oral_session_screen.dart';
 
 const coachAccent = Color(0xffa93b44);
 
+/// OLA-style interview: 1 warm-up (A), then 2 B and 2 C questions.
+Future<List<OralQuestion>> pickInterviewQuestions(AppDatabase db) async {
+  final questions = <OralQuestion>[];
+  for (final entry in const [('A', 1), ('B', 2), ('C', 2)]) {
+    final pool = await db.oralQuestionsByTier(entry.$1)..shuffle();
+    questions.addAll(pool.take(entry.$2));
+  }
+  return questions;
+}
+
 class CoachScreen extends ConsumerWidget {
   const CoachScreen({super.key});
 
@@ -23,15 +33,6 @@ class CoachScreen extends ConsumerWidget {
     if (pool.isEmpty) return const [];
     // Deterministic per day so re-opening shows the same question.
     return [pool[day.difference(DateTime(2026)).inDays % pool.length]];
-  }
-
-  Future<List<OralQuestion>> _pickInterview(AppDatabase db) async {
-    final questions = <OralQuestion>[];
-    for (final entry in const [('A', 1), ('B', 2), ('C', 2)]) {
-      final pool = await db.oralQuestionsByTier(entry.$1)..shuffle();
-      questions.addAll(pool.take(entry.$2));
-    }
-    return questions;
   }
 
   @override
@@ -78,7 +79,7 @@ class CoachScreen extends ConsumerWidget {
               subtitle: '5 questions · paliers A → C · rapport selon les '
                   '5 critères officiels',
               onTap: () async {
-                final questions = await _pickInterview(db);
+                final questions = await pickInterviewQuestions(db);
                 if (!context.mounted || questions.isEmpty) return;
                 await Navigator.of(context).push(
                   MaterialPageRoute(
