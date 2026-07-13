@@ -1,11 +1,11 @@
 {
-    "name": "sle_prep",
-    "short_name": "sle_prep",
+    "name": "SLE Prep",
+    "short_name": "SLE Prep",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF9FD",
+    "theme_color": "#3B5BA9",
+    "description": "French second-language training for Canadian public-service exams.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

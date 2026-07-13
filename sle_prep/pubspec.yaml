@@ -36,8 +36,17 @@ flutter_launcher_icons:
   image_path: assets/icon/icon_full.png
   adaptive_icon_background: "#3B5BA9"
   adaptive_icon_foreground: assets/icon/icon_fg.png
+  web:
+    generate: true
+    image_path: assets/icon/icon_full.png
+    background_color: "#FAF9FD"
+    theme_color: "#3B5BA9"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/seed/
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Variable.ttf

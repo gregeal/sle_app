@@ -1,23 +1,26 @@
 # SLE Prep / Objectif C
 
-An Android-first Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. The goal is C-level readiness across reading, writing, and oral interaction, built around a 26-week study plan at 60–90 minutes per day.
+An Android and authenticated-web Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. The goal is C-level readiness across reading, writing, and oral interaction, built around a 26-week study plan at 60–90 minutes per day.
 
-All four planned phases (P0–P3) are implemented:
+All five planned phases (P0–P4) are implemented in the repository:
 
 - **Daily habit engine (P0)** — 26-week curriculum, 309 workplace vocabulary cards with SM-2 spaced repetition, 92+ SLE-style grammar drills with explanations and weak-topic prioritization, a composed daily session with completion checklist, streaks, and resource links (Mauril, PSC self-assessments). Fully offline.
 - **AI integration (P0/P1)** — provider-agnostic LLM client (OpenAI, OpenRouter, local Ollama, Anthropic, or any OpenAI-compatible endpoint) with connection test, encrypted API-key storage, and validated on-demand generation of new grammar drills and reading passages. Adapts automatically to newer OpenAI parameter requirements (`max_completion_tokens`, locked temperature).
 - **Reading & writing (P1)** — timed SLE-style reading comprehension (memos, emails, policy excerpts) with per-question explanations, and guided composition with AI feedback: inline corrections, a corrected model text, an unofficial A/B/C level estimate, and concrete tips.
 - **Oral coach (P2)** — daily and guided modes use on-device STT/TTS; the full OpenAI Realtime interview is true low-latency voice-to-voice over WebRTC, with semantic turn detection, natural interruptions, adaptive A → B → C follow-ups, live transcripts, and a saved report against the five official OLA criteria (aisance, compréhension, vocabulaire, grammaire, prononciation).
 - **Checkpoints & dashboard (P3)** — monthly mock-exam checkpoints for all three skills, scored against approximate published cut lines, feeding a per-skill level-trajectory dashboard with streak, total study hours, and per-topic accuracy.
+- **Secure web session (P4)** — Flutter Web with browser-local SQLite/OPFS, an allowlisted FastAPI AI Broker, Google OAuth bootstrap, passkey sign-in, HttpOnly sessions + CSRF, model/rate/budget enforcement, and feature parity including Realtime WebRTC. Deployment is defined by `Dockerfile` and `render.yaml`.
 
 Navigation: **Accueil** (today's session), **Réviser** (vocabulary, grammar, reading, writing, AI generation), **Coach** (oral practice), **Progrès** (trajectory, stats, mock exams), **Paramètres** (AI provider).
 
-Vocabulary, grammar drills, and seeded reading passages work fully offline. AI features require a configured provider. The API key is stored with Android encrypted storage and is sent only over HTTPS to the provider you selected for authenticated API calls; it is not stored in SQLite or sent to an SLE Prep developer server. The Realtime interview additionally sends microphone audio to OpenAI. All level estimates are **unofficial**; the app makes no official SLE claims.
+Vocabulary, grammar drills, and seeded reading passages work fully offline. On Android, AI features use the provider configured in-app and the key remains in encrypted device storage. On the web, the browser never receives a long-lived provider key: text calls pass through the authenticated broker and Realtime receives only a short-lived OpenAI client credential. The Realtime interview sends microphone audio directly to OpenAI. All level estimates are **unofficial**; the app makes no official SLE claims.
 
 Project documents in the repository root:
 
 - [`PRD.md`](PRD.md) — full product requirements
 - [`docs/plans/2026-07-12-p0-implementation-plan.md`](docs/plans/2026-07-12-p0-implementation-plan.md)
+- [`docs/plans/2026-07-13-p4-web-plan.md`](docs/plans/2026-07-13-p4-web-plan.md) — web architecture and implementation evidence
+- [`docs/security/p4-web-security-checklist.md`](docs/security/p4-web-security-checklist.md) — web release security checklist
 - [`docs/design/objectif-c-ecrans-android.dc.html`](docs/design/objectif-c-ecrans-android.dc.html) — design screens
 
 ## Prerequisites
@@ -29,6 +32,7 @@ Use a Windows machine with:
 3. A **JDK 17+** for Gradle (Android Studio's bundled JBR, or a standalone JDK configured with `flutter config --jdk-dir`).
 4. An Android phone with USB debugging enabled (recommended — the oral coach needs a real microphone), or an emulator.
 5. For voice-to-voice interviews: a stable Internet connection, headphones or a quiet room, and an OpenAI API account with Realtime access and billing enabled.
+6. For web/broker development: **uv 0.9.4+** and Python 3.12. Docker Desktop is optional for validating the production image.
 
 ## One-time Windows setup
 
@@ -110,7 +114,57 @@ During development: `r` hot-reloads, `R` restarts, `q` quits.
 
 On first launch the app imports its bundled curriculum, vocabulary, drills, reading passages, and oral questions into the on-device database. Upgrades import only new content — existing progress and earlier seed data are never duplicated.
 
-## AI provider setup (in-app)
+## Run the web app and broker locally
+
+The secure web deployment is same-origin: FastAPI serves the Flutter build and `/api/*`, so cookies need no CORS exception. The production bundle also self-hosts its Noto Sans and Flutter fallback fonts under their included open-font licenses; no runtime font CDN is required.
+
+```powershell
+cd "C:\Users\grege\Documents\My Docs\MyApp\sle_prep"
+flutter pub get
+flutter build web --release --no-web-resources-cdn --no-wasm-dry-run
+
+cd ..\broker
+Copy-Item .env.example .env
+```
+
+Edit `broker\.env` for local use:
+
+```dotenv
+ENVIRONMENT=development
+PUBLIC_ORIGIN=http://localhost:8000
+STATIC_DIR=../sle_prep/build/web
+DATABASE_PATH=data/broker.db
+ALLOWED_EMAILS=you@example.com
+DEV_LOGIN_ENABLED=true
+OPENAI_API_KEY=your-key-from-the-provider-dashboard
+```
+
+Set the text model and **current** provider pricing/caps in the same file, then run:
+
+```powershell
+uv sync --dev
+uv run uvicorn app.asgi:app --reload --port 8000
+```
+
+Bootstrap the local session once at `http://localhost:8000/auth/dev?email=you@example.com`, then open `http://localhost:8000/`. The development-login route returns 404 in production. To exercise the production-shaped container instead:
+
+```powershell
+cd "C:\Users\grege\Documents\My Docs\MyApp"
+docker build -t sle-prep .
+docker run --rm --env-file broker/.env -p 8000:8000 -e PORT=8000 sle-prep
+```
+
+### Deploy with Render
+
+1. In Render, create a **Blueprint** from this repository's `render.yaml`. A paid starter service is specified because the broker's session/passkey SQLite file needs a persistent disk.
+2. Enter every variable marked `sync: false`: the final HTTPS `PUBLIC_ORIGIN`, owner `ALLOWED_EMAILS`, Google OAuth credentials, OpenAI key, daily/monthly limits, current per-token prices, and a conservative Realtime-session reservation.
+3. In Google Cloud, register exactly `https://YOUR_DOMAIN/auth/google/callback` as an authorized redirect URI. The same host must match `PUBLIC_ORIGIN` for cookies and WebAuthn.
+4. After the first Google sign-in, open **Paramètres → Créer une passkey**. Future sign-ins can use the passkey.
+5. Add a custom domain in Render if desired; Render provisions TLS. Run Mozilla Observatory against the final URL and archive the result in `docs/security/` before treating the deployment as released.
+
+Never place `OPENAI_API_KEY` in Dart defines, JavaScript, `localStorage`, IndexedDB, the repository, or a client-readable Render variable. Use only the Render secret prompt/environment.
+
+## Android AI provider setup (in-app)
 
 1. Open **Paramètres**, pick a provider (OpenAI, OpenRouter, Ollama local, Anthropic, or custom), enter the base URL, model name, and API key.
 2. Tap **Tester la connexion** — it saves the form and performs a cheap round-trip.
@@ -133,7 +187,7 @@ The app requests Android microphone permission on first use. Realtime sessions r
 
 ### Realtime credential security
 
-This repository is a personal, bring-your-own-key app: it never hardcodes an API key into the APK. The device uses the key from Android encrypted storage to call `/v1/realtime/client_secrets`, then authenticates the WebRTC call with the returned short-lived credential. Do not distribute a build with a preloaded or shared key. Before turning this into a multi-user/public app, move client-secret creation to an authenticated server endpoint so the standard OpenAI key never exists in client code or on end-user devices, as required by the [official WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).
+The Android build is personal bring-your-own-key: it never hardcodes a key in the APK, and it exchanges the encrypted device key for a short-lived Realtime credential. The web build follows the public-client pattern: its authenticated broker owns the standard key and returns only the short-lived credential. In both cases WebRTC authenticates with that ephemeral value, following the [official WebRTC guide](https://developers.openai.com/api/docs/guides/realtime-webrtc).
 
 ## Run checks
 
@@ -141,6 +195,11 @@ This repository is a personal, bring-your-own-key app: it never hardcodes an API
 cd "C:\Users\grege\Documents\My Docs\MyApp\sle_prep"
 flutter analyze
 flutter test
+
+cd ..\broker
+uv sync --dev
+uv run ruff check app tests
+uv run pytest
 ```
 
 The test suite covers the Drift data layer and migrations, SM-2 scheduling, seed validation and incremental import, the session composer, LLM clients (including OpenAI parameter fallbacks), Realtime client-secret/SDP requests and event parsing, drill/reading/writing/oral generation and parsing, mock-exam scoring, and key widget flows.
@@ -165,15 +224,16 @@ Output: `build\app\outputs\flutter-apk\app-release.apk`
 
 ## Data and reset behaviour
 
-- All progress lives in on-device SQLite; there is no account or server.
+- Study progress lives only in Android SQLite or this browser's SQLite WASM/OPFS database; it is not synced to the broker.
 - Seed content imports incrementally, tracked by a local `seedVersion` setting; schema upgrades migrate in place without data loss.
 - API keys are stored with `flutter_secure_storage` (Android Keystore-backed) and are write-only in the UI.
+- Web sessions/passkey public keys and content-free usage/audit records live in the broker SQLite file. Provider keys, prompts, and transcripts do not.
 - **Android Settings → Apps → SLE Prep → Storage → Clear data** permanently removes all progress and re-imports fresh seed content.
 
 ## Roadmap
 
-- Production token-broker deployment for a multi-user release; usage/cost metering per Realtime session.
-- Session-plan re-weighting from mock-exam results; encrypted backup/export; release signing.
+- Session-plan re-weighting from mock-exam results; encrypted cross-device backup/export; release signing.
+- Replace the single-instance SQLite limiter with a shared transactional store before horizontally scaling the broker.
 - Optional iOS target and broader device-level audio routing tests.
 
 ## Project layout
@@ -213,5 +273,9 @@ sle_prep/
 | Realtime fails with HTTP 401 / 403 | Re-paste the OpenAI key and confirm the API project has Realtime access and billing. ChatGPT subscriptions do not supply API credit. |
 | Realtime connects but there is no sound | Raise media volume, unmute the app, grant microphone permission, disconnect/reconnect Bluetooth, then retry with the phone speaker or wired headphones. |
 | Realtime disconnects or stalls | Switch to a stable Wi-Fi/mobile network, disable restrictive VPN/firewall rules, and retry. The guided STT/TTS interview remains available as a fallback. |
+| Web page says no sign-in method is configured | Set Google OAuth credentials or register a passkey after the local/Google bootstrap flow; ensure the browser supports WebAuthn over HTTPS or localhost. |
+| Web AI returns 401 / 403 | Refresh the page and sign in again. A 403 can also mean the email is not in `ALLOWED_EMAILS` or the CSRF/session cookie is stale. |
+| Web AI returns 429 | Wait for the minute window or budget renewal; check the broker's configured daily/monthly cap. Do not weaken limits without reviewing provider usage. |
+| Browser storage falls back from OPFS | Serve through the broker/container so COOP and COEP headers are present; direct ad-hoc static servers may omit them. |
 | Database/schema errors after table changes | `dart run build_runner build --delete-conflicting-outputs`. |
 | Need a clean test run | `flutter clean`, then `flutter pub get` and `flutter test`. |

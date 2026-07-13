@@ -21,6 +21,9 @@ const realtimeVoices = [
   'shimmer',
 ];
 
+typedef RealtimeClientSecretProvider =
+    Future<String> Function({required String model, required String voice});
+
 Map<String, dynamic> buildRealtimeSessionConfig({
   required String model,
   required String voice,
@@ -50,7 +53,8 @@ Map<String, dynamic> buildRealtimeSessionConfig({
 class OpenAiRealtimeApi {
   OpenAiRealtimeApi({
     required this.baseUrl,
-    required this.apiKey,
+    this.apiKey = '',
+    this.clientSecretProvider,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 30),
   }) : _http = httpClient ?? http.Client(),
@@ -58,6 +62,7 @@ class OpenAiRealtimeApi {
 
   final String baseUrl;
   final String apiKey;
+  final RealtimeClientSecretProvider? clientSecretProvider;
   final Duration timeout;
   final http.Client _http;
   final bool _ownsClient;
@@ -66,6 +71,8 @@ class OpenAiRealtimeApi {
     required String model,
     required String voice,
   }) async {
+    final provider = clientSecretProvider;
+    if (provider != null) return provider(model: model, voice: voice);
     final response = await _post(
       _endpoint('realtime/client_secrets'),
       headers: {

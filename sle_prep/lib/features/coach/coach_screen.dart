@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,21 +66,8 @@ class CoachScreen extends ConsumerWidget {
             _CoachCard(
               icon: Icons.graphic_eq,
               title: 'Entrevue Realtime',
-              subtitle: kIsWeb
-                  ? 'Voix-à-voix · à venir sur le web (serveur sécurisé requis)'
-                  : 'Voix-à-voix · relances adaptatives · paliers A → C',
+              subtitle: 'Voix-à-voix · relances adaptatives · paliers A → C',
               onTap: () async {
-                if (kIsWeb) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'L\'entrevue voix-à-voix arrivera sur le web avec le '
-                        'serveur sécurisé. Utilisez l\'application Android.',
-                      ),
-                    ),
-                  );
-                  return;
-                }
                 await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => const RealtimeInterviewScreen(),
@@ -130,7 +116,7 @@ class CoachScreen extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Vos réponses sont transcrites par votre téléphone, puis '
+                  'Vos réponses sont transcrites par votre appareil, puis '
                   'évaluées par votre fournisseur IA selon les cinq critères '
                   'de l\'ELO. Les estimations sont non officielles; la '
                   'prononciation n\'est qu\'approximée à partir de la '

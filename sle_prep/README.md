@@ -1,17 +1,14 @@
-# sle_prep
+# SLE Prep Flutter client
 
-A new Flutter project.
+This directory contains the shared Android and web Flutter app. Complete setup,
+AI configuration, troubleshooting, broker instructions, and deployment steps
+are maintained in the [repository README](../README.md).
 
-## Getting Started
+Quick verification:
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+flutter pub get
+flutter analyze --no-pub
+flutter test --no-pub
+flutter build web --release --no-web-resources-cdn --no-wasm-dry-run
+```

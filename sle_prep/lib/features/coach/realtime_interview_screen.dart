@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/llm/llm_config.dart';
 import '../../domain/llm/oral_coach.dart';
 import '../../domain/realtime/openai_realtime_api.dart';
 import '../../domain/realtime/openai_realtime_voice_session.dart';
@@ -25,6 +24,7 @@ class _RealtimeInterviewScreenState
   final _transcript = RealtimeTranscriptBuffer();
   RealtimeVoiceSession? _session;
   StreamSubscription<RealtimeVoiceEvent>? _subscription;
+  Timer? _maximumDurationTimer;
   RealtimeVoiceActivity _activity = RealtimeVoiceActivity.disconnected;
   OralFeedback? _feedback;
   Object? _error;
@@ -36,6 +36,7 @@ class _RealtimeInterviewScreenState
   @override
   void dispose() {
     unawaited(_subscription?.cancel());
+    _maximumDurationTimer?.cancel();
     final session = _session;
     if (session != null) unawaited(session.close());
     super.dispose();
@@ -49,29 +50,24 @@ class _RealtimeInterviewScreenState
     });
     try {
       final config = await ref.read(llmConfigProvider.future);
-      if (!supportsOpenAiRealtime(config)) {
-        throw const RealtimeVoiceException(
-          'L’entrevue en direct nécessite le fournisseur « OpenAI compatible » '
-          'avec l’URL https://api.openai.com/v1.',
-        );
-      }
-      final apiKey = await ref
-          .read(secureStorageProvider)
-          .read(key: 'llmApiKey');
-      if (apiKey == null || apiKey.trim().isEmpty) {
-        throw const RealtimeVoiceException(
-          'Ajoutez d’abord votre clé API OpenAI dans les paramètres.',
-        );
-      }
+      final gateway = ref.read(aiGatewayProvider);
 
       final session = OpenAiRealtimeVoiceSession(
-        api: OpenAiRealtimeApi(baseUrl: config.baseUrl, apiKey: apiKey.trim()),
+        api: OpenAiRealtimeApi(
+          baseUrl: 'https://api.openai.com/v1',
+          clientSecretProvider: gateway.realtimeClientSecret,
+        ),
         model: config.realtimeModel,
         voice: config.realtimeVoice,
       );
       _session = session;
       _subscription = session.events.listen(_handleEvent);
       await session.connect();
+      _maximumDurationTimer = Timer(const Duration(minutes: 20), () {
+        if (mounted && _session == session && !_finishing) {
+          unawaited(_finish());
+        }
+      });
     } catch (error) {
       final session = _session;
       _session = null;
@@ -111,6 +107,8 @@ class _RealtimeInterviewScreenState
 
   Future<void> _finish() async {
     if (_finishing) return;
+    _maximumDurationTimer?.cancel();
+    _maximumDurationTimer = null;
     setState(() {
       _finishing = true;
       _error = null;

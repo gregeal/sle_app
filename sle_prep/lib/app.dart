@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'features/auth/web_auth_gate.dart';
 import 'features/coach/coach_screen.dart';
 import 'features/practice/practice_screen.dart';
 import 'features/progress/progress_screen.dart';
@@ -13,12 +15,11 @@ class SlePrepApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final seedImport = ref.watch(seedImportProvider);
-
     return MaterialApp(
       title: 'SLE Prep',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'NotoSans',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff3b5ba9),
           brightness: Brightness.light,
@@ -26,11 +27,21 @@ class SlePrepApp extends ConsumerWidget {
         scaffoldBackgroundColor: const Color(0xfffaf9fd),
         useMaterial3: true,
       ),
-      home: seedImport.when(
-        data: (_) => const AppShell(),
-        loading: () => const _StartupScreen(),
-        error: (error, _) => _StartupError(error: error),
-      ),
+      home: kIsWeb ? const WebAuthGate(child: _SeedGate()) : const _SeedGate(),
+    );
+  }
+}
+
+class _SeedGate extends ConsumerWidget {
+  const _SeedGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final seedImport = ref.watch(seedImportProvider);
+    return seedImport.when(
+      data: (_) => const AppShell(),
+      loading: () => const _StartupScreen(),
+      error: (error, _) => _StartupError(error: error),
     );
   }
 }

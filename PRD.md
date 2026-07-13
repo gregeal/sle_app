@@ -154,7 +154,7 @@ Open app → today's session (pre-planned mix of activities totalling 60–90 mi
 | **P1 — Reading & writing** (~wks 5–8) | Reading practice (F4), writing MCQ drills + AI free-writing feedback (F5), content-generation pipeline hardening | Timed SLE-format reading set and corrected composition end-to-end |
 | **P2 — Oral coach** (~wks 9–14) | STT/TTS integration, daily one-question mode, full simulated OLA interview with 5-criteria feedback (F6) | 20-minute simulated interview producing level-referenced feedback |
 | **P3 — Checkpoints & dashboard** (~wks 15–18) | Monthly mock exams, level trajectory dashboard, plan re-weighting (F7) | First full mock-exam cycle informs an automatic plan adjustment |
-| **P4 — Web session** (planned) | Auth-gated Flutter Web deployment with an AI Broker backend (see §14 and [docs/plans/2026-07-13-p4-web-plan.md](docs/plans/2026-07-13-p4-web-plan.md)) | Sign-in-gated public URL with feature parity incl. Realtime interview; security checklist passed |
+| **P4 — Web session** (implemented; deployment-ready) | Auth-gated Flutter Web deployment with an AI Broker backend (see §14 and [docs/plans/2026-07-13-p4-web-plan.md](docs/plans/2026-07-13-p4-web-plan.md)) | Code, tests, container, Blueprint, and security checklist complete; final public URL requires owner-provided domain/OAuth/provider secrets |
 
 Note the app's P0 ships in ~1 month so the 6-month study clock and the build overlap — the builder is also user #1, which doubles as continuous QA.
 
@@ -184,7 +184,7 @@ Note the app's P0 ships in ~1 month so the 6-month study clock and the build ove
 
 *Canada.ca pages could not be machine-fetched during drafting (bot-blocked); test-format numbers were cross-checked across the third-party sources above and should be re-verified manually on canada.ca before building the test simulators (§9).*
 
-## 14. P4 — Web session (planned)
+## 14. P4 — Web session (implemented; deployment-ready)
 
 Extend the product to a **web session usable anywhere on the internet, gated by a permission** (sign-in against an owner-controlled allowlist), with feature parity including the Realtime voice interview.
 
@@ -196,3 +196,13 @@ Extend the product to a **web session usable anywhere on the internet, gated by 
 - **Hardening**: TLS + HSTS, strict CSP, HttpOnly/SameSite cookies with CSRF protection, security-headers scan and an OWASP-style checklist as release gates.
 
 Full architecture (component and sequence diagrams), threat model, task breakdown, and verification plan: [docs/plans/2026-07-13-p4-web-plan.md](docs/plans/2026-07-13-p4-web-plan.md).
+
+Implementation evidence: Flutter analysis and production web build are green;
+the complete Flutter suite covers 95 tests, the FastAPI broker has 12 passing
+auth/security/proxy tests, and the release controls are archived in
+[docs/security/p4-web-security-checklist.md](docs/security/p4-web-security-checklist.md).
+`Dockerfile` and `render.yaml` define the same-origin production deployment.
+The final Render service, custom domain, Google OAuth registration, live
+OpenAI smoke test, and external Observatory scan require owner-managed secrets
+and infrastructure and therefore are deployment steps rather than repository
+artifacts.

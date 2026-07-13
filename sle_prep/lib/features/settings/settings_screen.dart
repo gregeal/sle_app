@@ -13,7 +13,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!ref.watch(aiGatewayProvider).supportsDirectConfiguration) {
-      return const SafeArea(child: _WebSettingsNotice());
+      return const SafeArea(child: _WebSettingsPanel());
     }
     final config = ref.watch(llmConfigProvider);
     return SafeArea(
@@ -332,48 +332,135 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   );
 }
 
-class _WebSettingsNotice extends StatelessWidget {
-  const _WebSettingsNotice();
+class _WebSettingsPanel extends ConsumerStatefulWidget {
+  const _WebSettingsPanel();
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-    children: [
-      Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
-      const SizedBox(height: 16),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+  ConsumerState<_WebSettingsPanel> createState() => _WebSettingsPanelState();
+}
+
+class _WebSettingsPanelState extends ConsumerState<_WebSettingsPanel> {
+  var _busy = false;
+
+  Future<void> _registerPasskey() async {
+    final session = await ref.read(webAuthSessionProvider.future);
+    setState(() => _busy = true);
+    try {
+      await ref.read(webAuthServiceProvider).registerPasskey(session);
+      ref.invalidate(webAuthSessionProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Passkey enregistrée.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Impossible d’enregistrer la passkey : $error'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    final session = await ref.read(webAuthSessionProvider.future);
+    setState(() => _busy = true);
+    try {
+      await ref.read(webAuthServiceProvider).logout(session);
+      ref.invalidate(webAuthSessionProvider);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Déconnexion impossible : $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(webAuthSessionProvider);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      children: [
+        Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: auth.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Text('$error'),
+              data: (session) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.shield_outlined,
-                    color: Theme.of(context).colorScheme.primary,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.verified_user_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Compte web sécurisé',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Version web : IA à venir',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 10),
+                  Text(session.email ?? 'Compte autorisé'),
+                  const SizedBox(height: 8),
+                  Text(
+                    session.offline
+                        ? 'Mode hors ligne. Les fonctions IA sont temporairement indisponibles.'
+                        : 'Les appels IA passent par le serveur sécurisé. Aucune clé API n’est stockée dans ce navigateur.',
+                  ),
+                  if (session.passkeysEnabled && !session.offline) ...[
+                    const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _registerPasskey,
+                      icon: const Icon(Icons.fingerprint),
+                      label: Text(
+                        session.passkeyCount == 0
+                            ? 'Créer une passkey'
+                            : 'Ajouter une autre passkey (${session.passkeyCount})',
+                      ),
                     ),
-                  ),
+                  ],
+                  if (!session.offline) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _logout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Se déconnecter'),
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Par sécurité, aucune clé API ne peut être enregistrée dans '
-                'un navigateur. Les fonctions IA du web passeront par un '
-                'serveur sécurisé avec ouverture de session; le vocabulaire, '
-                'la grammaire et les lectures fonctionnent dès maintenant, '
-                'entièrement dans votre navigateur.',
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(height: 12),
+        const Card(
+          child: Padding(
+            padding: EdgeInsets.all(18),
+            child: Text(
+              'Votre vocabulaire, vos résultats et votre progression restent '
+              'dans ce navigateur. Le serveur impose une limite de fréquence '
+              'et des plafonds de dépenses avant chaque appel IA. Les '
+              'estimations de niveau demeurent non officielles.',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sle_prep
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: 3.44.6
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub
+      - run: flutter build web --no-pub --release --no-web-resources-cdn --no-wasm-dry-run
+
+  broker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: broker
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: 0.9.4
+          python-version: "3.12"
+          working-directory: broker
+      - run: uv sync --frozen --dev
+      - run: uv run --frozen ruff check app tests
+      - run: uv run --frozen pytest

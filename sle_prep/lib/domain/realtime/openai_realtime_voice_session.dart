@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'openai_realtime_api.dart';
@@ -61,7 +62,9 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       peer.onTrack = (event) {
         if (event.track.kind == 'audio') {
           event.track.enabled = true;
-          unawaited(Helper.setSpeakerphoneOnButPreferBluetooth());
+          if (!kIsWeb) {
+            unawaited(Helper.setSpeakerphoneOnButPreferBluetooth());
+          }
         }
       };
 
@@ -100,7 +103,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       final offerSdp = offer.sdp;
       if (offerSdp == null || offerSdp.isEmpty) {
         throw const RealtimeVoiceException(
-          'Le téléphone n’a pas pu créer l’offre audio WebRTC.',
+          'L’appareil n’a pas pu créer l’offre audio WebRTC.',
         );
       }
       final answerSdp = await api.exchangeSdp(

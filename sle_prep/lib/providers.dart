@@ -3,10 +3,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import 'data/db/daos.dart';
 import 'data/db/database.dart';
 import 'data/seed/seed_loader.dart';
+import 'domain/auth/web_auth_service.dart';
 import 'domain/llm/ai_gateway.dart';
 import 'domain/mock/mock_scoring.dart';
 import 'domain/session/session_composer.dart';
@@ -32,6 +34,20 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
   (ref) => const FlutterSecureStorage(),
 );
 
+final brokerHttpProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+final webAuthServiceProvider = Provider<WebAuthService>((ref) {
+  return WebAuthService(httpClient: ref.watch(brokerHttpProvider));
+});
+
+final webAuthSessionProvider = FutureProvider<WebAuthSession>((ref) {
+  return ref.watch(webAuthServiceProvider).session();
+});
+
 final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
   final database = ref.watch(appDatabaseProvider);
   final provider = providerFromStorage(
@@ -43,10 +59,13 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
   final realtimeModel =
       await database.getSetting('realtimeModel') ?? 'gpt-realtime';
   final realtimeVoice = await database.getSetting('realtimeVoice') ?? 'marin';
-  final hasApiKey =
-      (await ref.watch(secureStorageProvider).read(key: 'llmApiKey'))
-          ?.isNotEmpty ??
-      false;
+  // Browser builds never read or write provider keys. Web AI is brokered with
+  // an HttpOnly session cookie, while direct keys remain device-only.
+  final hasApiKey = kIsWeb
+      ? false
+      : (await ref.watch(secureStorageProvider).read(key: 'llmApiKey'))
+                ?.isNotEmpty ??
+            false;
   return LlmConfig(
     provider: provider,
     baseUrl: baseUrl,
@@ -58,9 +77,15 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
 });
 
 /// Platform gateway to AI providers: direct-with-own-key on mobile, the
-/// AI Broker on the web (pending — see docs/plans/2026-07-13-p4-web-plan.md).
+/// AI Broker on the web; direct provider configuration remains Android-only.
 final aiGatewayProvider = Provider<AiGateway>((ref) {
-  if (kIsWeb) return const WebPendingGateway();
+  if (kIsWeb) {
+    ref.watch(webAuthSessionProvider);
+    return BrokerGateway(
+      auth: ref.watch(webAuthServiceProvider),
+      loadSession: () => ref.read(webAuthSessionProvider.future),
+    );
+  }
   return DirectProviderGateway(
     loadConfig: () => ref.read(llmConfigProvider.future),
     loadApiKey: () => ref.read(secureStorageProvider).read(key: 'llmApiKey'),
@@ -152,7 +177,9 @@ final todayPlanProvider = FutureProvider<TodayPlan>((ref) async {
   final database = ref.watch(appDatabaseProvider);
   final day = _dateOnly(ref.watch(studyDayProvider));
   final activeWeek = await ref.watch(activeWeekProvider.future);
-  final dueCards = await database.dueCardCount(day);
+  // Seed cards are due at import time. Count everything due during the study
+  // day so a fresh install includes vocabulary in its very first plan.
+  final dueCards = await database.dueCardCount(_endOfDay(day));
   final accuracy = await database.topicAccuracy();
   final resources = activeWeek.week.resourceSlotsList
       .map(
@@ -209,6 +236,10 @@ final progressSnapshotProvider = FutureProvider<ProgressSnapshot>((ref) async {
 
 DateTime _dateOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
+
+DateTime _endOfDay(DateTime value) => _dateOnly(
+  value,
+).add(const Duration(days: 1)).subtract(const Duration(microseconds: 1));
 
 String _dateKey(DateTime value) =>
     '${value.year.toString().padLeft(4, '0')}-'

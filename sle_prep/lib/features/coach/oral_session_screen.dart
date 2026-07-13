@@ -30,6 +30,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   var _transcript = '';
   var _isListening = false;
   var _speechUnavailable = false;
+  var _ttsUnavailable = false;
   OralFeedback? _feedback;
   Object? _assessError;
 
@@ -49,7 +50,11 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   }
 
   Future<void> _speakQuestion() async {
-    await ref.read(ttsServiceProvider).speak(_question.questionFr);
+    try {
+      await ref.read(ttsServiceProvider).speak(_question.questionFr);
+    } catch (_) {
+      if (mounted) setState(() => _ttsUnavailable = true);
+    }
   }
 
   Future<void> _toggleListening() async {
@@ -64,7 +69,12 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
     }
 
     await ref.read(ttsServiceProvider).stop();
-    final ready = await speech.initialize();
+    bool ready;
+    try {
+      ready = await speech.initialize();
+    } catch (_) {
+      ready = false;
+    }
     if (!ready) {
       setState(() => _speechUnavailable = true);
       return;
@@ -73,19 +83,28 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
       _isListening = true;
       _transcript = '';
     });
-    await speech.listen(
-      onResult: (transcript) {
-        if (mounted) setState(() => _transcript = transcript);
-      },
-      onDone: () {
-        if (mounted && _isListening) {
-          setState(() {
-            _isListening = false;
-            if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
-          });
-        }
-      },
-    );
+    try {
+      await speech.listen(
+        onResult: (transcript) {
+          if (mounted) setState(() => _transcript = transcript);
+        },
+        onDone: () {
+          if (mounted && _isListening) {
+            setState(() {
+              _isListening = false;
+              if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
+            });
+          }
+        },
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+          _speechUnavailable = true;
+        });
+      }
+    }
   }
 
   Future<void> _acceptAnswer() async {
@@ -225,7 +244,9 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
-                    onPressed: _isListening ? null : _speakQuestion,
+                    onPressed: _isListening || _ttsUnavailable
+                        ? null
+                        : _speakQuestion,
                     icon: const Icon(Icons.replay, size: 18),
                     label: const Text('Réécouter la question'),
                   ),
@@ -245,8 +266,9 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                         padding: EdgeInsets.all(16),
                         child: Text(
                           'La reconnaissance vocale n\'est pas disponible. '
-                          'Vérifiez la permission du microphone dans les '
-                          'paramètres Android.',
+                          'Vérifiez la permission du microphone et la prise en '
+                          'charge de la reconnaissance vocale par ce navigateur '
+                          'ou cet appareil.',
                         ),
                       ),
                     )
@@ -313,7 +335,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
           ] else
             Center(
               child: GestureDetector(
-                onTap: _toggleListening,
+                onTap: _speechUnavailable ? null : _toggleListening,
                 child: Container(
                   width: 76,
                   height: 76,

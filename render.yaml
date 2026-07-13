@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: sle-prep
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    disk:
+      name: sle-prep-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: STATIC_DIR
+        value: /app/web
+      - key: DATABASE_PATH
+        value: /var/data/broker.db
+      - key: TRUSTED_HOSTS
+        value: "*.onrender.com"
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: ALLOWED_EMAILS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CHAT_MODEL
+        value: gpt-5-mini
+      - key: ALLOWED_CHAT_MODELS
+        value: gpt-5-mini
+      - key: REALTIME_MODEL
+        value: gpt-realtime
+      - key: ALLOWED_REALTIME_MODELS
+        value: gpt-realtime
+      - key: REQUESTS_PER_MINUTE
+        value: "20"
+      - key: DAILY_BUDGET_USD
+        sync: false
+      - key: MONTHLY_BUDGET_USD
+        sync: false
+      - key: CHAT_INPUT_USD_PER_MILLION
+        sync: false
+      - key: CHAT_OUTPUT_USD_PER_MILLION
+        sync: false
+      - key: REALTIME_SESSION_RESERVE_USD
+        sync: false
