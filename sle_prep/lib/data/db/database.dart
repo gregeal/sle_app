@@ -127,6 +127,19 @@ class OralAttempts extends Table {
   DateTimeColumn get answeredAt => dateTime()();
 }
 
+class MockResults extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// 'reading', 'writing', or 'oral'.
+  TextColumn get skill => text()();
+  IntColumn get score => integer()();
+  IntColumn get total => integer()();
+
+  /// Approximate, unofficial A/B/C estimate for this checkpoint.
+  TextColumn get levelEstimate => text()();
+  DateTimeColumn get answeredAt => dateTime()();
+}
+
 class WritingAttempts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get promptFr => text()();
@@ -150,12 +163,13 @@ class WritingAttempts extends Table {
   WritingAttempts,
   OralQuestions,
   OralAttempts,
+  MockResults,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -168,6 +182,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.createTable(oralQuestions);
             await m.createTable(oralAttempts);
+          }
+          if (from < 4) {
+            await m.createTable(mockResults);
           }
         },
       );

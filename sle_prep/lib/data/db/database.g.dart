@@ -4342,6 +4342,411 @@ class OralAttemptsCompanion extends UpdateCompanion<OralAttempt> {
   }
 }
 
+class $MockResultsTable extends MockResults
+    with TableInfo<$MockResultsTable, MockResult> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MockResultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _skillMeta = const VerificationMeta('skill');
+  @override
+  late final GeneratedColumn<String> skill = GeneratedColumn<String>(
+    'skill',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalMeta = const VerificationMeta('total');
+  @override
+  late final GeneratedColumn<int> total = GeneratedColumn<int>(
+    'total',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelEstimateMeta = const VerificationMeta(
+    'levelEstimate',
+  );
+  @override
+  late final GeneratedColumn<String> levelEstimate = GeneratedColumn<String>(
+    'level_estimate',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answeredAtMeta = const VerificationMeta(
+    'answeredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+    'answered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    skill,
+    score,
+    total,
+    levelEstimate,
+    answeredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mock_results';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MockResult> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('skill')) {
+      context.handle(
+        _skillMeta,
+        skill.isAcceptableOrUnknown(data['skill']!, _skillMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_skillMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    if (data.containsKey('total')) {
+      context.handle(
+        _totalMeta,
+        total.isAcceptableOrUnknown(data['total']!, _totalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalMeta);
+    }
+    if (data.containsKey('level_estimate')) {
+      context.handle(
+        _levelEstimateMeta,
+        levelEstimate.isAcceptableOrUnknown(
+          data['level_estimate']!,
+          _levelEstimateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_levelEstimateMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+        _answeredAtMeta,
+        answeredAt.isAcceptableOrUnknown(data['answered_at']!, _answeredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MockResult map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MockResult(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      skill: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}skill'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
+      )!,
+      total: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total'],
+      )!,
+      levelEstimate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_estimate'],
+      )!,
+      answeredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MockResultsTable createAlias(String alias) {
+    return $MockResultsTable(attachedDatabase, alias);
+  }
+}
+
+class MockResult extends DataClass implements Insertable<MockResult> {
+  final int id;
+
+  /// 'reading', 'writing', or 'oral'.
+  final String skill;
+  final int score;
+  final int total;
+
+  /// Approximate, unofficial A/B/C estimate for this checkpoint.
+  final String levelEstimate;
+  final DateTime answeredAt;
+  const MockResult({
+    required this.id,
+    required this.skill,
+    required this.score,
+    required this.total,
+    required this.levelEstimate,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['skill'] = Variable<String>(skill);
+    map['score'] = Variable<int>(score);
+    map['total'] = Variable<int>(total);
+    map['level_estimate'] = Variable<String>(levelEstimate);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    return map;
+  }
+
+  MockResultsCompanion toCompanion(bool nullToAbsent) {
+    return MockResultsCompanion(
+      id: Value(id),
+      skill: Value(skill),
+      score: Value(score),
+      total: Value(total),
+      levelEstimate: Value(levelEstimate),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory MockResult.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MockResult(
+      id: serializer.fromJson<int>(json['id']),
+      skill: serializer.fromJson<String>(json['skill']),
+      score: serializer.fromJson<int>(json['score']),
+      total: serializer.fromJson<int>(json['total']),
+      levelEstimate: serializer.fromJson<String>(json['levelEstimate']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'skill': serializer.toJson<String>(skill),
+      'score': serializer.toJson<int>(score),
+      'total': serializer.toJson<int>(total),
+      'levelEstimate': serializer.toJson<String>(levelEstimate),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  MockResult copyWith({
+    int? id,
+    String? skill,
+    int? score,
+    int? total,
+    String? levelEstimate,
+    DateTime? answeredAt,
+  }) => MockResult(
+    id: id ?? this.id,
+    skill: skill ?? this.skill,
+    score: score ?? this.score,
+    total: total ?? this.total,
+    levelEstimate: levelEstimate ?? this.levelEstimate,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  MockResult copyWithCompanion(MockResultsCompanion data) {
+    return MockResult(
+      id: data.id.present ? data.id.value : this.id,
+      skill: data.skill.present ? data.skill.value : this.skill,
+      score: data.score.present ? data.score.value : this.score,
+      total: data.total.present ? data.total.value : this.total,
+      levelEstimate: data.levelEstimate.present
+          ? data.levelEstimate.value
+          : this.levelEstimate,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MockResult(')
+          ..write('id: $id, ')
+          ..write('skill: $skill, ')
+          ..write('score: $score, ')
+          ..write('total: $total, ')
+          ..write('levelEstimate: $levelEstimate, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, skill, score, total, levelEstimate, answeredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MockResult &&
+          other.id == this.id &&
+          other.skill == this.skill &&
+          other.score == this.score &&
+          other.total == this.total &&
+          other.levelEstimate == this.levelEstimate &&
+          other.answeredAt == this.answeredAt);
+}
+
+class MockResultsCompanion extends UpdateCompanion<MockResult> {
+  final Value<int> id;
+  final Value<String> skill;
+  final Value<int> score;
+  final Value<int> total;
+  final Value<String> levelEstimate;
+  final Value<DateTime> answeredAt;
+  const MockResultsCompanion({
+    this.id = const Value.absent(),
+    this.skill = const Value.absent(),
+    this.score = const Value.absent(),
+    this.total = const Value.absent(),
+    this.levelEstimate = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+  });
+  MockResultsCompanion.insert({
+    this.id = const Value.absent(),
+    required String skill,
+    required int score,
+    required int total,
+    required String levelEstimate,
+    required DateTime answeredAt,
+  }) : skill = Value(skill),
+       score = Value(score),
+       total = Value(total),
+       levelEstimate = Value(levelEstimate),
+       answeredAt = Value(answeredAt);
+  static Insertable<MockResult> custom({
+    Expression<int>? id,
+    Expression<String>? skill,
+    Expression<int>? score,
+    Expression<int>? total,
+    Expression<String>? levelEstimate,
+    Expression<DateTime>? answeredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (skill != null) 'skill': skill,
+      if (score != null) 'score': score,
+      if (total != null) 'total': total,
+      if (levelEstimate != null) 'level_estimate': levelEstimate,
+      if (answeredAt != null) 'answered_at': answeredAt,
+    });
+  }
+
+  MockResultsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? skill,
+    Value<int>? score,
+    Value<int>? total,
+    Value<String>? levelEstimate,
+    Value<DateTime>? answeredAt,
+  }) {
+    return MockResultsCompanion(
+      id: id ?? this.id,
+      skill: skill ?? this.skill,
+      score: score ?? this.score,
+      total: total ?? this.total,
+      levelEstimate: levelEstimate ?? this.levelEstimate,
+      answeredAt: answeredAt ?? this.answeredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (skill.present) {
+      map['skill'] = Variable<String>(skill.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
+    }
+    if (total.present) {
+      map['total'] = Variable<int>(total.value);
+    }
+    if (levelEstimate.present) {
+      map['level_estimate'] = Variable<String>(levelEstimate.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MockResultsCompanion(')
+          ..write('id: $id, ')
+          ..write('skill: $skill, ')
+          ..write('score: $score, ')
+          ..write('total: $total, ')
+          ..write('levelEstimate: $levelEstimate, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4363,6 +4768,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OralQuestionsTable oralQuestions = $OralQuestionsTable(this);
   late final $OralAttemptsTable oralAttempts = $OralAttemptsTable(this);
+  late final $MockResultsTable mockResults = $MockResultsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4380,6 +4786,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     writingAttempts,
     oralQuestions,
     oralAttempts,
+    mockResults,
   ];
 }
 
@@ -6786,6 +7193,223 @@ typedef $$OralAttemptsTableProcessedTableManager =
       OralAttempt,
       PrefetchHooks Function()
     >;
+typedef $$MockResultsTableCreateCompanionBuilder =
+    MockResultsCompanion Function({
+      Value<int> id,
+      required String skill,
+      required int score,
+      required int total,
+      required String levelEstimate,
+      required DateTime answeredAt,
+    });
+typedef $$MockResultsTableUpdateCompanionBuilder =
+    MockResultsCompanion Function({
+      Value<int> id,
+      Value<String> skill,
+      Value<int> score,
+      Value<int> total,
+      Value<String> levelEstimate,
+      Value<DateTime> answeredAt,
+    });
+
+class $$MockResultsTableFilterComposer
+    extends Composer<_$AppDatabase, $MockResultsTable> {
+  $$MockResultsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get levelEstimate => $composableBuilder(
+    column: $table.levelEstimate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MockResultsTableOrderingComposer
+    extends Composer<_$AppDatabase, $MockResultsTable> {
+  $$MockResultsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get levelEstimate => $composableBuilder(
+    column: $table.levelEstimate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MockResultsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MockResultsTable> {
+  $$MockResultsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get skill =>
+      $composableBuilder(column: $table.skill, builder: (column) => column);
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<int> get total =>
+      $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<String> get levelEstimate => $composableBuilder(
+    column: $table.levelEstimate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$MockResultsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MockResultsTable,
+          MockResult,
+          $$MockResultsTableFilterComposer,
+          $$MockResultsTableOrderingComposer,
+          $$MockResultsTableAnnotationComposer,
+          $$MockResultsTableCreateCompanionBuilder,
+          $$MockResultsTableUpdateCompanionBuilder,
+          (
+            MockResult,
+            BaseReferences<_$AppDatabase, $MockResultsTable, MockResult>,
+          ),
+          MockResult,
+          PrefetchHooks Function()
+        > {
+  $$MockResultsTableTableManager(_$AppDatabase db, $MockResultsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MockResultsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MockResultsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MockResultsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> skill = const Value.absent(),
+                Value<int> score = const Value.absent(),
+                Value<int> total = const Value.absent(),
+                Value<String> levelEstimate = const Value.absent(),
+                Value<DateTime> answeredAt = const Value.absent(),
+              }) => MockResultsCompanion(
+                id: id,
+                skill: skill,
+                score: score,
+                total: total,
+                levelEstimate: levelEstimate,
+                answeredAt: answeredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String skill,
+                required int score,
+                required int total,
+                required String levelEstimate,
+                required DateTime answeredAt,
+              }) => MockResultsCompanion.insert(
+                id: id,
+                skill: skill,
+                score: score,
+                total: total,
+                levelEstimate: levelEstimate,
+                answeredAt: answeredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MockResultsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MockResultsTable,
+      MockResult,
+      $$MockResultsTableFilterComposer,
+      $$MockResultsTableOrderingComposer,
+      $$MockResultsTableAnnotationComposer,
+      $$MockResultsTableCreateCompanionBuilder,
+      $$MockResultsTableUpdateCompanionBuilder,
+      (
+        MockResult,
+        BaseReferences<_$AppDatabase, $MockResultsTable, MockResult>,
+      ),
+      MockResult,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6814,4 +7438,6 @@ class $AppDatabaseManager {
       $$OralQuestionsTableTableManager(_db, _db.oralQuestions);
   $$OralAttemptsTableTableManager get oralAttempts =>
       $$OralAttemptsTableTableManager(_db, _db.oralAttempts);
+  $$MockResultsTableTableManager get mockResults =>
+      $$MockResultsTableTableManager(_db, _db.mockResults);
 }

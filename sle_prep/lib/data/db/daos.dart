@@ -329,6 +329,60 @@ extension AppDaos on AppDatabase {
             ..orderBy([(a) => OrderingTerm.desc(a.answeredAt)]))
           .get();
 
+  // ── Mock exams ────────────────────────────────────────────────────────────
+
+  Future<void> recordMockResult({
+    required String skill,
+    required int score,
+    required int total,
+    required String levelEstimate,
+    required DateTime at,
+  }) {
+    return into(mockResults)
+        .insert(
+          MockResultsCompanion.insert(
+            skill: skill,
+            score: score,
+            total: total,
+            levelEstimate: levelEstimate,
+            answeredAt: at,
+          ),
+        )
+        .then((_) {});
+  }
+
+  /// Newest result per skill.
+  Future<Map<String, MockResult>> latestMockPerSkill() async {
+    final rows = await (select(mockResults)
+          ..orderBy([(r) => OrderingTerm.asc(r.answeredAt)]))
+        .get();
+    return {for (final row in rows) row.skill: row};
+  }
+
+  /// Total study minutes logged across all sessions.
+  Future<int> totalActiveMinutes() async {
+    final sum = sessionLogs.minutesActive.sum();
+    final query = selectOnly(sessionLogs)..addColumns([sum]);
+    final row = await query.getSingle();
+    return row.read(sum) ?? 0;
+  }
+
+  /// Drill attempts recorded at or after [cutoff] (for scoring a timed mock).
+  Future<({int correct, int total})> drillStatsSince(DateTime cutoff) async {
+    final correct = drillAttempts.wasCorrect.cast<int>().sum();
+    final total = drillAttempts.id.count();
+    final query = selectOnly(drillAttempts)
+      ..addColumns([correct, total])
+      ..where(drillAttempts.answeredAt.isBiggerOrEqualValue(cutoff));
+    final row = await query.getSingle();
+    return (correct: row.read(correct) ?? 0, total: row.read(total) ?? 0);
+  }
+
+  Future<List<CurriculumWeek>> allCurriculumWeeks() =>
+      (select(curriculumWeeks)
+            ..orderBy([(w) => OrderingTerm.asc(w.weekNumber)]))
+          .get();
+
   // ── Oral ──────────────────────────────────────────────────────────────────
 
   Future<int> insertOralQuestion({
