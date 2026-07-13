@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/daos.dart';
+import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/llm_config.dart';
 import '../../providers.dart';
 
@@ -42,6 +43,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   final _apiKeyController = TextEditingController();
   late LlmProvider _provider;
   var _isSaving = false;
+  var _isTesting = false;
 
   @override
   void initState() {
@@ -59,20 +61,57 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     super.dispose();
   }
 
+  Future<void> _testConnection() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isTesting = true);
+    try {
+      // Persist the form first so the test exercises exactly what will be used.
+      await _persist();
+      final client = await ref.read(llmClientProvider.future);
+      await client.testConnection();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connexion réussie : le fournisseur IA répond.'),
+          ),
+        );
+      }
+    } on LlmException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Échec du test : $error')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Échec du test : $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
+    }
+  }
+
+  Future<void> _persist() async {
+    final database = ref.read(appDatabaseProvider);
+    await database.setSetting('llmProvider', _provider.name);
+    await database.setSetting('llmBaseUrl', _baseUrlController.text.trim());
+    await database.setSetting('llmModel', _modelController.text.trim());
+    if (_apiKeyController.text.trim().isNotEmpty) {
+      await ref
+          .read(secureStorageProvider)
+          .write(key: 'llmApiKey', value: _apiKeyController.text.trim());
+    }
+    ref.invalidate(llmConfigProvider);
+    ref.invalidate(llmClientProvider);
+  }
+
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isSaving = true);
     try {
-      final database = ref.read(appDatabaseProvider);
-      await database.setSetting('llmProvider', _provider.name);
-      await database.setSetting('llmBaseUrl', _baseUrlController.text.trim());
-      await database.setSetting('llmModel', _modelController.text.trim());
-      if (_apiKeyController.text.trim().isNotEmpty) {
-        await ref
-            .read(secureStorageProvider)
-            .write(key: 'llmApiKey', value: _apiKeyController.text.trim());
-      }
-      ref.invalidate(llmConfigProvider);
+      await _persist();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -171,9 +210,23 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         ),
         const SizedBox(height: 20),
         FilledButton.icon(
-          onPressed: _isSaving ? null : _save,
+          onPressed: _isSaving || _isTesting ? null : _save,
           icon: const Icon(Icons.save_outlined),
           label: Text(_isSaving ? 'Enregistrement…' : 'Enregistrer'),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _isSaving || _isTesting ? null : _testConnection,
+          icon: _isTesting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.wifi_tethering),
+          label: Text(
+            _isTesting ? 'Test en cours…' : 'Tester la connexion',
+          ),
         ),
         const SizedBox(height: 24),
         Card(
@@ -188,7 +241,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Le vocabulaire et la grammaire restent hors ligne. Une clé sera utilisée seulement pour les futures fonctions de génération et de rétroaction. Prévoyez un budget mensuel d’environ 15 \$ pour les fonctions texte; les simulations orales en temps réel sont distinctes.',
+                  'Le vocabulaire et la grammaire restent hors ligne. La clé sert à la génération d’exercices (onglet Réviser) et aux futures fonctions de rétroaction. Prévoyez un budget mensuel d’environ 15 \$ pour les fonctions texte; les simulations orales en temps réel sont distinctes.',
                 ),
               ],
             ),

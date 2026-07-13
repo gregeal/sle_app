@@ -6,6 +6,7 @@ import 'data/db/daos.dart';
 import 'data/db/database.dart';
 import 'data/seed/seed_loader.dart';
 import 'domain/session/session_composer.dart';
+import 'domain/llm/llm_client.dart';
 import 'domain/llm/llm_config.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -36,6 +37,14 @@ final llmConfigProvider = FutureProvider<LlmConfig>((ref) async {
     model: model,
     hasApiKey: hasApiKey,
   );
+});
+
+/// Ready-to-use client for the stored provider/key. Throws [LlmException]
+/// (surfaced as an AsyncError) when a required API key is missing.
+final llmClientProvider = FutureProvider<LlmClient>((ref) async {
+  final config = await ref.watch(llmConfigProvider.future);
+  final apiKey = await ref.watch(secureStorageProvider).read(key: 'llmApiKey');
+  return clientFor(config, apiKey: apiKey);
 });
 
 final seedImportProvider = FutureProvider<void>((ref) async {

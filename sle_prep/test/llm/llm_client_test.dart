@@ -1,0 +1,218 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:sle_prep/domain/llm/anthropic_client.dart';
+import 'package:sle_prep/domain/llm/llm_client.dart';
+import 'package:sle_prep/domain/llm/llm_config.dart';
+import 'package:sle_prep/domain/llm/openai_compatible_client.dart';
+
+void main() {
+  group('OpenAiCompatibleClient', () {
+    test('posts to chat/completions with auth header and parses the reply',
+        () async {
+      late http.Request captured;
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-test',
+        apiKey: 'sk-secret',
+        httpClient: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'role': 'assistant', 'content': 'Bonjour !'},
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final reply = await client.complete(
+        system: 'Tu es un évaluateur.',
+        user: 'Dis bonjour.',
+      );
+
+      expect(reply, 'Bonjour !');
+      expect(captured.url.toString(),
+          'https://api.openai.com/v1/chat/completions');
+      expect(captured.headers['Authorization'], 'Bearer sk-secret');
+
+      final body = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(body['model'], 'gpt-test');
+      final messages = (body['messages'] as List).cast<Map<String, dynamic>>();
+      expect(messages.first['role'], 'system');
+      expect(messages.last['role'], 'user');
+      expect(messages.last['content'], 'Dis bonjour.');
+    });
+
+    test('tolerates a base URL with a trailing slash', () async {
+      late Uri url;
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'http://192.168.0.10:11434/v1/',
+        model: 'llama',
+        apiKey: null,
+        httpClient: MockClient((request) async {
+          url = request.url;
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': 'ok'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      await client.complete(system: 's', user: 'u');
+      expect(url.toString(), 'http://192.168.0.10:11434/v1/chat/completions');
+    });
+
+    test('maps a 401 to an LlmException with the API message', () async {
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-test',
+        apiKey: 'bad-key',
+        httpClient: MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'error': {'message': 'Incorrect API key provided'},
+            }),
+            401,
+          );
+        }),
+      );
+
+      await expectLater(
+        client.complete(system: 's', user: 'u'),
+        throwsA(
+          isA<LlmException>()
+              .having((e) => e.statusCode, 'statusCode', 401)
+              .having((e) => e.message, 'message',
+                  contains('Incorrect API key')),
+        ),
+      );
+    });
+
+    test('maps malformed JSON to an LlmException', () async {
+      final client = OpenAiCompatibleClient(
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-test',
+        apiKey: 'sk',
+        httpClient: MockClient(
+            (request) async => http.Response('<html>gateway</html>', 200)),
+      );
+
+      await expectLater(
+        client.complete(system: 's', user: 'u'),
+        throwsA(isA<LlmException>()),
+      );
+    });
+  });
+
+  group('AnthropicClient', () {
+    test('posts to v1/messages with anthropic headers and parses the reply',
+        () async {
+      late http.Request captured;
+      final client = AnthropicClient(
+        baseUrl: 'https://api.anthropic.com',
+        model: 'claude-test',
+        apiKey: 'sk-ant',
+        httpClient: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'content': [
+                {'type': 'text', 'text': 'Bonjour !'},
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final reply = await client.complete(
+        system: 'Tu es un évaluateur.',
+        user: 'Dis bonjour.',
+      );
+
+      expect(reply, 'Bonjour !');
+      expect(captured.url.toString(), 'https://api.anthropic.com/v1/messages');
+      expect(captured.headers['x-api-key'], 'sk-ant');
+      expect(captured.headers['anthropic-version'], isNotEmpty);
+
+      final body = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(body['model'], 'claude-test');
+      expect(body['system'], 'Tu es un évaluateur.');
+      expect(body['max_tokens'], isA<int>());
+    });
+
+    test('maps API errors to LlmException', () async {
+      final client = AnthropicClient(
+        baseUrl: 'https://api.anthropic.com',
+        model: 'claude-test',
+        apiKey: 'sk-ant',
+        httpClient: MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'error': {'type': 'overloaded_error', 'message': 'Overloaded'},
+            }),
+            529,
+          );
+        }),
+      );
+
+      await expectLater(
+        client.complete(system: 's', user: 'u'),
+        throwsA(
+          isA<LlmException>()
+              .having((e) => e.statusCode, 'statusCode', 529)
+              .having((e) => e.message, 'message', contains('Overloaded')),
+        ),
+      );
+    });
+  });
+
+  group('clientFor', () {
+    LlmConfig config(LlmProvider provider) => LlmConfig(
+          provider: provider,
+          baseUrl: defaultBaseUrl(provider),
+          model: 'm',
+          hasApiKey: true,
+        );
+
+    test('selects the Anthropic client for the Anthropic provider', () {
+      expect(clientFor(config(LlmProvider.anthropic), apiKey: 'k'),
+          isA<AnthropicClient>());
+    });
+
+    test('selects the OpenAI-compatible client for the other providers', () {
+      for (final provider in [
+        LlmProvider.openAiCompatible,
+        LlmProvider.openRouter,
+        LlmProvider.ollama,
+        LlmProvider.custom,
+      ]) {
+        expect(clientFor(config(provider), apiKey: 'k'),
+            isA<OpenAiCompatibleClient>());
+      }
+    });
+
+    test('requires an API key except for Ollama', () {
+      expect(
+        () => clientFor(config(LlmProvider.openAiCompatible), apiKey: null),
+        throwsA(isA<LlmException>()),
+      );
+      expect(clientFor(config(LlmProvider.ollama), apiKey: null),
+          isA<OpenAiCompatibleClient>());
+    });
+  });
+}

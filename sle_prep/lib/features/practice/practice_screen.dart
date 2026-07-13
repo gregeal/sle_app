@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/daos.dart';
+import '../../domain/llm/drill_generator.dart';
+import '../../domain/llm/llm_client.dart';
 import '../../providers.dart';
 import '../drills/drill_screen.dart';
 import '../vocab/vocab_review_screen.dart';
@@ -51,11 +53,91 @@ class PracticeScreen extends ConsumerWidget {
                 ref.invalidate(progressSnapshotProvider);
               },
             ),
+            const SizedBox(height: 8),
+            _GenerateDrillsCard(topics: week.week.grammarTopicsList),
           ],
         ),
       ),
     );
   }
+}
+
+class _GenerateDrillsCard extends ConsumerStatefulWidget {
+  const _GenerateDrillsCard({required this.topics});
+
+  final List<String> topics;
+
+  @override
+  ConsumerState<_GenerateDrillsCard> createState() =>
+      _GenerateDrillsCardState();
+}
+
+class _GenerateDrillsCardState extends ConsumerState<_GenerateDrillsCard> {
+  var _isGenerating = false;
+
+  Future<void> _generate() async {
+    setState(() => _isGenerating = true);
+    try {
+      final client = await ref.read(llmClientProvider.future);
+      final inserted = await generateDrills(
+        db: ref.read(appDatabaseProvider),
+        client: client,
+        topics: widget.topics,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$inserted nouveaux exercices ajoutés pour cette semaine.',
+            ),
+          ),
+        );
+      }
+    } on LlmException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Génération impossible : $error')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Génération impossible : $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: ListTile(
+      contentPadding: const EdgeInsets.all(18),
+      leading: _isGenerating
+          ? const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            )
+          : const Icon(Icons.auto_awesome_outlined, size: 32),
+      title: Text(
+        _isGenerating
+            ? 'Génération en cours…'
+            : 'Générer plus d’exercices (IA)',
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      subtitle: const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Text(
+          '10 questions type ÉLS sur les sujets de la semaine · connexion requise',
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: _isGenerating ? null : _generate,
+    ),
+  );
 }
 
 class _PracticeCard extends StatelessWidget {
