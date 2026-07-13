@@ -72,6 +72,35 @@ flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"
 
 Run `flutter doctor` again. Android should show no blocking issue before you try to build the app.
 
+#### Fix: Android SDK Command-line Tools missing
+
+If `flutter doctor` reports either **`cmdline-tools component is missing`** or **`Android sdkmanager not found`**, Flutter can see the Android SDK but cannot accept licences or build Android apps yet.
+
+In Android Studio, open **More Actions → SDK Manager** (or **Tools → SDK Manager** when a project is open), then choose the **SDK Tools** tab. Select and apply these components:
+
+- **Android SDK Command-line Tools (latest)** — required
+- Android SDK Platform-Tools
+- Android SDK Build-Tools
+- Android Emulator — optional, for an emulator
+
+Wait until Android Studio finishes the installation. The following command should then return `True`:
+
+```powershell
+Test-Path "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat"
+```
+
+Configure Flutter with the SDK location from Android Studio. The usual Windows location is shown below; replace it only if SDK Manager shows a different path:
+
+```powershell
+flutter config --android-sdk "$env:LOCALAPPDATA\Android\Sdk"
+flutter doctor --android-licenses
+flutter doctor
+```
+
+Accept every licence prompt with `y`. Do **not** use `C:\Program Files\Android\Android Studio\jbr` as the Android SDK path: it is Android Studio's Java runtime, not the Android SDK.
+
+> **PowerShell tip:** If the prompt changes from `PS ...>` to `>>`, PowerShell is waiting for an unfinished command—usually a missing closing quote. Press `Ctrl+C`, then rerun the complete command above. Do not copy the `PS>` or `>>` prompt characters themselves.
+
 ### 3. Choose a device
 
 #### Physical Android phone
@@ -211,6 +240,7 @@ sle_prep/
 |---|---|
 | `flutter` is not recognized | Add `C:\dev\flutter\bin` to `Path`, open a new terminal, and run `flutter --version`. |
 | `flutter doctor` reports Android licences | Run `flutter doctor --android-licenses`, accept each licence, then rerun `flutter doctor`. |
+| `cmdline-tools component is missing` or `sdkmanager not found` | Install **Android SDK Command-line Tools (latest)** in Android Studio's **SDK Tools** tab, then rerun the three commands in [Fix: Android SDK Command-line Tools missing](#fix-android-sdk-command-line-tools-missing). |
 | Java version is too old | Run `flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`. |
 | No Android device is found | Start an emulator or reconnect an unlocked USB-debugging-enabled phone; check `adb devices`. |
 | `flutter pub get` fails | Confirm internet access, then run `flutter pub get` again from the `sle_prep` directory. |
