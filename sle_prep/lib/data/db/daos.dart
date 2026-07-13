@@ -14,8 +14,7 @@ class DueCard {
 }
 
 extension DrillItemJson on DrillItem {
-  List<String> get optionsList =>
-      (jsonDecode(options) as List).cast<String>();
+  List<String> get optionsList => (jsonDecode(options) as List).cast<String>();
 }
 
 extension CurriculumWeekJson on CurriculumWeek {
@@ -51,36 +50,39 @@ extension AppDaos on AppDatabase {
     required DateTime now,
   }) {
     return transaction(() async {
-      final id = await into(vocabCards).insert(VocabCardsCompanion.insert(
-        front: front,
-        back: back,
-        exampleFr: exampleFr,
-        domain: domain,
-      ));
-      await into(reviewStates).insert(ReviewStatesCompanion.insert(
-        cardId: Value(id),
-        dueDate: now,
-      ));
+      final id = await into(vocabCards).insert(
+        VocabCardsCompanion.insert(
+          front: front,
+          back: back,
+          exampleFr: exampleFr,
+          domain: domain,
+        ),
+      );
+      await into(
+        reviewStates,
+      ).insert(ReviewStatesCompanion.insert(cardId: Value(id), dueDate: now));
       return id;
     });
   }
 
   Future<ReviewState> reviewStateFor(int cardId) =>
-      (select(reviewStates)..where((s) => s.cardId.equals(cardId)))
-          .getSingle();
+      (select(reviewStates)..where((s) => s.cardId.equals(cardId))).getSingle();
 
   Future<List<DueCard>> dueCards(DateTime now, {int limit = 100}) async {
-    final query = (select(reviewStates)
-          ..where((s) => s.dueDate.isSmallerOrEqualValue(now))
-          ..orderBy([(s) => OrderingTerm.asc(s.dueDate)])
-          ..limit(limit))
-        .join([
-      innerJoin(vocabCards, vocabCards.id.equalsExp(reviewStates.cardId)),
-    ]);
+    final query =
+        (select(reviewStates)
+              ..where((s) => s.dueDate.isSmallerOrEqualValue(now))
+              ..orderBy([(s) => OrderingTerm.asc(s.dueDate)])
+              ..limit(limit))
+            .join([
+              innerJoin(
+                vocabCards,
+                vocabCards.id.equalsExp(reviewStates.cardId),
+              ),
+            ]);
     final rows = await query.get();
     return rows
-        .map((r) =>
-            DueCard(r.readTable(vocabCards), r.readTable(reviewStates)))
+        .map((r) => DueCard(r.readTable(vocabCards), r.readTable(reviewStates)))
         .toList();
   }
 
@@ -89,6 +91,19 @@ extension AppDaos on AppDatabase {
     final query = selectOnly(reviewStates)
       ..addColumns([countExp])
       ..where(reviewStates.dueDate.isSmallerOrEqualValue(now));
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
+  }
+
+  /// Number of cards that have been reviewed at least once.
+  Future<int> studiedCardCount() async {
+    final countExp = reviewStates.cardId.count();
+    final query = selectOnly(reviewStates)
+      ..addColumns([countExp])
+      ..where(
+        reviewStates.repetitions.isBiggerThanValue(0) |
+            reviewStates.lapses.isBiggerThanValue(0),
+      );
     final row = await query.getSingle();
     return row.read(countExp) ?? 0;
   }
@@ -102,13 +117,15 @@ extension AppDaos on AppDatabase {
     required DateTime dueDate,
   }) {
     return (update(reviewStates)..where((s) => s.cardId.equals(cardId)))
-        .write(ReviewStatesCompanion(
-      easeFactor: Value(easeFactor),
-      intervalDays: Value(intervalDays),
-      repetitions: Value(repetitions),
-      lapses: Value(lapses),
-      dueDate: Value(dueDate),
-    ))
+        .write(
+          ReviewStatesCompanion(
+            easeFactor: Value(easeFactor),
+            intervalDays: Value(intervalDays),
+            repetitions: Value(repetitions),
+            lapses: Value(lapses),
+            dueDate: Value(dueDate),
+          ),
+        )
         .then((_) {});
   }
 
@@ -122,32 +139,43 @@ extension AppDaos on AppDatabase {
     required String explanationFr,
     String source = 'seed',
   }) {
-    return into(drillItems).insert(DrillItemsCompanion.insert(
-      topic: topic,
-      prompt: prompt,
-      options: jsonEncode(options),
-      correctIndex: correctIndex,
-      explanationFr: explanationFr,
-      source: Value(source),
-    ));
+    return into(drillItems).insert(
+      DrillItemsCompanion.insert(
+        topic: topic,
+        prompt: prompt,
+        options: jsonEncode(options),
+        correctIndex: correctIndex,
+        explanationFr: explanationFr,
+        source: Value(source),
+      ),
+    );
   }
 
-  Future<List<DrillItem>> randomDrillItems(List<String> topics, int n,
-      {Random? random}) async {
-    final rows =
-        await (select(drillItems)..where((d) => d.topic.isIn(topics))).get();
+  Future<List<DrillItem>> randomDrillItems(
+    List<String> topics,
+    int n, {
+    Random? random,
+  }) async {
+    final rows = await (select(
+      drillItems,
+    )..where((d) => d.topic.isIn(topics))).get();
     rows.shuffle(random ?? Random());
     return rows.take(n).toList();
   }
 
-  Future<void> recordAttempt(int itemId,
-      {required bool wasCorrect, required DateTime at}) {
+  Future<void> recordAttempt(
+    int itemId, {
+    required bool wasCorrect,
+    required DateTime at,
+  }) {
     return into(drillAttempts)
-        .insert(DrillAttemptsCompanion.insert(
-          itemId: itemId,
-          wasCorrect: wasCorrect,
-          answeredAt: at,
-        ))
+        .insert(
+          DrillAttemptsCompanion.insert(
+            itemId: itemId,
+            wasCorrect: wasCorrect,
+            answeredAt: at,
+          ),
+        )
         .then((_) {});
   }
 
@@ -181,20 +209,22 @@ extension AppDaos on AppDatabase {
     required List<Map<String, dynamic>> resourceSlots,
   }) {
     return into(curriculumWeeks)
-        .insertOnConflictUpdate(CurriculumWeeksCompanion.insert(
-      weekNumber: Value(weekNumber),
-      themeFr: themeFr,
-      themeEn: themeEn,
-      grammarTopics: jsonEncode(grammarTopics),
-      vocabDomain: vocabDomain,
-      resourceSlots: jsonEncode(resourceSlots),
-    ))
+        .insertOnConflictUpdate(
+          CurriculumWeeksCompanion.insert(
+            weekNumber: Value(weekNumber),
+            themeFr: themeFr,
+            themeEn: themeEn,
+            grammarTopics: jsonEncode(grammarTopics),
+            vocabDomain: vocabDomain,
+            resourceSlots: jsonEncode(resourceSlots),
+          ),
+        )
         .then((_) {});
   }
 
-  Future<CurriculumWeek?> weekByNumber(int n) =>
-      (select(curriculumWeeks)..where((w) => w.weekNumber.equals(n)))
-          .getSingleOrNull();
+  Future<CurriculumWeek?> weekByNumber(int n) => (select(
+    curriculumWeeks,
+  )..where((w) => w.weekNumber.equals(n))).getSingleOrNull();
 
   // ── Session logs ──────────────────────────────────────────────────────────
 
@@ -205,18 +235,20 @@ extension AppDaos on AppDatabase {
     required int minutesActive,
   }) {
     return into(sessionLogs)
-        .insertOnConflictUpdate(SessionLogsCompanion.insert(
-      date: _dateKey(day),
-      blocksPlanned: jsonEncode(blocksPlanned),
-      blocksCompleted: jsonEncode(blocksCompleted),
-      minutesActive: Value(minutesActive),
-    ))
+        .insertOnConflictUpdate(
+          SessionLogsCompanion.insert(
+            date: _dateKey(day),
+            blocksPlanned: jsonEncode(blocksPlanned),
+            blocksCompleted: jsonEncode(blocksCompleted),
+            minutesActive: Value(minutesActive),
+          ),
+        )
         .then((_) {});
   }
 
-  Future<SessionLog?> sessionLogFor(DateTime day) =>
-      (select(sessionLogs)..where((l) => l.date.equals(_dateKey(day))))
-          .getSingleOrNull();
+  Future<SessionLog?> sessionLogFor(DateTime day) => (select(
+    sessionLogs,
+  )..where((l) => l.date.equals(_dateKey(day)))).getSingleOrNull();
 
   /// Consecutive days with at least one completed block, counting back from
   /// [today] (an inactive today does not break yesterday's streak).
@@ -242,15 +274,17 @@ extension AppDaos on AppDatabase {
   // ── Settings ──────────────────────────────────────────────────────────────
 
   Future<String?> getSetting(String key) async {
-    final row = await (select(appSettings)..where((s) => s.key.equals(key)))
-        .getSingleOrNull();
+    final row = await (select(
+      appSettings,
+    )..where((s) => s.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
   Future<void> setSetting(String key, String value) {
     return into(appSettings)
         .insertOnConflictUpdate(
-            AppSettingsCompanion.insert(key: key, value: value))
+          AppSettingsCompanion.insert(key: key, value: value),
+        )
         .then((_) {});
   }
 }

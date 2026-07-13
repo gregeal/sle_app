@@ -1,30 +1,63 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sle_prep/data/db/daos.dart';
+import 'package:sle_prep/features/vocab/vocab_review_screen.dart';
+import 'package:sle_prep/providers.dart';
 
-import 'package:sle_prep/main.dart';
+import 'support/test_db.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('grading advances to the next vocabulary card', (tester) async {
+    final db = inMemoryDatabase();
+    addTearDown(db.close);
+    final now = DateTime.now();
+    await db.insertCardWithState(
+      front: 'a deadline',
+      back: 'une échéance',
+      exampleFr: 'Il faut respecter cette échéance.',
+      domain: 'gestion_projet',
+      now: now,
+    );
+    await db.insertCardWithState(
+      front: 'a meeting',
+      back: 'une réunion',
+      exampleFr: 'La réunion commence à neuf heures.',
+      domain: 'reunions',
+      now: now,
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const MaterialApp(home: VocabReviewScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('a deadline'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('vocab-card')));
+    await tester.pumpAndSettle();
+    expect(find.text('une échéance'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.text('Bien'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('a meeting'), findsOneWidget);
+  });
+
+  testWidgets('an empty queue shows the review summary', (tester) async {
+    final db = inMemoryDatabase();
+    addTearDown(db.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(db)],
+        child: const MaterialApp(home: VocabReviewScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aucune carte à revoir'), findsOneWidget);
   });
 }
