@@ -6,6 +6,7 @@ import '../../domain/llm/drill_generator.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../providers.dart';
 import '../drills/drill_screen.dart';
+import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 
 class PracticeScreen extends ConsumerWidget {
@@ -50,6 +51,20 @@ class PracticeScreen extends ConsumerWidget {
                   ),
                 );
                 ref.invalidate(todayPlanProvider);
+                ref.invalidate(progressSnapshotProvider);
+              },
+            ),
+            _PracticeCard(
+              icon: Icons.menu_book_outlined,
+              title: 'Lecture chronométrée',
+              subtitle: 'Textes administratifs · QCM type ELS',
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ReadingListScreen(themeFr: week.week.themeFr),
+                  ),
+                );
                 ref.invalidate(progressSnapshotProvider);
               },
             ),
