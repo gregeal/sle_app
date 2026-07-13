@@ -154,13 +154,14 @@ Open app → today's session (pre-planned mix of activities totalling 60–90 mi
 | **P1 — Reading & writing** (~wks 5–8) | Reading practice (F4), writing MCQ drills + AI free-writing feedback (F5), content-generation pipeline hardening | Timed SLE-format reading set and corrected composition end-to-end |
 | **P2 — Oral coach** (~wks 9–14) | STT/TTS integration, daily one-question mode, full simulated OLA interview with 5-criteria feedback (F6) | 20-minute simulated interview producing level-referenced feedback |
 | **P3 — Checkpoints & dashboard** (~wks 15–18) | Monthly mock exams, level trajectory dashboard, plan re-weighting (F7) | First full mock-exam cycle informs an automatic plan adjustment |
+| **P4 — Web session** (planned) | Auth-gated Flutter Web deployment with an AI Broker backend (see §14 and [docs/plans/2026-07-13-p4-web-plan.md](docs/plans/2026-07-13-p4-web-plan.md)) | Sign-in-gated public URL with feature parity incl. Realtime interview; security checklist passed |
 
 Note the app's P0 ships in ~1 month so the 6-month study clock and the build overlap — the builder is also user #1, which doubles as continuous QA.
 
 ## 11. Out of Scope (v1)
 
 - iOS release, Play Store publication, monetization/subscriptions
-- User accounts, cloud sync, multi-user backend
+- User accounts, cloud sync, multi-user backend *(amended by P4, §14: a single-owner auth gate and a minimal AI Broker are introduced for the web session; study data remains local-first with no server-side sync)*
 - Human tutor marketplace or live conversation matching
 - Official level certification claims of any kind
 - Listening-specific test prep beyond Mauril integration (listening is assessed within the OLA, not as a separate SLE test)
@@ -182,3 +183,16 @@ Note the app's P0 ships in ~1 month so the 6-month study clock and the build ove
 - [GCcollab — Preparing for Federal Public Service second-language tests (PDF)](https://wiki.gccollab.ca/images/7/72/Parcours_Refaire_tests_EN.pdf)
 
 *Canada.ca pages could not be machine-fetched during drafting (bot-blocked); test-format numbers were cross-checked across the third-party sources above and should be re-verified manually on canada.ca before building the test simulators (§9).*
+
+## 14. P4 — Web session (planned)
+
+Extend the product to a **web session usable anywhere on the internet, gated by a permission** (sign-in against an owner-controlled allowlist), with feature parity including the Realtime voice interview.
+
+**Requirements**
+
+- Same Flutter codebase compiled for the web; study data stays **local-first** in the browser (SQLite WASM + OPFS) exactly as it stays on the phone — no server-side study database.
+- **No long-lived credentials in the browser.** A minimal backend ("AI Broker") holds the provider API key in a server-side secret store, authenticates the user (passkey/WebAuthn primary, OAuth fallback, email allowlist), proxies text AI calls, and mints short-TTL ephemeral secrets for Realtime voice sessions. The Android app's direct-to-provider model is unchanged.
+- **Abuse and cost containment**: per-user rate limits, hard daily/monthly spend caps, model allowlist, and an audit log enforced in the broker.
+- **Hardening**: TLS + HSTS, strict CSP, HttpOnly/SameSite cookies with CSRF protection, security-headers scan and an OWASP-style checklist as release gates.
+
+Full architecture (component and sequence diagrams), threat model, task breakdown, and verification plan: [docs/plans/2026-07-13-p4-web-plan.md](docs/plans/2026-07-13-p4-web-plan.md).
