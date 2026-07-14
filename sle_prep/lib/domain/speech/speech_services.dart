@@ -21,19 +21,35 @@ abstract class SpeechService {
 }
 
 class DeviceSpeechService implements SpeechService {
+  /// Android's SpeechRecognizer finalizes a few seconds after the first
+  /// pause regardless of the requested pauseFor, which used to truncate
+  /// answers mid-sentence. One [listen] call therefore chains recognition
+  /// segments: every time the engine stops on its own, the recognized words
+  /// are committed and a fresh segment starts, until [stop] is tapped or the
+  /// total cap elapses. Callers keep seeing one growing transcript.
+  static const _totalCap = Duration(minutes: 3);
+  static const _restartDelay = Duration(milliseconds: 250);
+
   final _speech = stt.SpeechToText();
   var _initialized = false;
+  var _sessionActive = false;
+  var _restartScheduled = false;
+  var _committed = '';
+  var _segmentWords = '';
+  final _sessionClock = Stopwatch();
+  void Function(String transcript)? _onResult;
   void Function()? _onDone;
-  var _didFinish = false;
 
   @override
   Future<bool> initialize() async {
     if (_initialized) return true;
     _initialized = await _speech.initialize(
       onStatus: (status) {
-        if (status == 'done' || status == 'notListening') _finishOnce();
+        if (status == 'done' || status == 'notListening') {
+          _handleEngineStop();
+        }
       },
-      onError: (_) => _finishOnce(),
+      onError: (_) => _handleEngineStop(),
     );
     return _initialized;
   }
@@ -43,40 +59,89 @@ class DeviceSpeechService implements SpeechService {
     required void Function(String transcript) onResult,
     required void Function() onDone,
   }) async {
+    _onResult = onResult;
     _onDone = onDone;
-    _didFinish = false;
+    _committed = '';
+    _segmentWords = '';
+    _sessionActive = true;
+    _restartScheduled = false;
+    _sessionClock
+      ..reset()
+      ..start();
+    await _startSegment();
+  }
+
+  Future<void> _startSegment() async {
+    _segmentWords = '';
     await _speech.listen(
       listenOptions: stt.SpeechListenOptions(
         localeId: 'fr_CA',
         partialResults: true,
         listenMode: stt.ListenMode.dictation,
         pauseFor: const Duration(seconds: 6),
-        listenFor: const Duration(minutes: 3),
+        listenFor: _totalCap,
       ),
       onResult: (result) {
-        onResult(result.recognizedWords);
-        if (result.finalResult) _finishOnce();
+        if (!_sessionActive) return;
+        _segmentWords = result.recognizedWords;
+        _onResult?.call(_join(_committed, _segmentWords));
+        if (result.finalResult) {
+          _committed = _join(_committed, _segmentWords);
+          _segmentWords = '';
+        }
       },
     );
   }
 
-  void _finishOnce() {
-    if (_didFinish || _onDone == null) return;
-    _didFinish = true;
+  void _handleEngineStop() {
+    if (!_sessionActive || _restartScheduled) return;
+    // Words from a segment that ended without a finalResult still count.
+    _committed = _join(_committed, _segmentWords);
+    _segmentWords = '';
+    if (_sessionClock.elapsed >= _totalCap) {
+      _finishSession();
+      return;
+    }
+    _restartScheduled = true;
+    Future<void>.delayed(_restartDelay, () async {
+      _restartScheduled = false;
+      if (!_sessionActive) return;
+      try {
+        await _startSegment();
+      } catch (_) {
+        _finishSession();
+      }
+    });
+  }
+
+  void _finishSession() {
+    if (!_sessionActive) return;
+    _sessionActive = false;
+    _sessionClock.stop();
     final callback = _onDone;
+    _onResult = null;
     _onDone = null;
     callback?.call();
   }
 
+  static String _join(String committed, String segment) {
+    final trimmed = segment.trim();
+    if (committed.isEmpty) return trimmed;
+    if (trimmed.isEmpty) return committed;
+    return '$committed $trimmed';
+  }
+
   @override
   Future<void> stop() {
+    _sessionActive = false;
+    _sessionClock.stop();
+    _onResult = null;
     _onDone = null;
-    _didFinish = true;
     return _speech.stop();
   }
 
   @override
-  bool get isListening => _speech.isListening;
+  bool get isListening => _sessionActive || _speech.isListening;
 }
 
 abstract class TtsService {

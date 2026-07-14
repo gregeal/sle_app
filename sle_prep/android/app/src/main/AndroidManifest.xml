@@ -2,6 +2,10 @@
     <!-- AI features (connection test, drill generation) call HTTPS APIs;
          release builds get no network access without this. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- WebRTC's NetworkMonitor reads connectivity state on session start;
+         without this normal (install-time) permission the platform throws a
+         SecurityException that libwebrtc escalates to a native abort. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- Oral coach: device speech recognition of the user's answers. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
