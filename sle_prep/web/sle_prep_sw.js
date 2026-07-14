@@ -62,7 +62,18 @@ const STATIC_DIRECTORIES = ["assets/", "canvaskit/", "font-fallback/", "icons/"]
 const scopedPath = (url) => {
   const scopePath = new URL(self.registration.scope).pathname;
   if (!url.pathname.startsWith(scopePath)) return null;
-  return url.pathname.slice(scopePath.length);
+  // URL.pathname keeps %2F and friends encoded, but the server routes on the
+  // DECODED path, so the api/auth exclusion must compare decoded text too
+  // (e.g. /api%2Fauth%2Fsession must not slip past isPrivateRoute). Paths
+  // that fail to decode or hide separators are never handled by the worker.
+  let decoded;
+  try {
+    decoded = decodeURIComponent(url.pathname.slice(scopePath.length));
+  } catch (_) {
+    return null;
+  }
+  if (decoded.includes("\\")) return null;
+  return decoded;
 };
 
 const isPrivateRoute = (path) => (
@@ -127,7 +138,16 @@ const networkFirstNavigation = async (request) => {
   const cache = await caches.open(CACHE_VERSION);
   try {
     const response = await fetchWithTimeout(request);
-    if (response.ok && response.type === "basic") {
+    // Only an actual HTML document may become the cached shell. Without the
+    // content-type gate, a top-level navigation to any same-origin file
+    // (/version.json, /favicon.png, …) would overwrite ./index.html and
+    // white-screen every later offline launch.
+    const contentType = response.headers.get("content-type") || "";
+    if (
+      response.ok &&
+      response.type === "basic" &&
+      contentType.toLowerCase().includes("text/html")
+    ) {
       await cache.put("./index.html", response.clone());
     }
     if (response.status >= 500) {
