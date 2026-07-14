@@ -115,7 +115,34 @@ class OpenAiRealtimeApi {
         'OpenAI n’a pas retourné de réponse WebRTC valide.',
       );
     }
-    return answer;
+    // A well-formed SDP answer always starts with the version line. Anything
+    // else would make setRemoteDescription fail later with an opaque native
+    // "SessionDescription is NULL" — classify it here instead.
+    if (answer.startsWith('v=')) return answer;
+    try {
+      final decoded = jsonDecode(answer);
+      if (decoded is Map<String, dynamic>) {
+        final sdp = decoded['sdp'];
+        if (sdp is String && sdp.trimLeft().startsWith('v=')) {
+          return sdp;
+        }
+        final error = decoded['error'];
+        final message = error is Map ? error['message'] : null;
+        if (message is String && message.isNotEmpty) {
+          throw RealtimeVoiceException(message,
+              statusCode: response.statusCode);
+        }
+      }
+    } on FormatException {
+      // Not JSON either; fall through to the diagnostic below.
+    }
+    final head =
+        answer.substring(0, answer.length < 120 ? answer.length : 120);
+    throw RealtimeVoiceException(
+      'OpenAI a retourné autre chose qu’une réponse SDP '
+      '(${response.headers['content-type'] ?? 'type inconnu'}) : $head',
+      statusCode: response.statusCode,
+    );
   }
 
   Uri _endpoint(String suffix) {
@@ -129,9 +156,14 @@ class OpenAiRealtimeApi {
     required String body,
   }) async {
     try {
-      return await _http
-          .post(uri, headers: headers, body: body)
-          .timeout(timeout);
+      // Build the request manually: http.post rewrites the content type to
+      // append "; charset=utf-8", and the SDP exchange must send exactly
+      // "application/sdp".
+      final request = http.Request('POST', uri);
+      request.headers.addAll(headers);
+      request.bodyBytes = utf8.encode(body);
+      final streamed = await _http.send(request).timeout(timeout);
+      return await http.Response.fromStream(streamed).timeout(timeout);
     } on TimeoutException {
       throw const RealtimeVoiceException(
         'OpenAI n’a pas répondu à temps. Réessayez.',
