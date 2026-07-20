@@ -27,8 +27,8 @@ RUN flutter build web --no-pub --release --no-web-resources-cdn --no-wasm-dry-ru
     && dart run tool/finalize_pwa.dart build/web \
     && dart run tool/validate_pwa.dart build/web
 
-FROM ghcr.io/astral-sh/uv:0.9.4 AS uv
-FROM python:3.12.12-slim AS runtime
+FROM ghcr.io/astral-sh/uv:0.11.29 AS uv
+FROM python:3.14.6-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
