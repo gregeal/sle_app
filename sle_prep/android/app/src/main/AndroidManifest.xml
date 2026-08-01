@@ -6,6 +6,7 @@
          without this normal (install-time) permission the platform throws a
          SecurityException that libwebrtc escalates to a native abort. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
     <!-- Oral coach: device speech recognition of the user's answers. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>

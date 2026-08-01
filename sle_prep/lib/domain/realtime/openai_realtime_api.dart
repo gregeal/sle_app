@@ -109,8 +109,9 @@ class OpenAiRealtimeApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw _responseError(response, _decode(response));
     }
-    final answer = utf8.decode(response.bodyBytes).trim();
-    if (answer.isEmpty) {
+    final rawAnswer = utf8.decode(response.bodyBytes);
+    final answerForInspection = rawAnswer.trim();
+    if (answerForInspection.isEmpty) {
       throw const RealtimeVoiceException(
         'OpenAI n’a pas retourné de réponse WebRTC valide.',
       );
@@ -118,31 +119,46 @@ class OpenAiRealtimeApi {
     // A well-formed SDP answer always starts with the version line. Anything
     // else would make setRemoteDescription fail later with an opaque native
     // "SessionDescription is NULL" — classify it here instead.
-    if (answer.startsWith('v=')) return answer;
+    if (rawAnswer.startsWith('v=')) return _newlineTerminated(rawAnswer);
     try {
-      final decoded = jsonDecode(answer);
+      final decoded = jsonDecode(answerForInspection);
       if (decoded is Map<String, dynamic>) {
         final sdp = decoded['sdp'];
         if (sdp is String && sdp.trimLeft().startsWith('v=')) {
-          return sdp;
+          return _newlineTerminated(sdp.trimLeft());
         }
         final error = decoded['error'];
         final message = error is Map ? error['message'] : null;
         if (message is String && message.isNotEmpty) {
-          throw RealtimeVoiceException(message,
-              statusCode: response.statusCode);
+          throw RealtimeVoiceException(
+            message,
+            statusCode: response.statusCode,
+          );
         }
       }
     } on FormatException {
       // Not JSON either; fall through to the diagnostic below.
     }
-    final head =
-        answer.substring(0, answer.length < 120 ? answer.length : 120);
+    final head = answerForInspection.substring(
+      0,
+      answerForInspection.length < 120 ? answerForInspection.length : 120,
+    );
     throw RealtimeVoiceException(
       'OpenAI a retourné autre chose qu’une réponse SDP '
       '(${response.headers['content-type'] ?? 'type inconnu'}) : $head',
       statusCode: response.statusCode,
     );
+  }
+
+  /// libwebrtc's SDP parser rejects a description whose final line is not
+  /// newline-terminated ("Invalid SDP line" on the last attribute), which
+  /// Android surfaces as "SessionDescription is NULL." Trimming the HTTP
+  /// body strips that terminator, so restore it before handing the answer
+  /// to the peer connection.
+  static String _newlineTerminated(String sdp) {
+    if (sdp.endsWith('\n')) return sdp;
+    if (sdp.endsWith('\r')) return '$sdp\n';
+    return '$sdp\r\n';
   }
 
   Uri _endpoint(String suffix) {

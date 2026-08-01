@@ -342,7 +342,7 @@ void main() {
         offerSdp: 'v=0\r\na=offer',
       );
 
-      expect(answer, 'v=0\r\na=answer');
+      expect(answer, 'v=0\r\na=answer\r\n');
       expect(
         captured.url.toString(),
         'https://api.openai.com/v1/realtime/calls',
@@ -350,6 +350,74 @@ void main() {
       expect(captured.headers['authorization'], 'Bearer ek_short_lived');
       expect(captured.headers['content-type'], 'application/sdp');
       expect(captured.body, 'v=0\r\na=offer');
+    });
+
+    test('answer SDP preserves or restores its final line break', () async {
+      // libwebrtc rejects an SDP whose final line lacks a newline
+      // ("Invalid SDP line" on the last attribute), which surfaces on
+      // Android as the opaque "SessionDescription is NULL." Trimming the
+      // HTTP body must therefore never strip the final terminator.
+      const cases = {
+        'v=0\r\na=ice-pwd:x': 'v=0\r\na=ice-pwd:x\r\n',
+        'v=0\r\na=ice-pwd:x\r\n': 'v=0\r\na=ice-pwd:x\r\n',
+        'v=0\na=ice-pwd:x\n': 'v=0\na=ice-pwd:x\n',
+        'v=0\r\na=ice-pwd:x\r': 'v=0\r\na=ice-pwd:x\r\n',
+      };
+      for (final entry in cases.entries) {
+        final api = OpenAiRealtimeApi(
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: 'sk',
+          httpClient: MockClient(
+            (request) async => http.Response(entry.key, 201),
+          ),
+        );
+        final answer = await api.exchangeSdp(
+          clientSecret: 'ek',
+          offerSdp: 'v=0\r\n',
+        );
+        expect(answer, entry.value);
+      }
+    });
+
+    test('repairs an SDP answer wrapped in JSON', () async {
+      final api = OpenAiRealtimeApi(
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'sk',
+        httpClient: MockClient(
+          (_) async =>
+              http.Response(jsonEncode({'sdp': 'v=0\r\na=ice-pwd:x'}), 201),
+        ),
+      );
+
+      expect(
+        await api.exchangeSdp(clientSecret: 'ek', offerSdp: 'v=0\r\n'),
+        'v=0\r\na=ice-pwd:x\r\n',
+      );
+    });
+
+    test('rejects a non-SDP success response before native WebRTC', () async {
+      final api = OpenAiRealtimeApi(
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'sk',
+        httpClient: MockClient(
+          (_) async => http.Response(
+            '<html>not an SDP answer</html>',
+            201,
+            headers: {'content-type': 'text/html'},
+          ),
+        ),
+      );
+
+      expect(
+        () => api.exchangeSdp(clientSecret: 'ek', offerSdp: 'v=0\r\n'),
+        throwsA(
+          isA<RealtimeVoiceException>().having(
+            (error) => error.message,
+            'message',
+            contains('autre chose qu’une réponse SDP'),
+          ),
+        ),
+      );
     });
 
     test('converts API failures to a safe typed exception', () async {

@@ -153,9 +153,19 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         offerSdp: offerSdp,
       );
       _ensureOpen();
-      await peer.setRemoteDescription(
-        RTCSessionDescription(answerSdp, 'answer'),
-      );
+      try {
+        await peer.setRemoteDescription(
+          RTCSessionDescription(answerSdp, 'answer'),
+        );
+      } catch (_) {
+        // Native libwebrtc errors are implementation details and can include
+        // opaque parser messages. Keep the learner-facing failure stable and
+        // never expose the SDP answer or short-lived credential.
+        throw const RealtimeVoiceException(
+          'La réponse audio WebRTC reçue n’a pas pu être validée. '
+          'Vérifiez le réseau puis réessayez.',
+        );
+      }
       _ensureOpen();
       await _channelReady!.future.timeout(
         const Duration(seconds: 20),
