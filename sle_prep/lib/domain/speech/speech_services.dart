@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -9,7 +11,8 @@ abstract class SpeechService {
 
   /// Starts listening in Canadian French; [onResult] receives the running
   /// transcript (partial results included), [onDone] fires when the engine
-  /// stops on its own (silence timeout).
+  /// stops because of an unrecoverable recognition error. Ordinary silence
+  /// must not finish the learner's answer.
   Future<void> listen({
     required void Function(String transcript) onResult,
     required void Function() onDone,
@@ -20,36 +23,94 @@ abstract class SpeechService {
   bool get isListening;
 }
 
-class DeviceSpeechService implements SpeechService {
-  /// Android's SpeechRecognizer finalizes a few seconds after the first
-  /// pause regardless of the requested pauseFor, which used to truncate
-  /// answers mid-sentence. One [listen] call therefore chains recognition
-  /// segments: every time the engine stops on its own, the recognized words
-  /// are committed and a fresh segment starts, until [stop] is tapped or the
-  /// total cap elapses. Callers keep seeing one growing transcript.
-  static const _totalCap = Duration(minutes: 3);
-  static const _restartDelay = Duration(milliseconds: 250);
+/// Separate platform callbacks from session orchestration for regression tests.
+abstract class SpeechEngine {
+  Future<bool> initialize({
+    required void Function(String) onStatus,
+    required void Function(String, bool) onError,
+  });
+  Future<void> listen(void Function(String, bool) onResult);
+  Future<void> stop();
+}
 
+class _DeviceSpeechEngine implements SpeechEngine {
   final _speech = stt.SpeechToText();
+  @override
+  Future<bool> initialize({
+    required void Function(String) onStatus,
+    required void Function(String, bool) onError,
+  }) => _speech.initialize(
+    onStatus: onStatus,
+    onError: (error) => onError(error.errorMsg, error.permanent),
+  );
+
+  @override
+  Future<void> listen(void Function(String, bool) onResult) => _speech.listen(
+    listenOptions: stt.SpeechListenOptions(
+      localeId: 'fr_CA',
+      partialResults: true,
+      listenMode: stt.ListenMode.dictation,
+      pauseFor: const Duration(seconds: 6),
+      listenFor: const Duration(minutes: 1),
+      cancelOnError: false,
+    ),
+    onResult: (result) => onResult(result.recognizedWords, result.finalResult),
+  );
+
+  @override
+  Future<void> stop() => _speech.stop();
+}
+
+class DeviceSpeechService implements SpeechService {
+  DeviceSpeechService({SpeechEngine? engine})
+    : _engine = engine ?? _DeviceSpeechEngine();
+
+  final SpeechEngine _engine;
   var _initialized = false;
   var _sessionActive = false;
-  var _restartScheduled = false;
+  var _generation = 0;
+  var _segment = 0;
+  var _errors = 0;
+  Timer? _restart;
+  Timer? _drainWatchdog;
+  Future<void>? _starting;
+  Future<void>? _stopping;
+  Completer<void>? _finalized;
   var _committed = '';
   var _segmentWords = '';
-  final _sessionClock = Stopwatch();
   void Function(String transcript)? _onResult;
   void Function()? _onDone;
 
   @override
   Future<bool> initialize() async {
     if (_initialized) return true;
-    _initialized = await _speech.initialize(
+    _initialized = await _engine.initialize(
       onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          _handleEngineStop();
+        // notListening means the microphone closed, NOT that the final text
+        // arrived. Restarting there discards late corrections and duplicates
+        // partial words. The plugin emits done after final results are drained.
+        if (status == 'done') {
+          _drainWatchdog?.cancel();
+          final finalized = _finalized;
+          if (finalized != null && !finalized.isCompleted) finalized.complete();
+          _scheduleRestart();
+        } else if (status == 'notListening' && _sessionActive) {
+          _drainWatchdog?.cancel();
+          // OEM/browser engines occasionally omit done. Preserve the partial
+          // text and recover only after allowing the usual final-result grace.
+          _drainWatchdog = Timer(const Duration(seconds: 2), _scheduleRestart);
         }
       },
-      onError: (_) => _handleEngineStop(),
+      onError: (code, permanent) {
+        if (!_sessionActive) return;
+        if (code == 'error_no_match' || code == 'error_speech_timeout') {
+          _scheduleRestart();
+        } else if (permanent || ++_errors >= 3) {
+          unawaited(_finishAfterError());
+        } else {
+          _scheduleRestart();
+        }
+      },
     );
     return _initialized;
   }
@@ -59,68 +120,68 @@ class DeviceSpeechService implements SpeechService {
     required void Function(String transcript) onResult,
     required void Function() onDone,
   }) async {
+    final stopping = _stopping;
+    if (stopping != null) await stopping;
+    if (_sessionActive) return;
+    final generation = ++_generation;
     _onResult = onResult;
     _onDone = onDone;
     _committed = '';
     _segmentWords = '';
     _sessionActive = true;
-    _restartScheduled = false;
-    _sessionClock
-      ..reset()
-      ..start();
-    await _startSegment();
+    _errors = 0;
+    try {
+      await _startSegment(generation);
+    } catch (_) {
+      await stop();
+      rethrow;
+    }
   }
 
-  Future<void> _startSegment() async {
-    _segmentWords = '';
-    await _speech.listen(
-      listenOptions: stt.SpeechListenOptions(
-        localeId: 'fr_CA',
-        partialResults: true,
-        listenMode: stt.ListenMode.dictation,
-        pauseFor: const Duration(seconds: 6),
-        listenFor: _totalCap,
-      ),
-      onResult: (result) {
-        if (!_sessionActive) return;
-        _segmentWords = result.recognizedWords;
-        _onResult?.call(_join(_committed, _segmentWords));
-        if (result.finalResult) {
-          _committed = _join(_committed, _segmentWords);
-          _segmentWords = '';
-        }
-      },
-    );
-  }
-
-  void _handleEngineStop() {
-    if (!_sessionActive || _restartScheduled) return;
-    // Words from a segment that ended without a finalResult still count.
+  Future<void> _startSegment(int generation) async {
+    if (!_sessionActive || generation != _generation) return;
+    _drainWatchdog?.cancel();
+    _drainWatchdog = null;
     _committed = _join(_committed, _segmentWords);
     _segmentWords = '';
-    if (_sessionClock.elapsed >= _totalCap) {
-      _finishSession();
-      return;
+    final segment = ++_segment;
+    _finalized = Completer<void>();
+    final starting = _engine.listen((words, isFinal) {
+      if (generation != _generation || segment != _segment) return;
+      _segmentWords = words;
+      if (words.isNotEmpty) _errors = 0;
+      _onResult?.call(_join(_committed, _segmentWords));
+    });
+    _starting = starting;
+    try {
+      await starting;
+    } finally {
+      if (identical(_starting, starting)) _starting = null;
     }
-    _restartScheduled = true;
-    Future<void>.delayed(_restartDelay, () async {
-      _restartScheduled = false;
-      if (!_sessionActive) return;
+  }
+
+  void _scheduleRestart() {
+    if (!_sessionActive || _restart != null) return;
+    final generation = _generation;
+    _restart = Timer(const Duration(milliseconds: 350), () async {
+      _restart = null;
       try {
-        await _startSegment();
+        await _starting;
+        await _startSegment(generation);
       } catch (_) {
-        _finishSession();
+        if (generation == _generation) await _finishAfterError();
       }
     });
   }
 
-  void _finishSession() {
+  Future<void> _finishAfterError() async {
     if (!_sessionActive) return;
-    _sessionActive = false;
-    _sessionClock.stop();
     final callback = _onDone;
-    _onResult = null;
-    _onDone = null;
+    try {
+      await stop();
+    } catch (_) {
+      // Preserve the transcript and allow a deliberate user retry.
+    }
     callback?.call();
   }
 
@@ -133,15 +194,38 @@ class DeviceSpeechService implements SpeechService {
 
   @override
   Future<void> stop() {
+    final stopping = _stopping;
+    if (stopping != null) return stopping;
     _sessionActive = false;
-    _sessionClock.stop();
-    _onResult = null;
-    _onDone = null;
-    return _speech.stop();
+    _drainWatchdog?.cancel();
+    _restart?.cancel();
+    _restart = null;
+    return _stopping = _stop().whenComplete(() => _stopping = null);
+  }
+
+  Future<void> _stop() async {
+    try {
+      try {
+        await _starting;
+      } catch (_) {
+        // A failed start can still have opened native microphone resources.
+      }
+      await _engine.stop();
+      // The stop future only confirms the native call, not final recognition.
+      await _finalized?.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
+    } finally {
+      ++_generation;
+      _onResult = null;
+      _onDone = null;
+      _finalized = null;
+    }
   }
 
   @override
-  bool get isListening => _sessionActive || _speech.isListening;
+  bool get isListening => _sessionActive;
 }
 
 abstract class TtsService {

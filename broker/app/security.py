@@ -47,7 +47,9 @@ def require_session(request: Request) -> Session:
 def require_csrf(request: Request) -> Session:
     session = require_session(request)
     supplied = request.headers.get("x-csrf-token", "")
-    if not supplied or not secrets.compare_digest(supplied, session.csrf_token):
+    if not supplied or not secrets.compare_digest(
+        supplied.encode("utf-8"), session.csrf_token.encode("utf-8")
+    ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Jeton CSRF invalide.")
     return session
 
@@ -110,8 +112,17 @@ class MinuteRateLimiter:
         with self._lock:
             events = self._events.get(identity)
             if events is None:
-                while len(self._events) >= self.max_identities:
-                    self._events.popitem(last=False)
+                if len(self._events) >= self.max_identities:
+                    # Never evict a live budget: identity churn would allow an
+                    # attacker to reset another identity's rate-limit window.
+                    expired = [
+                        key for key, history in self._events.items()
+                        if not history or history[-1] <= cutoff
+                    ]
+                    for key in expired:
+                        del self._events[key]
+                if len(self._events) >= self.max_identities:
+                    raise HTTPException(status_code=429, detail=self.detail)
                 events = deque()
                 self._events[identity] = events
             else:

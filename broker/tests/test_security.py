@@ -3,6 +3,7 @@ import sqlite3
 
 import pytest
 from conftest import chat_body
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -24,6 +25,18 @@ def test_mutating_routes_require_csrf(client: TestClient) -> None:
     assert login.status_code == 200
     assert client.post("/api/chat", json=chat_body()).status_code == 403
     assert client.post("/api/auth/logout").status_code == 403
+
+
+def test_non_ascii_csrf_is_rejected_without_server_error(authenticated) -> None:
+    client, _ = authenticated
+    response = client.post("/api/auth/logout", headers={"x-csrf-token": b"\xff"})
+    assert response.status_code == 403
+
+
+def test_non_ascii_oauth_state_is_rejected_without_server_error(client) -> None:
+    client.cookies.set("sle_oauth_state", "expected")
+    response = client.get("/auth/google/callback", params={"code": "unused", "state": "é"})
+    assert response.status_code == 400
 
 
 def test_allowlist_blocks_unknown_accounts(client: TestClient) -> None:
@@ -126,9 +139,28 @@ def test_user_identifier_is_stable_private_and_distinct(settings: Settings) -> N
 
 def test_rate_limiter_identity_storage_is_bounded() -> None:
     limiter = MinuteRateLimiter(10, max_identities=100)
-    for index in range(10_000):
+    for index in range(100):
         limiter.check(f"attacker-{index}@example.com")
+    with pytest.raises(HTTPException) as error:
+        limiter.check("overflow@example.com")
+    assert error.value.status_code == 429
     assert limiter.identity_count == 100
+
+
+def test_identity_churn_cannot_reset_live_rate_limit(monkeypatch) -> None:
+    now = 100.0
+    monkeypatch.setattr("app.security.time.monotonic", lambda: now)
+    limiter = MinuteRateLimiter(1, max_identities=2)
+    limiter.check("original")
+    limiter.check("churn")
+    with pytest.raises(HTTPException):
+        limiter.check("overflow")
+    with pytest.raises(HTTPException):
+        limiter.check("original")
+    now += 61
+    limiter.check("overflow")
+    limiter.check("original")
+    assert limiter.identity_count == 2
 
 
 def test_readiness_reports_storage_failure(client: TestClient, monkeypatch) -> None:

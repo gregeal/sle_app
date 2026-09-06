@@ -26,7 +26,8 @@ bool shouldTerminateRealtimeInterview(RealtimeVoiceEvent event) =>
     event is RealtimeErrorEvent && event.isFatal;
 
 class _RealtimeInterviewScreenState
-    extends ConsumerState<RealtimeInterviewScreen> {
+    extends ConsumerState<RealtimeInterviewScreen>
+    with WidgetsBindingObserver {
   final _transcript = RealtimeTranscriptBuffer();
   RealtimeVoiceSession? _session;
   StreamSubscription<RealtimeVoiceEvent>? _subscription;
@@ -39,9 +40,34 @@ class _RealtimeInterviewScreenState
   var _muted = false;
   var _finishing = false;
   var _assessmentFailed = false;
+  var _answering = false;
+  var _sendingAnswer = false;
+  var _backgrounded = false;
+  var _needsAnswerRetry = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _backgrounded =
+        state == AppLifecycleState.paused || state == AppLifecycleState.hidden;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      final session = _session;
+      if (session != null) {
+        unawaited(session.setMuted(true).catchError((Object _) {}));
+        if (mounted) setState(() => _muted = true);
+      }
+    }
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _maximumDurationTimer?.cancel();
     _maximumDurationTimer = null;
     final subscription = _subscription;
@@ -61,12 +87,15 @@ class _RealtimeInterviewScreenState
       _error = null;
       _activity = RealtimeVoiceActivity.connecting;
       _feedback = null;
-      _muted = false;
+      _muted = true;
+      _answering = false;
+      _needsAnswerRetry = false;
       _finishing = false;
       _assessmentFailed = false;
     });
     try {
       final config = await ref.read(llmConfigProvider.future);
+      if (!mounted) return;
       final gateway = ref.read(aiGatewayProvider);
 
       final session = OpenAiRealtimeVoiceSession(
@@ -84,8 +113,8 @@ class _RealtimeInterviewScreenState
       await session.connect();
       if (_session != session) return;
       _maximumDurationTimer = Timer(const Duration(minutes: 20), () {
-        if (mounted && _session == session && !_finishing) {
-          unawaited(_finish());
+        if (mounted && _session == session) {
+          unawaited(_finishAtLimit());
         }
       });
     } catch (error) {
@@ -175,26 +204,111 @@ class _RealtimeInterviewScreenState
     final session = _session;
     if (session == null) return;
     final muted = !_muted;
-    await session.setMuted(muted);
-    if (mounted) setState(() => _muted = muted);
+    try {
+      await session.setMuted(muted);
+      if (mounted) setState(() => _muted = muted);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = const RealtimeVoiceException(
+            'Impossible de modifier le microphone. Réessayez.',
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleAnswer() async {
+    final session = _session;
+    if (session == null || _sendingAnswer || _finishing || _backgrounded) {
+      return;
+    }
+    setState(() => _sendingAnswer = true);
+    try {
+      if (_answering) {
+        await session.submitAnswer();
+        _needsAnswerRetry = false;
+        if (mounted) {
+          setState(() {
+            _answering = false;
+            _muted = true;
+            _activity = RealtimeVoiceActivity.thinking;
+          });
+        }
+      } else {
+        await session.startAnswer();
+        if (_backgrounded || !mounted) await session.setMuted(true);
+        if (mounted) {
+          setState(() {
+            _answering = true;
+            _muted = _backgrounded;
+            _activity = RealtimeVoiceActivity.userSpeaking;
+          });
+        }
+      }
+    } catch (_) {
+      _needsAnswerRetry = true;
+      try {
+        await session.setMuted(true);
+      } catch (_) {
+        // A disconnected peer may already have released its tracks.
+      }
+      if (mounted) {
+        setState(() {
+          _answering = false;
+          _muted = true;
+          _activity = RealtimeVoiceActivity.listening;
+          _error = const RealtimeVoiceException(
+            'La réponse audio n’a pas été confirmée. Reprenez le microphone.',
+          );
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _sendingAnswer = false);
+    }
   }
 
   Future<void> _finish() async {
-    if (_finishing) return;
+    if (_finishing || _sendingAnswer) return;
+    if (_needsAnswerRetry && !_answering) {
+      setState(
+        () => _error = const RealtimeVoiceException(
+          'Reprenez puis envoyez votre dernière réponse avant l’analyse.',
+        ),
+      );
+      return;
+    }
     final session = _session;
     if (session == null) return;
-    _maximumDurationTimer?.cancel();
-    _maximumDurationTimer = null;
     setState(() {
       _finishing = true;
       _error = null;
       _assessmentFailed = false;
     });
     try {
+      if (_answering) {
+        await session.submitAnswer(requestResponse: false);
+        _answering = false;
+        _needsAnswerRetry = false;
+      }
       await session.setMuted(true);
       if (mounted) setState(() => _muted = true);
     } catch (_) {
-      // Muting is helpful but teardown must continue if the track disappeared.
+      _needsAnswerRetry = true;
+      _answering = false;
+      // Do not silently assess an earlier transcript when the final answer
+      // could not be committed. Keep the session available for an explicit retry.
+      if (mounted) {
+        setState(() {
+          _finishing = false;
+          _muted = true;
+          _activity = RealtimeVoiceActivity.listening;
+          _error = const RealtimeVoiceException(
+            'La dernière réponse n’a pas été confirmée. Réessayez avant l’analyse.',
+          );
+        });
+      }
+      return;
     }
 
     // Input transcription completes asynchronously and can arrive after the
@@ -203,7 +317,22 @@ class _RealtimeInterviewScreenState
     await waitForRealtimeTranscriptFinalization(
       revision: () => _transcript.revision,
       hasPendingTranscripts: () => _transcript.hasPendingTranscripts,
+      maximumWait: const Duration(seconds: 30),
     );
+    if (mounted && _transcript.hasPendingTranscripts) {
+      setState(() {
+        _finishing = false;
+        _error = RealtimeVoiceException(
+          _session == session
+              ? 'La transcription est encore en cours. Attendez puis réessayez l’analyse.'
+              : 'La session est terminée, mais la transcription est incomplète. '
+                    'Aucune analyse partielle n’a été enregistrée.',
+        );
+      });
+      return;
+    }
+    _maximumDurationTimer?.cancel();
+    _maximumDurationTimer = null;
 
     if (_session == session) {
       _session = null;
@@ -215,6 +344,18 @@ class _RealtimeInterviewScreenState
     }
     if (!mounted) return;
     await _assessTranscript();
+  }
+
+  Future<void> _finishAtLimit() async {
+    try {
+      await _finish();
+    } finally {
+      // Even a failed commit must not leave a paid connection open forever.
+      await _disposeActiveSession();
+      if (mounted) {
+        setState(() => _activity = RealtimeVoiceActivity.disconnected);
+      }
+    }
   }
 
   Future<void> _resetToIntroduction() async {
@@ -345,7 +486,10 @@ class _RealtimeInterviewScreenState
       const SizedBox(height: 10),
       const Text(
         'Conseil : utilisez des écouteurs dans un endroit calme. Touchez '
-        '« Terminer et analyser » lorsque vous avez assez pratiqué.',
+        '« Répondre », parlez à votre rythme, puis « Envoyer ma réponse ». '
+        'Les pauses ne déclenchent aucune réponse. Touchez '
+        '« Terminer et analyser » pour obtenir votre rétroaction. '
+        'La session est limitée à 20 minutes pour maîtriser les coûts.',
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 12.5),
       ),
@@ -408,7 +552,9 @@ class _RealtimeInterviewScreenState
           Row(
             children: [
               IconButton.filledTonal(
-                onPressed: connecting || _session == null ? null : _toggleMute,
+                onPressed: !_answering || _sendingAnswer || _session == null
+                    ? null
+                    : _toggleMute,
                 icon: Icon(_muted ? Icons.mic_off : Icons.mic),
                 tooltip: _muted ? 'Réactiver le micro' : 'Couper le micro',
               ),
@@ -419,13 +565,37 @@ class _RealtimeInterviewScreenState
                     backgroundColor: coachAccent,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: connecting || _session == null ? null : _finish,
+                  onPressed: connecting || _session == null || _sendingAnswer
+                      ? null
+                      : _finish,
                   icon: const Icon(Icons.stop_circle_outlined),
                   label: const Text('Terminer et analyser'),
                 ),
               ),
             ],
           ),
+          if (_session != null && !connecting) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed:
+                  _sendingAnswer ||
+                      (!_answering &&
+                          _activity != RealtimeVoiceActivity.listening &&
+                          _activity != RealtimeVoiceActivity.userSpeaking)
+                  ? null
+                  : _toggleAnswer,
+              icon: Icon(_answering ? Icons.send : Icons.mic),
+              label: Text(
+                _sendingAnswer
+                    ? 'Envoi…'
+                    : _answering
+                    ? 'Envoyer ma réponse'
+                    : 'Répondre',
+              ),
+            ),
+            if (_answering)
+              const Text('Prenez votre temps : les pauses sont permises.'),
+          ],
           if (_error != null && _session == null) ...[
             const SizedBox(height: 8),
             TextButton.icon(

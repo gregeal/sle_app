@@ -133,12 +133,7 @@ class OpenAiService:
                             "model": "gpt-4o-mini-transcribe",
                             "language": "fr",
                         },
-                        "turn_detection": {
-                            "type": "semantic_vad",
-                            "eagerness": "medium",
-                            "create_response": True,
-                            "interrupt_response": True,
-                        },
+                        "turn_detection": None,
                     },
                     "output": {"voice": voice},
                 },

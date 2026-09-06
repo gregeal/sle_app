@@ -9,7 +9,7 @@ security checklist:
 - **Daily habit engine (P0)** — 26-week curriculum, 309 workplace vocabulary cards with SM-2 spaced repetition, 92+ SLE-style grammar drills with explanations and weak-topic prioritization, a composed daily session with completion checklist, streaks, and resource links (Mauril, PSC self-assessments). Fully offline.
 - **AI integration (P0/P1)** — provider-agnostic LLM client (OpenAI, OpenRouter, local Ollama, Anthropic, or any OpenAI-compatible endpoint) with connection test, encrypted API-key storage, and validated on-demand generation of new grammar drills and reading passages. Adapts automatically to newer OpenAI parameter requirements (`max_completion_tokens`, locked temperature).
 - **Reading & writing (P1)** — timed SLE-style reading comprehension (memos, emails, policy excerpts) with per-question explanations, and guided composition with AI feedback: inline corrections, a corrected model text, an unofficial A/B/C level estimate, and concrete tips.
-- **Oral coach (P2)** — daily and guided modes use on-device STT/TTS; the full OpenAI Realtime interview is true low-latency voice-to-voice over WebRTC, with semantic turn detection, natural interruptions, adaptive A → B → C follow-ups, live transcripts, and a saved, non-official report across five pedagogical dimensions aligned with the PSC proficiency criteria (aisance, compréhension, vocabulaire, grammaire, prononciation).
+- **Oral coach (P2)** — daily and guided modes use device STT/TTS with resumable, editable answers; the OpenAI Realtime interview uses continuous WebRTC audio with explicit answer submission (pauses do not trigger a reply), adaptive A → B → C follow-ups, transcripts, and a saved, non-official report across five pedagogical dimensions aligned with the PSC proficiency criteria (aisance, compréhension, vocabulaire, grammaire, prononciation).
 - **Checkpoints & dashboard (P3)** — monthly mock-exam checkpoints for all three skills, scored against approximate published cut lines, feeding a per-skill level-trajectory dashboard with streak, total study hours, and per-topic accuracy.
 - **Secure web session (P4)** — Flutter Web with a per-user browser-local SQLite/OPFS database, an allowlisted FastAPI AI Broker, Google OAuth bootstrap, passkey sign-in, HttpOnly sessions + CSRF, model/rate/budget enforcement, and feature parity including Realtime WebRTC. A custom application-shell service worker keeps seeded practice available during a short offline return visit without ever caching `/api/*` or `/auth/*`. Deployment is defined by `Dockerfile` and `render.yaml`.
 
@@ -244,6 +244,30 @@ and open `http://PC_IP:11434/api/tags` on the phone. If JSON appears, use
 authentication, so never expose this firewall rule on a Public profile or by
 router port-forwarding. Stop the LAN-bound server when finished; use an
 authenticated HTTPS reverse proxy for a profile/release app.
+
+### Speaking at your own pace
+
+- **Question du jour / Entrevue simulée:** tap the microphone, speak, and pause
+  whenever needed. Recognition restarts automatically after platform silence
+  timeouts; the old three-minute cutoff has been removed. Tap stop to review,
+  correct the transcript, or choose **Continuer ma réponse** to append more.
+  Only **Envoyer pour rétroaction** (or the next-question button in a guided
+  interview) accepts your answer. **Saisir ma réponse** is available when voice
+  recognition is unavailable. The assessment input limit remains 10,000
+  characters per answer; very long answers must be shortened in the editor.
+- **Entrevue Realtime:** wait for the interviewer, tap **Répondre**, and keep
+  speaking until you choose **Envoyer ma réponse**. Silence does not submit.
+  **Terminer et analyser** commits your current answer before requesting the
+  report. The app waits for final transcription instead of silently dropping it.
+  The microphone is muted between turns and when the app moves to the background.
+  A session still has a 20-minute cost-control limit. Audio is sent to OpenAI
+  while speaking, not only when you press submit; submission controls turn-taking.
+- Device speech recognition is not a gap-free audio recorder: some Android
+  engines briefly pause or beep between recognition segments. Prefer Realtime
+  for uninterrupted long answers. Device recognition may itself use the device
+  vendor's online speech service. Do not dictate confidential workplace details.
+- Update both the Flutter client and broker when deploying these changes. The
+  client also disables VAD in the live Realtime session to support older brokers.
 
 ### Realtime credential security
 

@@ -305,7 +305,16 @@ List<Map<String, dynamic>> pairRealtimeTranscript(
       interviewer.add(turn.text);
       continue;
     }
-    if (interviewer.isEmpty || turn.text.trim().isEmpty) continue;
+    if (turn.text.trim().isEmpty) continue;
+    if (interviewer.isEmpty) {
+      // VAD/transcription may split a long answer into several user items.
+      // Preserve every continuation instead of silently dropping it.
+      if (exchanges.isNotEmpty) {
+        exchanges.last['answer'] =
+            '${exchanges.last['answer']} ${turn.text.trim()}';
+      }
+      continue;
+    }
     exchanges.add({
       'question': interviewer.join(' ').trim(),
       'answer': turn.text.trim(),
@@ -323,6 +332,10 @@ abstract class RealtimeVoiceSession {
   Future<void> connect();
 
   Future<void> setMuted(bool muted);
+
+  Future<void> startAnswer();
+
+  Future<void> submitAnswer({bool requestResponse = true});
 
   Future<void> close();
 }

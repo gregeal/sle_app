@@ -323,7 +323,9 @@ def create_app(
     async def google_callback(request: Request, code: str, state: str) -> Response:
         auth_rate_limiter.check(f"google-callback:{_client_identity(request)}")
         cookie_state = request.cookies.get("sle_oauth_state", "")
-        if not cookie_state or not secrets.compare_digest(cookie_state, state):
+        if not cookie_state or not secrets.compare_digest(
+            cookie_state.encode("utf-8"), state.encode("utf-8")
+        ):
             raise HTTPException(status_code=400, detail="État OAuth invalide.")
         row = store.consume_challenge(state, "google-oauth")
         if row is None:
@@ -605,7 +607,9 @@ async def _verify_google_id_token(
     if payload.get("iss") not in {"accounts.google.com", "https://accounts.google.com"}:
         raise HTTPException(status_code=401, detail="Émetteur Google invalide.")
     nonce = payload.get("nonce")
-    if not isinstance(nonce, str) or not secrets.compare_digest(nonce, expected_nonce):
+    if not isinstance(nonce, str) or not secrets.compare_digest(
+        nonce.encode("utf-8"), expected_nonce.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Nonce Google invalide.")
     if payload.get("email_verified") is not True:
         raise HTTPException(status_code=403, detail="Adresse Google non vérifiée.")

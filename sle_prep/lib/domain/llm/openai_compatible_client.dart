@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'llm_client.dart';
+import 'provider_http.dart';
 
 /// Client for any endpoint speaking the OpenAI chat-completions dialect:
 /// OpenAI itself, OpenRouter, a local Ollama, LM Studio, vLLM…
@@ -95,16 +96,13 @@ class OpenAiCompatibleClient implements LlmClient, ClosableLlmClient {
     final authorization = key != null && key.isNotEmpty ? 'Bearer $key' : null;
 
     try {
-      return await _http
-          .post(
-            url,
-            headers: {
-              'content-type': 'application/json',
-              'Authorization': ?authorization,
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(timeout);
+      final request = http.Request('POST', url)
+        ..headers.addAll({
+          'content-type': 'application/json',
+          'Authorization': ?authorization,
+        })
+        ..body = jsonEncode(body);
+      return await sendProviderRequest(_http, request, timeout: timeout);
     } on TimeoutException {
       throw const LlmException(
         'Le fournisseur IA n\'a pas répondu à temps. Réessayez.',

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../llm/provider_http.dart';
 
 import 'realtime_interview_prompt.dart';
 import 'realtime_voice_session.dart';
@@ -37,12 +38,7 @@ Map<String, dynamic> buildRealtimeSessionConfig({
       'input': {
         'noise_reduction': {'type': 'near_field'},
         'transcription': {'model': 'gpt-4o-mini-transcribe', 'language': 'fr'},
-        'turn_detection': {
-          'type': 'semantic_vad',
-          'eagerness': 'medium',
-          'create_response': true,
-          'interrupt_response': true,
-        },
+        'turn_detection': null,
       },
       'output': {'voice': voice},
     },
@@ -139,13 +135,8 @@ class OpenAiRealtimeApi {
     } on FormatException {
       // Not JSON either; fall through to the diagnostic below.
     }
-    final head = answerForInspection.substring(
-      0,
-      answerForInspection.length < 120 ? answerForInspection.length : 120,
-    );
     throw RealtimeVoiceException(
-      'OpenAI a retourné autre chose qu’une réponse SDP '
-      '(${response.headers['content-type'] ?? 'type inconnu'}) : $head',
+      'OpenAI a retourné une réponse audio inattendue. Vérifiez le réseau.',
       statusCode: response.statusCode,
     );
   }
@@ -176,10 +167,10 @@ class OpenAiRealtimeApi {
       // append "; charset=utf-8", and the SDP exchange must send exactly
       // "application/sdp".
       final request = http.Request('POST', uri);
+      request.followRedirects = false;
       request.headers.addAll(headers);
       request.bodyBytes = utf8.encode(body);
-      final streamed = await _http.send(request).timeout(timeout);
-      return await http.Response.fromStream(streamed).timeout(timeout);
+      return await sendProviderRequest(_http, request, timeout: timeout);
     } on TimeoutException {
       throw const RealtimeVoiceException(
         'OpenAI n’a pas répondu à temps. Réessayez.',

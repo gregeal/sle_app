@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'llm_client.dart';
+import 'provider_http.dart';
 
 class AnthropicClient implements LlmClient, ClosableLlmClient {
   AnthropicClient({
@@ -44,25 +45,22 @@ class AnthropicClient implements LlmClient, ClosableLlmClient {
 
     final http.Response response;
     try {
-      response = await _http
-          .post(
-            url,
-            headers: {
-              'content-type': 'application/json',
-              'x-api-key': apiKey,
-              'anthropic-version': _apiVersion,
-            },
-            body: jsonEncode({
-              'model': model,
-              'max_tokens': maxTokens ?? 1024,
-              'temperature': temperature,
-              'system': system,
-              'messages': [
-                {'role': 'user', 'content': user},
-              ],
-            }),
-          )
-          .timeout(timeout);
+      final request = http.Request('POST', url)
+        ..headers.addAll({
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': _apiVersion,
+        })
+        ..body = jsonEncode({
+          'model': model,
+          'max_tokens': maxTokens ?? 1024,
+          'temperature': temperature,
+          'system': system,
+          'messages': [
+            {'role': 'user', 'content': user},
+          ],
+        });
+      response = await sendProviderRequest(_http, request, timeout: timeout);
     } on TimeoutException {
       throw const LlmException(
         'Le fournisseur IA n\'a pas répondu à temps. Réessayez.',

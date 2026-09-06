@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'openai_realtime_api.dart';
+import 'manual_realtime_turn.dart';
 import 'realtime_interview_prompt.dart';
 import 'realtime_voice_session.dart';
 
@@ -29,7 +30,11 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   Future<void>? _connectFuture;
   Future<void>? _closeFuture;
   Future<void>? _releaseFuture;
-  var _muted = false;
+  var _muted = true;
+  late final _manualTurn = ManualRealtimeTurn(
+    send: _sendAwaited,
+    mute: setMuted,
+  );
   var _closed = false;
   var _openingSent = false;
 
@@ -120,6 +125,12 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
       unawaited(_channelReady!.future.catchError((Object _) {}));
       channel.onMessage = (message) {
         if (message.isBinary) return;
+        try {
+          final decoded = jsonDecode(message.text);
+          if (decoded is Map<String, dynamic>) _manualTurn.handleEvent(decoded);
+        } on FormatException {
+          return;
+        }
         for (final event in parseRealtimeServerEvent(message.text)) {
           _emit(event);
         }
@@ -228,28 +239,52 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   void _sendOpeningTurn() {
     if (_openingSent || _closed) return;
     _openingSent = true;
-    _send({
-      'type': 'response.create',
-      'response': {
-        'output_modalities': ['audio'],
-        'instructions': buildRealtimeOpeningInstruction(),
-      },
-    });
+    unawaited(_configureAndOpen());
   }
 
-  void _send(Map<String, dynamic> event) {
-    final channel = _dataChannel;
-    if (channel?.state != RTCDataChannelState.RTCDataChannelOpen) return;
-    unawaited(
-      channel!.send(RTCDataChannelMessage(jsonEncode(event))).catchError((
-        Object _,
-      ) {
-        _failConnection(
-          'Le canal Realtime s’est fermé avant l’envoi. Réessayez.',
-        );
-      }),
-    );
+  Future<void> _configureAndOpen() async {
+    try {
+      // Also configure the live session: an older deployed broker may still
+      // mint secrets with VAD enabled. Keep the mic muted until the opening.
+      await _sendAwaited({
+        'type': 'session.update',
+        'session': {
+          'type': 'realtime',
+          'audio': {
+            'input': {'turn_detection': null},
+          },
+        },
+      });
+      await _sendAwaited({
+        'type': 'response.create',
+        'response': {
+          'output_modalities': ['audio'],
+          'instructions': buildRealtimeOpeningInstruction(),
+        },
+      });
+    } catch (_) {
+      _failConnection(
+        'Le canal Realtime s’est fermé avant l’envoi. Réessayez.',
+      );
+    }
   }
+
+  Future<void> _sendAwaited(Map<String, dynamic> event) async {
+    _ensureOpen();
+    final channel = _dataChannel;
+    if (channel == null ||
+        channel.state != RTCDataChannelState.RTCDataChannelOpen) {
+      throw const RealtimeVoiceException('Le canal audio n’est pas connecté.');
+    }
+    await channel.send(RTCDataChannelMessage(jsonEncode(event)));
+  }
+
+  @override
+  Future<void> startAnswer() => _manualTurn.start();
+
+  @override
+  Future<void> submitAnswer({bool requestResponse = true}) =>
+      _manualTurn.submit(requestResponse: requestResponse);
 
   void _handleConnectionState(RTCPeerConnectionState state) {
     switch (state) {
@@ -294,6 +329,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
     final pending = _closeFuture;
     if (pending != null) return pending;
     _closed = true;
+    _manualTurn.close();
     final closing = _close();
     _closeFuture = closing;
     return closing;

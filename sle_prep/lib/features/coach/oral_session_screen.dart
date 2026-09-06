@@ -26,7 +26,10 @@ class OralSessionScreen extends ConsumerStatefulWidget {
   ConsumerState<OralSessionScreen> createState() => _OralSessionScreenState();
 }
 
-class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
+class _OralSessionScreenState extends ConsumerState<OralSessionScreen>
+    with WidgetsBindingObserver {
+  late final SpeechService _speech;
+  late final TtsService _tts;
   final _exchanges = <Map<String, dynamic>>[];
   var _index = 0;
   var _stage = _Stage.answering;
@@ -35,6 +38,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   var _startingListening = false;
   var _speechUnavailable = false;
   var _ttsUnavailable = false;
+  var _backgrounded = false;
   OralFeedback? _feedback;
   Object? _assessError;
 
@@ -43,20 +47,35 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _speakQuestion());
+    _speech = ref.read(speechServiceProvider);
+    _tts = ref.read(ttsServiceProvider);
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.questions.isNotEmpty) _speakQuestion();
+    });
   }
 
   @override
   void dispose() {
-    final tts = ref.read(ttsServiceProvider);
-    final speech = ref.read(speechServiceProvider);
-    unawaited(_stopSpeechServices(tts, speech));
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_stopSpeechServices(_tts, _speech));
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _backgrounded =
+        state == AppLifecycleState.paused || state == AppLifecycleState.hidden;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      // Never silently keep the microphone active in the background.
+      if (_isListening && !_startingListening) unawaited(_toggleListening());
+    }
   }
 
   Future<void> _speakQuestion() async {
     try {
-      await ref.read(ttsServiceProvider).speak(_question.questionFr);
+      await _tts.speak(_question.questionFr);
     } catch (_) {
       if (mounted) setState(() => _ttsUnavailable = true);
     }
@@ -64,8 +83,9 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
 
   Future<void> _toggleListening() async {
     if (_startingListening) return;
-    final speech = ref.read(speechServiceProvider);
+    final speech = _speech;
     if (_isListening) {
+      setState(() => _startingListening = true);
       try {
         await speech.stop();
       } on Object {
@@ -74,6 +94,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
       if (!mounted) return;
       setState(() {
         _isListening = false;
+        _startingListening = false;
         if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
       });
       return;
@@ -82,7 +103,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
     setState(() => _startingListening = true);
     try {
       try {
-        await ref.read(ttsServiceProvider).stop();
+        await _tts.stop();
       } on Object {
         if (mounted) setState(() => _ttsUnavailable = true);
       }
@@ -98,23 +119,42 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
         setState(() => _speechUnavailable = true);
         return;
       }
+      final previous = _transcript.trim();
       setState(() {
         _isListening = true;
-        _transcript = '';
+        _speechUnavailable = false;
+        _stage = _Stage.answering;
       });
       await speech.listen(
         onResult: (transcript) {
-          if (mounted) setState(() => _transcript = transcript);
+          if (mounted) {
+            setState(
+              () => _transcript = [
+                if (previous.isNotEmpty) previous,
+                if (transcript.trim().isNotEmpty) transcript.trim(),
+              ].join(' '),
+            );
+          }
         },
         onDone: () {
           if (mounted && _isListening) {
             setState(() {
               _isListening = false;
+              _speechUnavailable = true;
               if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
             });
           }
         },
       );
+      if (!mounted || _backgrounded) {
+        await speech.stop();
+        if (mounted) {
+          setState(() {
+            _isListening = false;
+            if (_transcript.trim().isNotEmpty) _stage = _Stage.reviewing;
+          });
+        }
+      }
     } on Object {
       if (mounted) {
         setState(() {
@@ -128,6 +168,12 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
   }
 
   Future<void> _acceptAnswer() async {
+    if (_stage != _Stage.reviewing ||
+        _transcript.trim().isEmpty ||
+        _startingListening ||
+        _isListening) {
+      return;
+    }
     _exchanges.add({
       'question': _question.questionFr,
       'answer': _transcript.trim(),
@@ -175,31 +221,38 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
         widget.mode == 'daily' ? 'Question du jour' : 'Entrevue simulée',
       ),
     ),
-    body: SafeArea(
-      child: switch (_stage) {
-        _Stage.answering || _Stage.reviewing => _buildQuestion(context),
-        _Stage.assessing => const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('L\'évaluatrice analyse vos réponses…'),
-            ],
-          ),
-        ),
-        _Stage.report =>
-          _feedback != null
-              ? OralReportView(feedback: _feedback!, exchanges: _exchanges)
-              : _AssessError(
-                  error: _assessError,
-                  onRetry: () {
-                    setState(() => _stage = _Stage.assessing);
-                    _retryAssessment();
-                  },
+    body: widget.questions.isEmpty
+        ? const Center(
+            child: Text('Aucune question disponible. Revenez au Coach.'),
+          )
+        : SafeArea(
+            child: switch (_stage) {
+              _Stage.answering || _Stage.reviewing => _buildQuestion(context),
+              _Stage.assessing => const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('L\'évaluatrice analyse vos réponses…'),
+                  ],
                 ),
-      },
-    ),
+              ),
+              _Stage.report =>
+                _feedback != null
+                    ? OralReportView(
+                        feedback: _feedback!,
+                        exchanges: _exchanges,
+                      )
+                    : _AssessError(
+                        error: _assessError,
+                        onRetry: () {
+                          setState(() => _stage = _Stage.assessing);
+                          _retryAssessment();
+                        },
+                      ),
+            },
+          ),
   );
 
   Future<void> _retryAssessment() async {
@@ -264,7 +317,8 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
-                    onPressed: _isListening || _ttsUnavailable
+                    onPressed:
+                        _isListening || _startingListening || _ttsUnavailable
                         ? null
                         : _speakQuestion,
                     icon: const Icon(Icons.replay, size: 18),
@@ -285,14 +339,13 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
-                          'La reconnaissance vocale n\'est pas disponible. '
-                          'Vérifiez la permission du microphone et la prise en '
-                          'charge de la reconnaissance vocale par ce navigateur '
-                          'ou cet appareil.',
+                          'L’écoute a été interrompue. Votre texte est conservé. '
+                          'Réessayez le micro ou modifiez votre réponse avant '
+                          'de l’envoyer. Vérifiez aussi la permission du micro.',
                         ),
                       ),
-                    )
-                  else if (_transcript.isEmpty && !_isListening)
+                    ),
+                  if (_transcript.isEmpty && !_isListening && !reviewing)
                     const Padding(
                       padding: EdgeInsets.all(16),
                       child: Text(
@@ -315,7 +368,19 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
                             const SizedBox(height: 8),
-                            Text(_transcript.isEmpty ? '…' : _transcript),
+                            if (reviewing)
+                              TextFormField(
+                                initialValue: _transcript,
+                                minLines: 3,
+                                maxLines: null,
+                                decoration: const InputDecoration(
+                                  labelText: 'Corriger la transcription',
+                                ),
+                                onChanged: (text) =>
+                                    setState(() => _transcript = text),
+                              )
+                            else
+                              Text(_transcript.isEmpty ? '…' : _transcript),
                           ],
                         ),
                       ),
@@ -325,7 +390,18 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          if (!reviewing && !_isListening && !_startingListening)
+            TextButton.icon(
+              onPressed: () => setState(() => _stage = _Stage.reviewing),
+              icon: const Icon(Icons.edit_note),
+              label: const Text('Saisir ma réponse'),
+            ),
           if (reviewing) ...[
+            OutlinedButton.icon(
+              onPressed: _startingListening ? null : _toggleListening,
+              icon: const Icon(Icons.mic),
+              label: const Text('Continuer ma réponse'),
+            ),
             Row(
               children: [
                 Expanded(
@@ -341,12 +417,14 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: _acceptAnswer,
+                    onPressed: _transcript.trim().isEmpty
+                        ? null
+                        : _acceptAnswer,
                     icon: const Icon(Icons.check),
                     label: Text(
                       _index + 1 < widget.questions.length
                           ? 'Question suivante'
-                          : 'Terminer',
+                          : 'Envoyer pour rétroaction',
                     ),
                   ),
                 ),
@@ -355,9 +433,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
           ] else
             Center(
               child: GestureDetector(
-                onTap: _speechUnavailable || _startingListening
-                    ? null
-                    : _toggleListening,
+                onTap: _startingListening ? null : _toggleListening,
                 child: Container(
                   width: 76,
                   height: 76,
@@ -398,7 +474,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen> {
           if (!reviewing)
             Text(
               _isListening
-                  ? 'Touchez pour terminer votre réponse'
+                  ? 'Prenez votre temps. Touchez pour relire avant d’envoyer.'
                   : _startingListening
                   ? 'Préparation du microphone…'
                   : 'Touchez pour répondre',
@@ -584,13 +660,13 @@ class OralReportView extends StatelessWidget {
 }
 
 Future<void> _stopSpeechServices(TtsService tts, SpeechService speech) async {
+  // Shut down independently: a stalled TTS plugin must never keep the mic on.
+  await Future.wait([_bestEffortStop(tts.stop), _bestEffortStop(speech.stop)]);
+}
+
+Future<void> _bestEffortStop(Future<void> Function() stop) async {
   try {
-    await tts.stop();
-  } on Object {
-    // Disposal is best-effort; plugin shutdown failures are not actionable.
-  }
-  try {
-    await speech.stop();
+    await stop();
   } on Object {
     // Disposal is best-effort; plugin shutdown failures are not actionable.
   }

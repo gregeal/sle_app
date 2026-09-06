@@ -320,7 +320,7 @@ void main() {
         expect(
           ((session['audio'] as Map<String, dynamic>)['input']
               as Map<String, dynamic>)['turn_detection'],
-          containsPair('type', 'semantic_vad'),
+          isNull,
         );
         expect(session['instructions'], contains('niveau C'));
       },
@@ -414,7 +414,7 @@ void main() {
           isA<RealtimeVoiceException>().having(
             (error) => error.message,
             'message',
-            contains('autre chose qu’une réponse SDP'),
+            contains('réponse audio inattendue'),
           ),
         ),
       );

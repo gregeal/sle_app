@@ -47,7 +47,7 @@ def test_realtime_route_returns_only_ephemeral_secret(
     assert response.json() == {"value": "ek_test_short_lived"}
     assert "test-provider-key" not in response.text
     payload = json.loads(upstream_requests[-1].content)
-    assert payload["session"]["audio"]["input"]["turn_detection"]["type"] == "semantic_vad"
+    assert payload["session"]["audio"]["input"]["turn_detection"] is None
     safety_id = upstream_requests[-1].headers["openai-safety-identifier"]
     assert safety_id.startswith("sle_")
     assert "owner@example.com" not in safety_id
