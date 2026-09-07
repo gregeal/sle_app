@@ -288,9 +288,9 @@ flutter analyze
 flutter test
 
 cd ..\broker
-uv sync --dev
-uv run ruff check app tests
-uv run pytest
+uv sync --frozen --dev
+uv run --frozen ruff check app tests
+uv run --frozen pytest
 ```
 
 The test suite covers the Drift data layer and migrations, SM-2 scheduling, seed validation and incremental import, the session composer, LLM clients (including endpoint/key isolation and OpenAI parameter fallbacks), Realtime client-secret/SDP requests, remote-audio lifecycle and event parsing, drill/reading/writing/oral generation and validation, mock-exam scoring, web-profile isolation, and key widget flows. CI also finalizes and validates the production PWA, builds a signed release APK with a disposable CI key, and smoke-tests the deployable container as a non-root user. Test totals are intentionally not frozen in this README; use the commands above or the latest CI run as the source of truth.
