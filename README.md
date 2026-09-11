@@ -12,6 +12,7 @@ security checklist:
 - **Oral coach (P2)** — daily and guided modes use device STT/TTS with resumable, editable answers; the OpenAI Realtime interview uses continuous WebRTC audio with explicit answer submission (pauses do not trigger a reply), adaptive A → B → C follow-ups, transcripts, and a saved, non-official report across five pedagogical dimensions aligned with the PSC proficiency criteria (aisance, compréhension, vocabulaire, grammaire, prononciation).
 - **Checkpoints & dashboard (P3)** — monthly mock-exam checkpoints for all three skills, scored against approximate published cut lines, feeding a per-skill level-trajectory dashboard with streak, total study hours, and per-topic accuracy.
 - **Secure web session (P4)** — Flutter Web with a per-user browser-local SQLite/OPFS database, an allowlisted FastAPI AI Broker, Google OAuth bootstrap, passkey sign-in, HttpOnly sessions + CSRF, model/rate/budget enforcement, and feature parity including Realtime WebRTC. A custom application-shell service worker keeps seeded practice available during a short offline return visit without ever caching `/api/*` or `/auth/*`. Deployment is defined by `Dockerfile` and `render.yaml`.
+- **Learning Hub (P5 increment)** — a searchable personal vocabulary notebook with spaced repetition, edit/delete controls, a queue of grammar mistakes to retry, four original workplace listening lessons with optional transcripts and saved results, and a library of previously saved oral/writing feedback. No additional AI subscription is required for these features.
 
 Navigation: **Accueil** (today's session), **Réviser** (vocabulary, grammar, reading, writing, AI generation), **Coach** (oral practice), **Progrès** (trajectory, stats, mock exams), **Paramètres** (AI provider).
 
@@ -22,8 +23,50 @@ Project documents in the repository root:
 - [`PRD.md`](PRD.md) — full product requirements
 - [`docs/plans/2026-07-12-p0-implementation-plan.md`](docs/plans/2026-07-12-p0-implementation-plan.md)
 - [`docs/plans/2026-07-13-p4-web-plan.md`](docs/plans/2026-07-13-p4-web-plan.md) — web architecture and implementation evidence
+- [`docs/plans/2026-09-11-learning-hub.md`](docs/plans/2026-09-11-learning-hub.md) — one-place learning features and remaining roadmap
 - [`docs/security/p4-web-security-checklist.md`](docs/security/p4-web-security-checklist.md) — web release security checklist
 - [`docs/design/objectif-c-ecrans-android.dc.html`](docs/design/objectif-c-ecrans-android.dc.html) — design screens
+
+## Use the Learning Hub
+
+To restart the 26-week course, open **Paramètres → Recommencer à la semaine 1**
+and confirm. Week 1 begins today. Existing vocabulary schedules, reports, results,
+AI settings, and completed study activity are retained. Today's unfinished blocks
+are replaced with week-one work; repeating the reset on the same day is harmless.
+This resets only the current installation/browser, not other devices.
+
+Open **Mon espace d’apprentissage** from **Accueil** or **Réviser**. The daily
+planner's free-practice block also opens this hub.
+
+1. **Mon carnet de vocabulaire**: search the built-in and personal cards in either
+   language. Add an English clue, a French expression, and an optional French
+   example. New cards are immediately due in the existing vocabulary review.
+   Re-saving a duplicate does not reset its schedule. The menu beside a personal
+   card lets you edit it without losing progress, or delete it after confirmation;
+   built-in curriculum cards cannot be edited or deleted here.
+2. **Reprendre mes erreurs**: practise up to ten grammar questions whose latest
+   answer was wrong. Answering correctly removes an item from this queue; a new
+   mistake puts it back. This uses your existing drill history.
+3. **Atelier d’écoute**: listen to an original workplace message, answer three
+   questions, read the explanations, and replay or reveal the transcript as needed.
+   Four introductory lessons target B/C practice. Results record whether you used
+   the transcript and stay separate from reading/mock-exam level estimates. This is
+   synthetic-audio practice, not a validated SLE test or a complete listening course.
+4. **Mes rétroactions**: reopen saved oral and writing reports and your original
+   responses without another AI call. Older incompatible reports still expose the
+   original saved response.
+
+Listening and pronunciation use the device/browser's French text-to-speech voice.
+On Android, install a French voice in the system text-to-speech settings; on the
+web, use a browser/OS with a French voice available. Some voices require Internet.
+If audio is unavailable, a transcript remains accessible. No microphone permission
+or provider key is needed for the listening lab.
+
+Progress remains local to the Android installation or signed-in browser profile.
+The database upgrades automatically while retaining existing progress. Clearing
+app/browser storage can erase it: encrypted backup and Android/web synchronization
+are **not implemented yet**. Avoid storing confidential work information in examples
+or practice answers.
 
 ## Prerequisites
 

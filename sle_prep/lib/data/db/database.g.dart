@@ -4806,6 +4806,469 @@ class MockResultsCompanion extends UpdateCompanion<MockResult> {
   }
 }
 
+class $ListeningAttemptsTable extends ListeningAttempts
+    with TableInfo<$ListeningAttemptsTable, ListeningAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ListeningAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _lessonIdMeta = const VerificationMeta(
+    'lessonId',
+  );
+  @override
+  late final GeneratedColumn<String> lessonId = GeneratedColumn<String>(
+    'lesson_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _correctMeta = const VerificationMeta(
+    'correct',
+  );
+  @override
+  late final GeneratedColumn<int> correct = GeneratedColumn<int>(
+    'correct',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalMeta = const VerificationMeta('total');
+  @override
+  late final GeneratedColumn<int> total = GeneratedColumn<int>(
+    'total',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usedTranscriptMeta = const VerificationMeta(
+    'usedTranscript',
+  );
+  @override
+  late final GeneratedColumn<bool> usedTranscript = GeneratedColumn<bool>(
+    'used_transcript',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("used_transcript" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _answeredAtMeta = const VerificationMeta(
+    'answeredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+    'answered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    lessonId,
+    correct,
+    total,
+    seconds,
+    usedTranscript,
+    answeredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'listening_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ListeningAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('lesson_id')) {
+      context.handle(
+        _lessonIdMeta,
+        lessonId.isAcceptableOrUnknown(data['lesson_id']!, _lessonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lessonIdMeta);
+    }
+    if (data.containsKey('correct')) {
+      context.handle(
+        _correctMeta,
+        correct.isAcceptableOrUnknown(data['correct']!, _correctMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_correctMeta);
+    }
+    if (data.containsKey('total')) {
+      context.handle(
+        _totalMeta,
+        total.isAcceptableOrUnknown(data['total']!, _totalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsMeta);
+    }
+    if (data.containsKey('used_transcript')) {
+      context.handle(
+        _usedTranscriptMeta,
+        usedTranscript.isAcceptableOrUnknown(
+          data['used_transcript']!,
+          _usedTranscriptMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_usedTranscriptMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+        _answeredAtMeta,
+        answeredAt.isAcceptableOrUnknown(data['answered_at']!, _answeredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ListeningAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ListeningAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      lessonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lesson_id'],
+      )!,
+      correct: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}correct'],
+      )!,
+      total: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      usedTranscript: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}used_transcript'],
+      )!,
+      answeredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ListeningAttemptsTable createAlias(String alias) {
+    return $ListeningAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class ListeningAttempt extends DataClass
+    implements Insertable<ListeningAttempt> {
+  final int id;
+  final String lessonId;
+  final int correct;
+  final int total;
+  final int seconds;
+  final bool usedTranscript;
+  final DateTime answeredAt;
+  const ListeningAttempt({
+    required this.id,
+    required this.lessonId,
+    required this.correct,
+    required this.total,
+    required this.seconds,
+    required this.usedTranscript,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['lesson_id'] = Variable<String>(lessonId);
+    map['correct'] = Variable<int>(correct);
+    map['total'] = Variable<int>(total);
+    map['seconds'] = Variable<int>(seconds);
+    map['used_transcript'] = Variable<bool>(usedTranscript);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    return map;
+  }
+
+  ListeningAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return ListeningAttemptsCompanion(
+      id: Value(id),
+      lessonId: Value(lessonId),
+      correct: Value(correct),
+      total: Value(total),
+      seconds: Value(seconds),
+      usedTranscript: Value(usedTranscript),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory ListeningAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ListeningAttempt(
+      id: serializer.fromJson<int>(json['id']),
+      lessonId: serializer.fromJson<String>(json['lessonId']),
+      correct: serializer.fromJson<int>(json['correct']),
+      total: serializer.fromJson<int>(json['total']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      usedTranscript: serializer.fromJson<bool>(json['usedTranscript']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'lessonId': serializer.toJson<String>(lessonId),
+      'correct': serializer.toJson<int>(correct),
+      'total': serializer.toJson<int>(total),
+      'seconds': serializer.toJson<int>(seconds),
+      'usedTranscript': serializer.toJson<bool>(usedTranscript),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  ListeningAttempt copyWith({
+    int? id,
+    String? lessonId,
+    int? correct,
+    int? total,
+    int? seconds,
+    bool? usedTranscript,
+    DateTime? answeredAt,
+  }) => ListeningAttempt(
+    id: id ?? this.id,
+    lessonId: lessonId ?? this.lessonId,
+    correct: correct ?? this.correct,
+    total: total ?? this.total,
+    seconds: seconds ?? this.seconds,
+    usedTranscript: usedTranscript ?? this.usedTranscript,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  ListeningAttempt copyWithCompanion(ListeningAttemptsCompanion data) {
+    return ListeningAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      lessonId: data.lessonId.present ? data.lessonId.value : this.lessonId,
+      correct: data.correct.present ? data.correct.value : this.correct,
+      total: data.total.present ? data.total.value : this.total,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      usedTranscript: data.usedTranscript.present
+          ? data.usedTranscript.value
+          : this.usedTranscript,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListeningAttempt(')
+          ..write('id: $id, ')
+          ..write('lessonId: $lessonId, ')
+          ..write('correct: $correct, ')
+          ..write('total: $total, ')
+          ..write('seconds: $seconds, ')
+          ..write('usedTranscript: $usedTranscript, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    lessonId,
+    correct,
+    total,
+    seconds,
+    usedTranscript,
+    answeredAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ListeningAttempt &&
+          other.id == this.id &&
+          other.lessonId == this.lessonId &&
+          other.correct == this.correct &&
+          other.total == this.total &&
+          other.seconds == this.seconds &&
+          other.usedTranscript == this.usedTranscript &&
+          other.answeredAt == this.answeredAt);
+}
+
+class ListeningAttemptsCompanion extends UpdateCompanion<ListeningAttempt> {
+  final Value<int> id;
+  final Value<String> lessonId;
+  final Value<int> correct;
+  final Value<int> total;
+  final Value<int> seconds;
+  final Value<bool> usedTranscript;
+  final Value<DateTime> answeredAt;
+  const ListeningAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.lessonId = const Value.absent(),
+    this.correct = const Value.absent(),
+    this.total = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.usedTranscript = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+  });
+  ListeningAttemptsCompanion.insert({
+    this.id = const Value.absent(),
+    required String lessonId,
+    required int correct,
+    required int total,
+    required int seconds,
+    required bool usedTranscript,
+    required DateTime answeredAt,
+  }) : lessonId = Value(lessonId),
+       correct = Value(correct),
+       total = Value(total),
+       seconds = Value(seconds),
+       usedTranscript = Value(usedTranscript),
+       answeredAt = Value(answeredAt);
+  static Insertable<ListeningAttempt> custom({
+    Expression<int>? id,
+    Expression<String>? lessonId,
+    Expression<int>? correct,
+    Expression<int>? total,
+    Expression<int>? seconds,
+    Expression<bool>? usedTranscript,
+    Expression<DateTime>? answeredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lessonId != null) 'lesson_id': lessonId,
+      if (correct != null) 'correct': correct,
+      if (total != null) 'total': total,
+      if (seconds != null) 'seconds': seconds,
+      if (usedTranscript != null) 'used_transcript': usedTranscript,
+      if (answeredAt != null) 'answered_at': answeredAt,
+    });
+  }
+
+  ListeningAttemptsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? lessonId,
+    Value<int>? correct,
+    Value<int>? total,
+    Value<int>? seconds,
+    Value<bool>? usedTranscript,
+    Value<DateTime>? answeredAt,
+  }) {
+    return ListeningAttemptsCompanion(
+      id: id ?? this.id,
+      lessonId: lessonId ?? this.lessonId,
+      correct: correct ?? this.correct,
+      total: total ?? this.total,
+      seconds: seconds ?? this.seconds,
+      usedTranscript: usedTranscript ?? this.usedTranscript,
+      answeredAt: answeredAt ?? this.answeredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (lessonId.present) {
+      map['lesson_id'] = Variable<String>(lessonId.value);
+    }
+    if (correct.present) {
+      map['correct'] = Variable<int>(correct.value);
+    }
+    if (total.present) {
+      map['total'] = Variable<int>(total.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (usedTranscript.present) {
+      map['used_transcript'] = Variable<bool>(usedTranscript.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ListeningAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('lessonId: $lessonId, ')
+          ..write('correct: $correct, ')
+          ..write('total: $total, ')
+          ..write('seconds: $seconds, ')
+          ..write('usedTranscript: $usedTranscript, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4828,6 +5291,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OralQuestionsTable oralQuestions = $OralQuestionsTable(this);
   late final $OralAttemptsTable oralAttempts = $OralAttemptsTable(this);
   late final $MockResultsTable mockResults = $MockResultsTable(this);
+  late final $ListeningAttemptsTable listeningAttempts =
+      $ListeningAttemptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4846,6 +5311,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     oralQuestions,
     oralAttempts,
     mockResults,
+    listeningAttempts,
   ];
 }
 
@@ -7490,6 +7956,255 @@ typedef $$MockResultsTableProcessedTableManager =
       MockResult,
       PrefetchHooks Function()
     >;
+typedef $$ListeningAttemptsTableCreateCompanionBuilder =
+    ListeningAttemptsCompanion Function({
+      Value<int> id,
+      required String lessonId,
+      required int correct,
+      required int total,
+      required int seconds,
+      required bool usedTranscript,
+      required DateTime answeredAt,
+    });
+typedef $$ListeningAttemptsTableUpdateCompanionBuilder =
+    ListeningAttemptsCompanion Function({
+      Value<int> id,
+      Value<String> lessonId,
+      Value<int> correct,
+      Value<int> total,
+      Value<int> seconds,
+      Value<bool> usedTranscript,
+      Value<DateTime> answeredAt,
+    });
+
+class $$ListeningAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $ListeningAttemptsTable> {
+  $$ListeningAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lessonId => $composableBuilder(
+    column: $table.lessonId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correct => $composableBuilder(
+    column: $table.correct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get usedTranscript => $composableBuilder(
+    column: $table.usedTranscript,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ListeningAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ListeningAttemptsTable> {
+  $$ListeningAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lessonId => $composableBuilder(
+    column: $table.lessonId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correct => $composableBuilder(
+    column: $table.correct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get total => $composableBuilder(
+    column: $table.total,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get usedTranscript => $composableBuilder(
+    column: $table.usedTranscript,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ListeningAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ListeningAttemptsTable> {
+  $$ListeningAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get lessonId =>
+      $composableBuilder(column: $table.lessonId, builder: (column) => column);
+
+  GeneratedColumn<int> get correct =>
+      $composableBuilder(column: $table.correct, builder: (column) => column);
+
+  GeneratedColumn<int> get total =>
+      $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+
+  GeneratedColumn<bool> get usedTranscript => $composableBuilder(
+    column: $table.usedTranscript,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+    column: $table.answeredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ListeningAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ListeningAttemptsTable,
+          ListeningAttempt,
+          $$ListeningAttemptsTableFilterComposer,
+          $$ListeningAttemptsTableOrderingComposer,
+          $$ListeningAttemptsTableAnnotationComposer,
+          $$ListeningAttemptsTableCreateCompanionBuilder,
+          $$ListeningAttemptsTableUpdateCompanionBuilder,
+          (
+            ListeningAttempt,
+            BaseReferences<
+              _$AppDatabase,
+              $ListeningAttemptsTable,
+              ListeningAttempt
+            >,
+          ),
+          ListeningAttempt,
+          PrefetchHooks Function()
+        > {
+  $$ListeningAttemptsTableTableManager(
+    _$AppDatabase db,
+    $ListeningAttemptsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ListeningAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ListeningAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ListeningAttemptsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> lessonId = const Value.absent(),
+                Value<int> correct = const Value.absent(),
+                Value<int> total = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<bool> usedTranscript = const Value.absent(),
+                Value<DateTime> answeredAt = const Value.absent(),
+              }) => ListeningAttemptsCompanion(
+                id: id,
+                lessonId: lessonId,
+                correct: correct,
+                total: total,
+                seconds: seconds,
+                usedTranscript: usedTranscript,
+                answeredAt: answeredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String lessonId,
+                required int correct,
+                required int total,
+                required int seconds,
+                required bool usedTranscript,
+                required DateTime answeredAt,
+              }) => ListeningAttemptsCompanion.insert(
+                id: id,
+                lessonId: lessonId,
+                correct: correct,
+                total: total,
+                seconds: seconds,
+                usedTranscript: usedTranscript,
+                answeredAt: answeredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ListeningAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ListeningAttemptsTable,
+      ListeningAttempt,
+      $$ListeningAttemptsTableFilterComposer,
+      $$ListeningAttemptsTableOrderingComposer,
+      $$ListeningAttemptsTableAnnotationComposer,
+      $$ListeningAttemptsTableCreateCompanionBuilder,
+      $$ListeningAttemptsTableUpdateCompanionBuilder,
+      (
+        ListeningAttempt,
+        BaseReferences<
+          _$AppDatabase,
+          $ListeningAttemptsTable,
+          ListeningAttempt
+        >,
+      ),
+      ListeningAttempt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7520,4 +8235,6 @@ class $AppDatabaseManager {
       $$OralAttemptsTableTableManager(_db, _db.oralAttempts);
   $$MockResultsTableTableManager get mockResults =>
       $$MockResultsTableTableManager(_db, _db.mockResults);
+  $$ListeningAttemptsTableTableManager get listeningAttempts =>
+      $$ListeningAttemptsTableTableManager(_db, _db.listeningAttempts);
 }

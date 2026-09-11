@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/daos.dart';
 import '../../data/db/database.dart';
+import '../../data/db/learning_daos.dart';
 import '../../providers.dart';
 
 class DrillScreen extends ConsumerStatefulWidget {
@@ -10,10 +11,12 @@ class DrillScreen extends ConsumerStatefulWidget {
     super.key,
     required this.topics,
     this.title = 'Exercice de grammaire',
+    this.mistakesOnly = false,
   });
 
   final List<String> topics;
   final String title;
+  final bool mistakesOnly;
 
   @override
   ConsumerState<DrillScreen> createState() => _DrillScreenState();
@@ -42,6 +45,11 @@ class _DrillScreenState extends ConsumerState<DrillScreen> {
     }
     try {
       final database = ref.read(appDatabaseProvider);
+      if (widget.mistakesOnly) {
+        final items = await database.unresolvedDrillMistakes(limit: 10);
+        if (mounted) setState(() => _items = items);
+        return;
+      }
       final allItems = await database.randomDrillItems(widget.topics, 1000);
       final accuracy = await database.topicAccuracy();
       allItems.sort(
@@ -100,7 +108,13 @@ class _DrillScreenState extends ConsumerState<DrillScreen> {
             : items == null
             ? const Center(child: CircularProgressIndicator())
             : items.isEmpty
-            ? const _NoDrills()
+            ? widget.mistakesOnly
+                  ? const Center(
+                      child: Text(
+                        'Aucune erreur en attente. Continuez votre pratique !',
+                      ),
+                    )
+                  : const _NoDrills()
             : _index >= items.length
             ? _DrillSummary(
                 correctAnswers: _correctAnswers,

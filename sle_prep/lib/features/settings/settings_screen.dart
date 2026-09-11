@@ -6,6 +6,7 @@ import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/llm_config.dart';
 import '../../domain/realtime/openai_realtime_api.dart';
 import '../../providers.dart';
+import 'course_restart_card.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -237,6 +238,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 4),
         const Text('Toutes les données d’étude restent sur cet appareil.'),
+        const SizedBox(height: 16),
+        const CourseRestartCard(),
         const SizedBox(height: 24),
         Text('FOURNISSEUR IA', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
@@ -516,6 +519,8 @@ class _WebSettingsPanelState extends ConsumerState<_WebSettingsPanel> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       children: [
         Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 16),
+        const CourseRestartCard(),
         const SizedBox(height: 16),
         Card(
           child: Padding(

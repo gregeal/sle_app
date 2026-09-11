@@ -75,7 +75,7 @@ class _WritingScreenState extends ConsumerState<WritingScreen> {
     appBar: AppBar(title: const Text('Expression écrite')),
     body: SafeArea(
       child: _feedback != null
-          ? _FeedbackView(
+          ? WritingFeedbackView(
               feedback: _feedback!,
               onRestart: () => setState(() {
                 _feedback = null;
@@ -161,11 +161,17 @@ class _WritingScreenState extends ConsumerState<WritingScreen> {
   );
 }
 
-class _FeedbackView extends StatelessWidget {
-  const _FeedbackView({required this.feedback, required this.onRestart});
+class WritingFeedbackView extends StatelessWidget {
+  const WritingFeedbackView({
+    super.key,
+    required this.feedback,
+    required this.onRestart,
+    this.restartLabel = 'Nouvelle rédaction',
+  });
 
   final WritingFeedback feedback;
   final VoidCallback onRestart;
+  final String restartLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +282,7 @@ class _FeedbackView extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onRestart,
           icon: const Icon(Icons.edit_outlined),
-          label: const Text('Nouvelle rédaction'),
+          label: Text(restartLabel),
         ),
       ],
     );

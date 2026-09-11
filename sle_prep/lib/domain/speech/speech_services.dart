@@ -241,6 +241,7 @@ class DeviceTtsService implements TtsService {
 
   final _tts = FlutterTts();
   late final Future<void> _ready;
+  int _generation = 0;
 
   Future<void> _initialize() async {
     await _tts.setLanguage('fr-CA');
@@ -249,13 +250,17 @@ class DeviceTtsService implements TtsService {
 
   @override
   Future<void> speak(String textFr) async {
+    final generation = ++_generation;
     await _ready;
+    if (generation != _generation) return;
     await _tts.stop();
+    if (generation != _generation) return;
     await _tts.speak(textFr);
   }
 
   @override
   Future<void> stop() async {
+    ++_generation;
     await _ready;
     await _tts.stop();
   }

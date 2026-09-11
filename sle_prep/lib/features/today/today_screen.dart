@@ -8,6 +8,7 @@ import '../../domain/session/session_composer.dart';
 import '../../providers.dart';
 import '../drills/drill_screen.dart';
 import '../vocab/vocab_review_screen.dart';
+import '../learning/learning_hub_screen.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -74,15 +75,9 @@ class TodayScreen extends ConsumerWidget {
           );
         }
       case BlockType.freePractice:
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Décrivez le thème de la semaine à voix haute pendant quelques minutes.',
-              ),
-            ),
-          );
-        }
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const LearningHubScreen()));
     }
     ref.invalidate(dueCardsProvider);
     ref.invalidate(todayPlanProvider);
@@ -166,6 +161,19 @@ class _TodayContent extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.school_outlined),
+            title: const Text('Mon espace d’apprentissage'),
+            subtitle: const Text(
+              'Carnet, erreurs, écoute et rétroactions au même endroit',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LearningHubScreen()),
+            ),
+          ),
+        ),
         Card(
           color: Theme.of(context).colorScheme.primaryContainer,
           child: Padding(

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/daos.dart';
 import '../../data/db/database.dart';
+import '../../data/db/learning_daos.dart';
+import '../../domain/speech/speech_services.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/reading_generator.dart';
 import '../../providers.dart';
@@ -148,17 +150,29 @@ class _ReadingListScreenState extends ConsumerState<ReadingListScreen> {
 }
 
 class ReadingSessionScreen extends ConsumerStatefulWidget {
-  const ReadingSessionScreen({super.key, required this.readingSet});
+  const ReadingSessionScreen({
+    super.key,
+    required this.readingSet,
+    this.listeningMode = false,
+  });
 
   final ReadingSet readingSet;
+  final bool listeningMode;
 
   @override
   ConsumerState<ReadingSessionScreen> createState() =>
       _ReadingSessionScreenState();
 }
 
-class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
+class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen>
+    with WidgetsBindingObserver {
+  TtsService? _tts;
+  bool _showTranscript = false;
+  bool _usedTranscript = false;
+  bool _audioBusy = false;
+  String? _audioError;
   final _stopwatch = Stopwatch()..start();
+  final _questionScroll = ScrollController();
   Timer? _ticker;
   var _readingPhase = true;
   var _index = 0;
@@ -172,6 +186,8 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.listeningMode) _tts = ref.read(ttsServiceProvider);
+    WidgetsBinding.instance.addObserver(this);
     _ticker = Timer.periodic(
       const Duration(seconds: 1),
       (_) => setState(() {}),
@@ -180,8 +196,47 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_stopAudio());
     _ticker?.cancel();
+    _questionScroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_stopAudio());
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    try {
+      await _tts?.stop();
+    } catch (_) {
+      /* Best-effort device cleanup. */
+    }
+  }
+
+  Future<void> _playAudio() async {
+    if (_audioBusy) return;
+    setState(() {
+      _audioBusy = true;
+      _audioError = null;
+    });
+    try {
+      await _tts?.speak(widget.readingSet.bodyFr);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _audioError =
+              'Audio indisponible. Installez une voix française sur l’appareil ou utilisez le texte.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _audioBusy = false);
+    }
   }
 
   String get _elapsed {
@@ -205,6 +260,7 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
         _index++;
         _selectedIndex = -1;
       });
+      if (_questionScroll.hasClients) _questionScroll.jumpTo(0);
       return;
     }
 
@@ -212,20 +268,37 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
     _ticker?.cancel();
     setState(() => _saving = true);
     try {
-      await ref
-          .read(appDatabaseProvider)
-          .recordReadingAttempt(
-            setId: widget.readingSet.id,
-            correct: _correctAnswers,
-            total: _questions.length,
-            seconds: _stopwatch.elapsed.inSeconds,
-            at: DateTime.now(),
-          );
+      if (widget.listeningMode) {
+        await ref
+            .read(appDatabaseProvider)
+            .recordListening(
+              lessonId: widget.readingSet.id.toString(),
+              correct: _correctAnswers,
+              total: _questions.length,
+              seconds: _stopwatch.elapsed.inSeconds,
+              usedTranscript: _usedTranscript,
+              at: DateTime.now(),
+            );
+      } else {
+        await ref
+            .read(appDatabaseProvider)
+            .recordReadingAttempt(
+              setId: widget.readingSet.id,
+              correct: _correctAnswers,
+              total: _questions.length,
+              seconds: _stopwatch.elapsed.inSeconds,
+              at: DateTime.now(),
+            );
+      }
       if (mounted) setState(() => _done = true);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Résultat non enregistré : $error')),
+          const SnackBar(
+            content: Text(
+              'Résultat non enregistré. Réessayez avec « Voir le bilan ».',
+            ),
+          ),
         );
       }
     } finally {
@@ -236,7 +309,11 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(kindLabel(widget.readingSet.kind)),
+      title: Text(
+        widget.listeningMode
+            ? 'Compréhension orale'
+            : kindLabel(widget.readingSet.kind),
+      ),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
@@ -255,6 +332,8 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
               correct: _correctAnswers,
               total: _questions.length,
               elapsed: _elapsed,
+              listening: widget.listeningMode,
+              usedTranscript: _usedTranscript,
             )
           : _readingPhase
           ? _buildPassage(context)
@@ -274,17 +353,54 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 16),
-              Text(
-                widget.readingSet.bodyFr,
-                style: const TextStyle(fontSize: 16, height: 1.55),
-              ),
+              if (widget.listeningMode) ...[
+                const Text(
+                  'Écoutez, relevez l’idée principale, puis répondez sans le texte. '
+                  'Après correction, réécoutez et reformulez le message à voix haute. '
+                  'Voix de synthèse : entraînement, pas un examen officiel.',
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _audioBusy ? null : _playAudio,
+                      icon: const Icon(Icons.volume_up),
+                      label: const Text('Écouter'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _stopAudio,
+                      icon: const Icon(Icons.stop),
+                      label: const Text('Arrêter'),
+                    ),
+                  ],
+                ),
+                if (_audioError != null) Text(_audioError!),
+                SwitchListTile(
+                  title: const Text('Afficher la transcription'),
+                  value: _showTranscript,
+                  onChanged: (value) => setState(() {
+                    _showTranscript = value;
+                    _usedTranscript = _usedTranscript || value;
+                  }),
+                ),
+              ],
+              if (!widget.listeningMode || _showTranscript)
+                Text(
+                  widget.readingSet.bodyFr,
+                  style: const TextStyle(fontSize: 16, height: 1.55),
+                ),
             ],
           ),
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
           key: const Key('start-questions'),
-          onPressed: () => setState(() => _readingPhase = false),
+          onPressed: _questions.isEmpty
+              ? null
+              : () async {
+                  await _stopAudio();
+                  if (mounted) setState(() => _readingPhase = false);
+                },
           icon: const Icon(Icons.quiz_outlined),
           label: Text('Passer aux questions (${_questions.length})'),
         ),
@@ -302,6 +418,7 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       child: ListView(
+        controller: _questionScroll,
         children: [
           Text(
             'Question ${_index + 1} sur ${_questions.length}',
@@ -313,7 +430,9 @@ class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen> {
           TextButton.icon(
             onPressed: () => setState(() => _readingPhase = true),
             icon: const Icon(Icons.arrow_back, size: 18),
-            label: const Text('Relire le texte'),
+            label: Text(
+              widget.listeningMode ? 'Réécouter le passage' : 'Relire le texte',
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -391,11 +510,15 @@ class _ReadingSummary extends StatelessWidget {
     required this.correct,
     required this.total,
     required this.elapsed,
+    this.listening = false,
+    this.usedTranscript = false,
   });
 
   final int correct;
   final int total;
   final String elapsed;
+  final bool listening;
+  final bool usedTranscript;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -411,14 +534,21 @@ class _ReadingSummary extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Lecture terminée',
+            listening ? 'Écoute terminée' : 'Lecture terminée',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text('$correct sur $total en $elapsed.', textAlign: TextAlign.center),
+          if (listening)
+            Text(
+              usedTranscript
+                  ? 'Entraînement avec transcription.'
+                  : 'Entraînement sans transcription.',
+              textAlign: TextAlign.center,
+            ),
           const SizedBox(height: 8),
           const Text(
-            'À l\'ELS, visez environ 80 % en gestion serrée du temps.',
+            'Score d’entraînement uniquement, sans estimation de niveau ÉLS.',
             textAlign: TextAlign.center,
           ),
         ],

@@ -117,6 +117,16 @@ class OralQuestions extends Table {
   TextColumn get source => text().withDefault(const Constant('seed'))();
 }
 
+class ListeningAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get lessonId => text()();
+  IntColumn get correct => integer()();
+  IntColumn get total => integer()();
+  IntColumn get seconds => integer()();
+  BoolColumn get usedTranscript => boolean()();
+  DateTimeColumn get answeredAt => dateTime()();
+}
+
 class OralAttempts extends Table {
   IntColumn get id => integer().autoIncrement()();
 
@@ -170,13 +180,14 @@ class WritingAttempts extends Table {
     OralQuestions,
     OralAttempts,
     MockResults,
+    ListeningAttempts,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -195,6 +206,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.addColumn(sessionLogs, sessionLogs.planSnapshot);
+      }
+      if (from < 6) {
+        await m.createTable(listeningAttempts);
       }
     },
   );

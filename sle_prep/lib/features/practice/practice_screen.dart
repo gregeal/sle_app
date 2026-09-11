@@ -9,6 +9,7 @@ import '../drills/drill_screen.dart';
 import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../writing/writing_screen.dart';
+import '../learning/learning_hub_screen.dart';
 
 class PracticeScreen extends ConsumerWidget {
   const PracticeScreen({super.key});
@@ -27,6 +28,14 @@ class PracticeScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text('Semaine ${week.number} · ${week.week.themeFr}'),
             const SizedBox(height: 16),
+            _PracticeCard(
+              icon: Icons.school_outlined,
+              title: 'Mon espace d’apprentissage',
+              subtitle: 'Carnet · erreurs à reprendre · écoute · rétroactions',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LearningHubScreen()),
+              ),
+            ),
             _PracticeCard(
               icon: Icons.style_outlined,
               title: 'Vocabulaire',
