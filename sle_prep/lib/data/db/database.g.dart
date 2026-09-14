@@ -5269,6 +5269,2026 @@ class ListeningAttemptsCompanion extends UpdateCompanion<ListeningAttempt> {
   }
 }
 
+class $SpeakingSessionsTable extends SpeakingSessions
+    with TableInfo<$SpeakingSessionsTable, SpeakingSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SpeakingSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _topicMeta = const VerificationMeta('topic');
+  @override
+  late final GeneratedColumn<String> topic = GeneratedColumn<String>(
+    'topic',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptFrMeta = const VerificationMeta(
+    'promptFr',
+  );
+  @override
+  late final GeneratedColumn<String> promptFr = GeneratedColumn<String>(
+    'prompt_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _draftMeta = const VerificationMeta('draft');
+  @override
+  late final GeneratedColumn<String> draft = GeneratedColumn<String>(
+    'draft',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _turnCountMeta = const VerificationMeta(
+    'turnCount',
+  );
+  @override
+  late final GeneratedColumn<int> turnCount = GeneratedColumn<int>(
+    'turn_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _finishedMeta = const VerificationMeta(
+    'finished',
+  );
+  @override
+  late final GeneratedColumn<bool> finished = GeneratedColumn<bool>(
+    'finished',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("finished" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _repairModeMeta = const VerificationMeta(
+    'repairMode',
+  );
+  @override
+  late final GeneratedColumn<bool> repairMode = GeneratedColumn<bool>(
+    'repair_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("repair_mode" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _focusMistakeIdMeta = const VerificationMeta(
+    'focusMistakeId',
+  );
+  @override
+  late final GeneratedColumn<int> focusMistakeId = GeneratedColumn<int>(
+    'focus_mistake_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    topic,
+    promptFr,
+    draft,
+    turnCount,
+    finished,
+    repairMode,
+    focusMistakeId,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'speaking_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SpeakingSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('topic')) {
+      context.handle(
+        _topicMeta,
+        topic.isAcceptableOrUnknown(data['topic']!, _topicMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicMeta);
+    }
+    if (data.containsKey('prompt_fr')) {
+      context.handle(
+        _promptFrMeta,
+        promptFr.isAcceptableOrUnknown(data['prompt_fr']!, _promptFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptFrMeta);
+    }
+    if (data.containsKey('draft')) {
+      context.handle(
+        _draftMeta,
+        draft.isAcceptableOrUnknown(data['draft']!, _draftMeta),
+      );
+    }
+    if (data.containsKey('turn_count')) {
+      context.handle(
+        _turnCountMeta,
+        turnCount.isAcceptableOrUnknown(data['turn_count']!, _turnCountMeta),
+      );
+    }
+    if (data.containsKey('finished')) {
+      context.handle(
+        _finishedMeta,
+        finished.isAcceptableOrUnknown(data['finished']!, _finishedMeta),
+      );
+    }
+    if (data.containsKey('repair_mode')) {
+      context.handle(
+        _repairModeMeta,
+        repairMode.isAcceptableOrUnknown(data['repair_mode']!, _repairModeMeta),
+      );
+    }
+    if (data.containsKey('focus_mistake_id')) {
+      context.handle(
+        _focusMistakeIdMeta,
+        focusMistakeId.isAcceptableOrUnknown(
+          data['focus_mistake_id']!,
+          _focusMistakeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SpeakingSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SpeakingSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      topic: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}topic'],
+      )!,
+      promptFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_fr'],
+      )!,
+      draft: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}draft'],
+      )!,
+      turnCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}turn_count'],
+      )!,
+      finished: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}finished'],
+      )!,
+      repairMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}repair_mode'],
+      )!,
+      focusMistakeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}focus_mistake_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SpeakingSessionsTable createAlias(String alias) {
+    return $SpeakingSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class SpeakingSession extends DataClass implements Insertable<SpeakingSession> {
+  final int id;
+  final String topic;
+  final String promptFr;
+  final String draft;
+  final int turnCount;
+  final bool finished;
+  final bool repairMode;
+  final int? focusMistakeId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const SpeakingSession({
+    required this.id,
+    required this.topic,
+    required this.promptFr,
+    required this.draft,
+    required this.turnCount,
+    required this.finished,
+    required this.repairMode,
+    this.focusMistakeId,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['topic'] = Variable<String>(topic);
+    map['prompt_fr'] = Variable<String>(promptFr);
+    map['draft'] = Variable<String>(draft);
+    map['turn_count'] = Variable<int>(turnCount);
+    map['finished'] = Variable<bool>(finished);
+    map['repair_mode'] = Variable<bool>(repairMode);
+    if (!nullToAbsent || focusMistakeId != null) {
+      map['focus_mistake_id'] = Variable<int>(focusMistakeId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SpeakingSessionsCompanion toCompanion(bool nullToAbsent) {
+    return SpeakingSessionsCompanion(
+      id: Value(id),
+      topic: Value(topic),
+      promptFr: Value(promptFr),
+      draft: Value(draft),
+      turnCount: Value(turnCount),
+      finished: Value(finished),
+      repairMode: Value(repairMode),
+      focusMistakeId: focusMistakeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(focusMistakeId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SpeakingSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SpeakingSession(
+      id: serializer.fromJson<int>(json['id']),
+      topic: serializer.fromJson<String>(json['topic']),
+      promptFr: serializer.fromJson<String>(json['promptFr']),
+      draft: serializer.fromJson<String>(json['draft']),
+      turnCount: serializer.fromJson<int>(json['turnCount']),
+      finished: serializer.fromJson<bool>(json['finished']),
+      repairMode: serializer.fromJson<bool>(json['repairMode']),
+      focusMistakeId: serializer.fromJson<int?>(json['focusMistakeId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'topic': serializer.toJson<String>(topic),
+      'promptFr': serializer.toJson<String>(promptFr),
+      'draft': serializer.toJson<String>(draft),
+      'turnCount': serializer.toJson<int>(turnCount),
+      'finished': serializer.toJson<bool>(finished),
+      'repairMode': serializer.toJson<bool>(repairMode),
+      'focusMistakeId': serializer.toJson<int?>(focusMistakeId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  SpeakingSession copyWith({
+    int? id,
+    String? topic,
+    String? promptFr,
+    String? draft,
+    int? turnCount,
+    bool? finished,
+    bool? repairMode,
+    Value<int?> focusMistakeId = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => SpeakingSession(
+    id: id ?? this.id,
+    topic: topic ?? this.topic,
+    promptFr: promptFr ?? this.promptFr,
+    draft: draft ?? this.draft,
+    turnCount: turnCount ?? this.turnCount,
+    finished: finished ?? this.finished,
+    repairMode: repairMode ?? this.repairMode,
+    focusMistakeId: focusMistakeId.present
+        ? focusMistakeId.value
+        : this.focusMistakeId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  SpeakingSession copyWithCompanion(SpeakingSessionsCompanion data) {
+    return SpeakingSession(
+      id: data.id.present ? data.id.value : this.id,
+      topic: data.topic.present ? data.topic.value : this.topic,
+      promptFr: data.promptFr.present ? data.promptFr.value : this.promptFr,
+      draft: data.draft.present ? data.draft.value : this.draft,
+      turnCount: data.turnCount.present ? data.turnCount.value : this.turnCount,
+      finished: data.finished.present ? data.finished.value : this.finished,
+      repairMode: data.repairMode.present
+          ? data.repairMode.value
+          : this.repairMode,
+      focusMistakeId: data.focusMistakeId.present
+          ? data.focusMistakeId.value
+          : this.focusMistakeId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingSession(')
+          ..write('id: $id, ')
+          ..write('topic: $topic, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('draft: $draft, ')
+          ..write('turnCount: $turnCount, ')
+          ..write('finished: $finished, ')
+          ..write('repairMode: $repairMode, ')
+          ..write('focusMistakeId: $focusMistakeId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    topic,
+    promptFr,
+    draft,
+    turnCount,
+    finished,
+    repairMode,
+    focusMistakeId,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SpeakingSession &&
+          other.id == this.id &&
+          other.topic == this.topic &&
+          other.promptFr == this.promptFr &&
+          other.draft == this.draft &&
+          other.turnCount == this.turnCount &&
+          other.finished == this.finished &&
+          other.repairMode == this.repairMode &&
+          other.focusMistakeId == this.focusMistakeId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SpeakingSessionsCompanion extends UpdateCompanion<SpeakingSession> {
+  final Value<int> id;
+  final Value<String> topic;
+  final Value<String> promptFr;
+  final Value<String> draft;
+  final Value<int> turnCount;
+  final Value<bool> finished;
+  final Value<bool> repairMode;
+  final Value<int?> focusMistakeId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const SpeakingSessionsCompanion({
+    this.id = const Value.absent(),
+    this.topic = const Value.absent(),
+    this.promptFr = const Value.absent(),
+    this.draft = const Value.absent(),
+    this.turnCount = const Value.absent(),
+    this.finished = const Value.absent(),
+    this.repairMode = const Value.absent(),
+    this.focusMistakeId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  SpeakingSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String topic,
+    required String promptFr,
+    this.draft = const Value.absent(),
+    this.turnCount = const Value.absent(),
+    this.finished = const Value.absent(),
+    this.repairMode = const Value.absent(),
+    this.focusMistakeId = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : topic = Value(topic),
+       promptFr = Value(promptFr),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<SpeakingSession> custom({
+    Expression<int>? id,
+    Expression<String>? topic,
+    Expression<String>? promptFr,
+    Expression<String>? draft,
+    Expression<int>? turnCount,
+    Expression<bool>? finished,
+    Expression<bool>? repairMode,
+    Expression<int>? focusMistakeId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (topic != null) 'topic': topic,
+      if (promptFr != null) 'prompt_fr': promptFr,
+      if (draft != null) 'draft': draft,
+      if (turnCount != null) 'turn_count': turnCount,
+      if (finished != null) 'finished': finished,
+      if (repairMode != null) 'repair_mode': repairMode,
+      if (focusMistakeId != null) 'focus_mistake_id': focusMistakeId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  SpeakingSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? topic,
+    Value<String>? promptFr,
+    Value<String>? draft,
+    Value<int>? turnCount,
+    Value<bool>? finished,
+    Value<bool>? repairMode,
+    Value<int?>? focusMistakeId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return SpeakingSessionsCompanion(
+      id: id ?? this.id,
+      topic: topic ?? this.topic,
+      promptFr: promptFr ?? this.promptFr,
+      draft: draft ?? this.draft,
+      turnCount: turnCount ?? this.turnCount,
+      finished: finished ?? this.finished,
+      repairMode: repairMode ?? this.repairMode,
+      focusMistakeId: focusMistakeId ?? this.focusMistakeId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (topic.present) {
+      map['topic'] = Variable<String>(topic.value);
+    }
+    if (promptFr.present) {
+      map['prompt_fr'] = Variable<String>(promptFr.value);
+    }
+    if (draft.present) {
+      map['draft'] = Variable<String>(draft.value);
+    }
+    if (turnCount.present) {
+      map['turn_count'] = Variable<int>(turnCount.value);
+    }
+    if (finished.present) {
+      map['finished'] = Variable<bool>(finished.value);
+    }
+    if (repairMode.present) {
+      map['repair_mode'] = Variable<bool>(repairMode.value);
+    }
+    if (focusMistakeId.present) {
+      map['focus_mistake_id'] = Variable<int>(focusMistakeId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('topic: $topic, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('draft: $draft, ')
+          ..write('turnCount: $turnCount, ')
+          ..write('finished: $finished, ')
+          ..write('repairMode: $repairMode, ')
+          ..write('focusMistakeId: $focusMistakeId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SpeakingTurnsTable extends SpeakingTurns
+    with TableInfo<$SpeakingTurnsTable, SpeakingTurn> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SpeakingTurnsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<int> sessionId = GeneratedColumn<int>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _turnNumberMeta = const VerificationMeta(
+    'turnNumber',
+  );
+  @override
+  late final GeneratedColumn<int> turnNumber = GeneratedColumn<int>(
+    'turn_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptFrMeta = const VerificationMeta(
+    'promptFr',
+  );
+  @override
+  late final GeneratedColumn<String> promptFr = GeneratedColumn<String>(
+    'prompt_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
+  @override
+  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
+    'answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feedbackJsonMeta = const VerificationMeta(
+    'feedbackJson',
+  );
+  @override
+  late final GeneratedColumn<String> feedbackJson = GeneratedColumn<String>(
+    'feedback_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    turnNumber,
+    promptFr,
+    answer,
+    feedbackJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'speaking_turns';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SpeakingTurn> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('turn_number')) {
+      context.handle(
+        _turnNumberMeta,
+        turnNumber.isAcceptableOrUnknown(data['turn_number']!, _turnNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_turnNumberMeta);
+    }
+    if (data.containsKey('prompt_fr')) {
+      context.handle(
+        _promptFrMeta,
+        promptFr.isAcceptableOrUnknown(data['prompt_fr']!, _promptFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptFrMeta);
+    }
+    if (data.containsKey('answer')) {
+      context.handle(
+        _answerMeta,
+        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answerMeta);
+    }
+    if (data.containsKey('feedback_json')) {
+      context.handle(
+        _feedbackJsonMeta,
+        feedbackJson.isAcceptableOrUnknown(
+          data['feedback_json']!,
+          _feedbackJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_feedbackJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {sessionId, turnNumber},
+  ];
+  @override
+  SpeakingTurn map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SpeakingTurn(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_id'],
+      )!,
+      turnNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}turn_number'],
+      )!,
+      promptFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt_fr'],
+      )!,
+      answer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answer'],
+      )!,
+      feedbackJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feedback_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SpeakingTurnsTable createAlias(String alias) {
+    return $SpeakingTurnsTable(attachedDatabase, alias);
+  }
+}
+
+class SpeakingTurn extends DataClass implements Insertable<SpeakingTurn> {
+  final int id;
+  final int sessionId;
+  final int turnNumber;
+  final String promptFr;
+  final String answer;
+  final String feedbackJson;
+  final DateTime createdAt;
+  const SpeakingTurn({
+    required this.id,
+    required this.sessionId,
+    required this.turnNumber,
+    required this.promptFr,
+    required this.answer,
+    required this.feedbackJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['session_id'] = Variable<int>(sessionId);
+    map['turn_number'] = Variable<int>(turnNumber);
+    map['prompt_fr'] = Variable<String>(promptFr);
+    map['answer'] = Variable<String>(answer);
+    map['feedback_json'] = Variable<String>(feedbackJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SpeakingTurnsCompanion toCompanion(bool nullToAbsent) {
+    return SpeakingTurnsCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      turnNumber: Value(turnNumber),
+      promptFr: Value(promptFr),
+      answer: Value(answer),
+      feedbackJson: Value(feedbackJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory SpeakingTurn.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SpeakingTurn(
+      id: serializer.fromJson<int>(json['id']),
+      sessionId: serializer.fromJson<int>(json['sessionId']),
+      turnNumber: serializer.fromJson<int>(json['turnNumber']),
+      promptFr: serializer.fromJson<String>(json['promptFr']),
+      answer: serializer.fromJson<String>(json['answer']),
+      feedbackJson: serializer.fromJson<String>(json['feedbackJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sessionId': serializer.toJson<int>(sessionId),
+      'turnNumber': serializer.toJson<int>(turnNumber),
+      'promptFr': serializer.toJson<String>(promptFr),
+      'answer': serializer.toJson<String>(answer),
+      'feedbackJson': serializer.toJson<String>(feedbackJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  SpeakingTurn copyWith({
+    int? id,
+    int? sessionId,
+    int? turnNumber,
+    String? promptFr,
+    String? answer,
+    String? feedbackJson,
+    DateTime? createdAt,
+  }) => SpeakingTurn(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    turnNumber: turnNumber ?? this.turnNumber,
+    promptFr: promptFr ?? this.promptFr,
+    answer: answer ?? this.answer,
+    feedbackJson: feedbackJson ?? this.feedbackJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  SpeakingTurn copyWithCompanion(SpeakingTurnsCompanion data) {
+    return SpeakingTurn(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      turnNumber: data.turnNumber.present
+          ? data.turnNumber.value
+          : this.turnNumber,
+      promptFr: data.promptFr.present ? data.promptFr.value : this.promptFr,
+      answer: data.answer.present ? data.answer.value : this.answer,
+      feedbackJson: data.feedbackJson.present
+          ? data.feedbackJson.value
+          : this.feedbackJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingTurn(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('turnNumber: $turnNumber, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('answer: $answer, ')
+          ..write('feedbackJson: $feedbackJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    turnNumber,
+    promptFr,
+    answer,
+    feedbackJson,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SpeakingTurn &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.turnNumber == this.turnNumber &&
+          other.promptFr == this.promptFr &&
+          other.answer == this.answer &&
+          other.feedbackJson == this.feedbackJson &&
+          other.createdAt == this.createdAt);
+}
+
+class SpeakingTurnsCompanion extends UpdateCompanion<SpeakingTurn> {
+  final Value<int> id;
+  final Value<int> sessionId;
+  final Value<int> turnNumber;
+  final Value<String> promptFr;
+  final Value<String> answer;
+  final Value<String> feedbackJson;
+  final Value<DateTime> createdAt;
+  const SpeakingTurnsCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.turnNumber = const Value.absent(),
+    this.promptFr = const Value.absent(),
+    this.answer = const Value.absent(),
+    this.feedbackJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SpeakingTurnsCompanion.insert({
+    this.id = const Value.absent(),
+    required int sessionId,
+    required int turnNumber,
+    required String promptFr,
+    required String answer,
+    required String feedbackJson,
+    required DateTime createdAt,
+  }) : sessionId = Value(sessionId),
+       turnNumber = Value(turnNumber),
+       promptFr = Value(promptFr),
+       answer = Value(answer),
+       feedbackJson = Value(feedbackJson),
+       createdAt = Value(createdAt);
+  static Insertable<SpeakingTurn> custom({
+    Expression<int>? id,
+    Expression<int>? sessionId,
+    Expression<int>? turnNumber,
+    Expression<String>? promptFr,
+    Expression<String>? answer,
+    Expression<String>? feedbackJson,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (turnNumber != null) 'turn_number': turnNumber,
+      if (promptFr != null) 'prompt_fr': promptFr,
+      if (answer != null) 'answer': answer,
+      if (feedbackJson != null) 'feedback_json': feedbackJson,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SpeakingTurnsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? sessionId,
+    Value<int>? turnNumber,
+    Value<String>? promptFr,
+    Value<String>? answer,
+    Value<String>? feedbackJson,
+    Value<DateTime>? createdAt,
+  }) {
+    return SpeakingTurnsCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      turnNumber: turnNumber ?? this.turnNumber,
+      promptFr: promptFr ?? this.promptFr,
+      answer: answer ?? this.answer,
+      feedbackJson: feedbackJson ?? this.feedbackJson,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<int>(sessionId.value);
+    }
+    if (turnNumber.present) {
+      map['turn_number'] = Variable<int>(turnNumber.value);
+    }
+    if (promptFr.present) {
+      map['prompt_fr'] = Variable<String>(promptFr.value);
+    }
+    if (answer.present) {
+      map['answer'] = Variable<String>(answer.value);
+    }
+    if (feedbackJson.present) {
+      map['feedback_json'] = Variable<String>(feedbackJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingTurnsCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('turnNumber: $turnNumber, ')
+          ..write('promptFr: $promptFr, ')
+          ..write('answer: $answer, ')
+          ..write('feedbackJson: $feedbackJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SpeakingMistakesTable extends SpeakingMistakes
+    with TableInfo<$SpeakingMistakesTable, SpeakingMistake> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SpeakingMistakesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fingerprintMeta = const VerificationMeta(
+    'fingerprint',
+  );
+  @override
+  late final GeneratedColumn<String> fingerprint = GeneratedColumn<String>(
+    'fingerprint',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _originalMeta = const VerificationMeta(
+    'original',
+  );
+  @override
+  late final GeneratedColumn<String> original = GeneratedColumn<String>(
+    'original',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _correctedMeta = const VerificationMeta(
+    'corrected',
+  );
+  @override
+  late final GeneratedColumn<String> corrected = GeneratedColumn<String>(
+    'corrected',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _explanationMeta = const VerificationMeta(
+    'explanation',
+  );
+  @override
+  late final GeneratedColumn<String> explanation = GeneratedColumn<String>(
+    'explanation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _exerciseMeta = const VerificationMeta(
+    'exercise',
+  );
+  @override
+  late final GeneratedColumn<String> exercise = GeneratedColumn<String>(
+    'exercise',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _occurrencesMeta = const VerificationMeta(
+    'occurrences',
+  );
+  @override
+  late final GeneratedColumn<int> occurrences = GeneratedColumn<int>(
+    'occurrences',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _dismissedMeta = const VerificationMeta(
+    'dismissed',
+  );
+  @override
+  late final GeneratedColumn<bool> dismissed = GeneratedColumn<bool>(
+    'dismissed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dismissed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _easeFactorMeta = const VerificationMeta(
+    'easeFactor',
+  );
+  @override
+  late final GeneratedColumn<double> easeFactor = GeneratedColumn<double>(
+    'ease_factor',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2.5),
+  );
+  static const VerificationMeta _intervalDaysMeta = const VerificationMeta(
+    'intervalDays',
+  );
+  @override
+  late final GeneratedColumn<int> intervalDays = GeneratedColumn<int>(
+    'interval_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _repetitionsMeta = const VerificationMeta(
+    'repetitions',
+  );
+  @override
+  late final GeneratedColumn<int> repetitions = GeneratedColumn<int>(
+    'repetitions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lapsesMeta = const VerificationMeta('lapses');
+  @override
+  late final GeneratedColumn<int> lapses = GeneratedColumn<int>(
+    'lapses',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dueAtMeta = const VerificationMeta('dueAt');
+  @override
+  late final GeneratedColumn<DateTime> dueAt = GeneratedColumn<DateTime>(
+    'due_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastSeenMeta = const VerificationMeta(
+    'lastSeen',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSeen = GeneratedColumn<DateTime>(
+    'last_seen',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reviewedAtMeta = const VerificationMeta(
+    'reviewedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> reviewedAt = GeneratedColumn<DateTime>(
+    'reviewed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reviewVersionMeta = const VerificationMeta(
+    'reviewVersion',
+  );
+  @override
+  late final GeneratedColumn<int> reviewVersion = GeneratedColumn<int>(
+    'review_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fingerprint,
+    original,
+    corrected,
+    explanation,
+    category,
+    exercise,
+    occurrences,
+    dismissed,
+    easeFactor,
+    intervalDays,
+    repetitions,
+    lapses,
+    dueAt,
+    lastSeen,
+    reviewedAt,
+    reviewVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'speaking_mistakes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SpeakingMistake> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fingerprint')) {
+      context.handle(
+        _fingerprintMeta,
+        fingerprint.isAcceptableOrUnknown(
+          data['fingerprint']!,
+          _fingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fingerprintMeta);
+    }
+    if (data.containsKey('original')) {
+      context.handle(
+        _originalMeta,
+        original.isAcceptableOrUnknown(data['original']!, _originalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_originalMeta);
+    }
+    if (data.containsKey('corrected')) {
+      context.handle(
+        _correctedMeta,
+        corrected.isAcceptableOrUnknown(data['corrected']!, _correctedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_correctedMeta);
+    }
+    if (data.containsKey('explanation')) {
+      context.handle(
+        _explanationMeta,
+        explanation.isAcceptableOrUnknown(
+          data['explanation']!,
+          _explanationMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_explanationMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('exercise')) {
+      context.handle(
+        _exerciseMeta,
+        exercise.isAcceptableOrUnknown(data['exercise']!, _exerciseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_exerciseMeta);
+    }
+    if (data.containsKey('occurrences')) {
+      context.handle(
+        _occurrencesMeta,
+        occurrences.isAcceptableOrUnknown(
+          data['occurrences']!,
+          _occurrencesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dismissed')) {
+      context.handle(
+        _dismissedMeta,
+        dismissed.isAcceptableOrUnknown(data['dismissed']!, _dismissedMeta),
+      );
+    }
+    if (data.containsKey('ease_factor')) {
+      context.handle(
+        _easeFactorMeta,
+        easeFactor.isAcceptableOrUnknown(data['ease_factor']!, _easeFactorMeta),
+      );
+    }
+    if (data.containsKey('interval_days')) {
+      context.handle(
+        _intervalDaysMeta,
+        intervalDays.isAcceptableOrUnknown(
+          data['interval_days']!,
+          _intervalDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('repetitions')) {
+      context.handle(
+        _repetitionsMeta,
+        repetitions.isAcceptableOrUnknown(
+          data['repetitions']!,
+          _repetitionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('lapses')) {
+      context.handle(
+        _lapsesMeta,
+        lapses.isAcceptableOrUnknown(data['lapses']!, _lapsesMeta),
+      );
+    }
+    if (data.containsKey('due_at')) {
+      context.handle(
+        _dueAtMeta,
+        dueAt.isAcceptableOrUnknown(data['due_at']!, _dueAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueAtMeta);
+    }
+    if (data.containsKey('last_seen')) {
+      context.handle(
+        _lastSeenMeta,
+        lastSeen.isAcceptableOrUnknown(data['last_seen']!, _lastSeenMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSeenMeta);
+    }
+    if (data.containsKey('reviewed_at')) {
+      context.handle(
+        _reviewedAtMeta,
+        reviewedAt.isAcceptableOrUnknown(data['reviewed_at']!, _reviewedAtMeta),
+      );
+    }
+    if (data.containsKey('review_version')) {
+      context.handle(
+        _reviewVersionMeta,
+        reviewVersion.isAcceptableOrUnknown(
+          data['review_version']!,
+          _reviewVersionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SpeakingMistake map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SpeakingMistake(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fingerprint'],
+      )!,
+      original: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original'],
+      )!,
+      corrected: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}corrected'],
+      )!,
+      explanation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}explanation'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      exercise: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exercise'],
+      )!,
+      occurrences: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}occurrences'],
+      )!,
+      dismissed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dismissed'],
+      )!,
+      easeFactor: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ease_factor'],
+      )!,
+      intervalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_days'],
+      )!,
+      repetitions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repetitions'],
+      )!,
+      lapses: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lapses'],
+      )!,
+      dueAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_at'],
+      )!,
+      lastSeen: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_seen'],
+      )!,
+      reviewedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}reviewed_at'],
+      ),
+      reviewVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}review_version'],
+      )!,
+    );
+  }
+
+  @override
+  $SpeakingMistakesTable createAlias(String alias) {
+    return $SpeakingMistakesTable(attachedDatabase, alias);
+  }
+}
+
+class SpeakingMistake extends DataClass implements Insertable<SpeakingMistake> {
+  final int id;
+  final String fingerprint;
+  final String original;
+  final String corrected;
+  final String explanation;
+  final String category;
+  final String exercise;
+  final int occurrences;
+  final bool dismissed;
+  final double easeFactor;
+  final int intervalDays;
+  final int repetitions;
+  final int lapses;
+  final DateTime dueAt;
+  final DateTime lastSeen;
+  final DateTime? reviewedAt;
+  final int reviewVersion;
+  const SpeakingMistake({
+    required this.id,
+    required this.fingerprint,
+    required this.original,
+    required this.corrected,
+    required this.explanation,
+    required this.category,
+    required this.exercise,
+    required this.occurrences,
+    required this.dismissed,
+    required this.easeFactor,
+    required this.intervalDays,
+    required this.repetitions,
+    required this.lapses,
+    required this.dueAt,
+    required this.lastSeen,
+    this.reviewedAt,
+    required this.reviewVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fingerprint'] = Variable<String>(fingerprint);
+    map['original'] = Variable<String>(original);
+    map['corrected'] = Variable<String>(corrected);
+    map['explanation'] = Variable<String>(explanation);
+    map['category'] = Variable<String>(category);
+    map['exercise'] = Variable<String>(exercise);
+    map['occurrences'] = Variable<int>(occurrences);
+    map['dismissed'] = Variable<bool>(dismissed);
+    map['ease_factor'] = Variable<double>(easeFactor);
+    map['interval_days'] = Variable<int>(intervalDays);
+    map['repetitions'] = Variable<int>(repetitions);
+    map['lapses'] = Variable<int>(lapses);
+    map['due_at'] = Variable<DateTime>(dueAt);
+    map['last_seen'] = Variable<DateTime>(lastSeen);
+    if (!nullToAbsent || reviewedAt != null) {
+      map['reviewed_at'] = Variable<DateTime>(reviewedAt);
+    }
+    map['review_version'] = Variable<int>(reviewVersion);
+    return map;
+  }
+
+  SpeakingMistakesCompanion toCompanion(bool nullToAbsent) {
+    return SpeakingMistakesCompanion(
+      id: Value(id),
+      fingerprint: Value(fingerprint),
+      original: Value(original),
+      corrected: Value(corrected),
+      explanation: Value(explanation),
+      category: Value(category),
+      exercise: Value(exercise),
+      occurrences: Value(occurrences),
+      dismissed: Value(dismissed),
+      easeFactor: Value(easeFactor),
+      intervalDays: Value(intervalDays),
+      repetitions: Value(repetitions),
+      lapses: Value(lapses),
+      dueAt: Value(dueAt),
+      lastSeen: Value(lastSeen),
+      reviewedAt: reviewedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewedAt),
+      reviewVersion: Value(reviewVersion),
+    );
+  }
+
+  factory SpeakingMistake.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SpeakingMistake(
+      id: serializer.fromJson<int>(json['id']),
+      fingerprint: serializer.fromJson<String>(json['fingerprint']),
+      original: serializer.fromJson<String>(json['original']),
+      corrected: serializer.fromJson<String>(json['corrected']),
+      explanation: serializer.fromJson<String>(json['explanation']),
+      category: serializer.fromJson<String>(json['category']),
+      exercise: serializer.fromJson<String>(json['exercise']),
+      occurrences: serializer.fromJson<int>(json['occurrences']),
+      dismissed: serializer.fromJson<bool>(json['dismissed']),
+      easeFactor: serializer.fromJson<double>(json['easeFactor']),
+      intervalDays: serializer.fromJson<int>(json['intervalDays']),
+      repetitions: serializer.fromJson<int>(json['repetitions']),
+      lapses: serializer.fromJson<int>(json['lapses']),
+      dueAt: serializer.fromJson<DateTime>(json['dueAt']),
+      lastSeen: serializer.fromJson<DateTime>(json['lastSeen']),
+      reviewedAt: serializer.fromJson<DateTime?>(json['reviewedAt']),
+      reviewVersion: serializer.fromJson<int>(json['reviewVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fingerprint': serializer.toJson<String>(fingerprint),
+      'original': serializer.toJson<String>(original),
+      'corrected': serializer.toJson<String>(corrected),
+      'explanation': serializer.toJson<String>(explanation),
+      'category': serializer.toJson<String>(category),
+      'exercise': serializer.toJson<String>(exercise),
+      'occurrences': serializer.toJson<int>(occurrences),
+      'dismissed': serializer.toJson<bool>(dismissed),
+      'easeFactor': serializer.toJson<double>(easeFactor),
+      'intervalDays': serializer.toJson<int>(intervalDays),
+      'repetitions': serializer.toJson<int>(repetitions),
+      'lapses': serializer.toJson<int>(lapses),
+      'dueAt': serializer.toJson<DateTime>(dueAt),
+      'lastSeen': serializer.toJson<DateTime>(lastSeen),
+      'reviewedAt': serializer.toJson<DateTime?>(reviewedAt),
+      'reviewVersion': serializer.toJson<int>(reviewVersion),
+    };
+  }
+
+  SpeakingMistake copyWith({
+    int? id,
+    String? fingerprint,
+    String? original,
+    String? corrected,
+    String? explanation,
+    String? category,
+    String? exercise,
+    int? occurrences,
+    bool? dismissed,
+    double? easeFactor,
+    int? intervalDays,
+    int? repetitions,
+    int? lapses,
+    DateTime? dueAt,
+    DateTime? lastSeen,
+    Value<DateTime?> reviewedAt = const Value.absent(),
+    int? reviewVersion,
+  }) => SpeakingMistake(
+    id: id ?? this.id,
+    fingerprint: fingerprint ?? this.fingerprint,
+    original: original ?? this.original,
+    corrected: corrected ?? this.corrected,
+    explanation: explanation ?? this.explanation,
+    category: category ?? this.category,
+    exercise: exercise ?? this.exercise,
+    occurrences: occurrences ?? this.occurrences,
+    dismissed: dismissed ?? this.dismissed,
+    easeFactor: easeFactor ?? this.easeFactor,
+    intervalDays: intervalDays ?? this.intervalDays,
+    repetitions: repetitions ?? this.repetitions,
+    lapses: lapses ?? this.lapses,
+    dueAt: dueAt ?? this.dueAt,
+    lastSeen: lastSeen ?? this.lastSeen,
+    reviewedAt: reviewedAt.present ? reviewedAt.value : this.reviewedAt,
+    reviewVersion: reviewVersion ?? this.reviewVersion,
+  );
+  SpeakingMistake copyWithCompanion(SpeakingMistakesCompanion data) {
+    return SpeakingMistake(
+      id: data.id.present ? data.id.value : this.id,
+      fingerprint: data.fingerprint.present
+          ? data.fingerprint.value
+          : this.fingerprint,
+      original: data.original.present ? data.original.value : this.original,
+      corrected: data.corrected.present ? data.corrected.value : this.corrected,
+      explanation: data.explanation.present
+          ? data.explanation.value
+          : this.explanation,
+      category: data.category.present ? data.category.value : this.category,
+      exercise: data.exercise.present ? data.exercise.value : this.exercise,
+      occurrences: data.occurrences.present
+          ? data.occurrences.value
+          : this.occurrences,
+      dismissed: data.dismissed.present ? data.dismissed.value : this.dismissed,
+      easeFactor: data.easeFactor.present
+          ? data.easeFactor.value
+          : this.easeFactor,
+      intervalDays: data.intervalDays.present
+          ? data.intervalDays.value
+          : this.intervalDays,
+      repetitions: data.repetitions.present
+          ? data.repetitions.value
+          : this.repetitions,
+      lapses: data.lapses.present ? data.lapses.value : this.lapses,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      lastSeen: data.lastSeen.present ? data.lastSeen.value : this.lastSeen,
+      reviewedAt: data.reviewedAt.present
+          ? data.reviewedAt.value
+          : this.reviewedAt,
+      reviewVersion: data.reviewVersion.present
+          ? data.reviewVersion.value
+          : this.reviewVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingMistake(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('original: $original, ')
+          ..write('corrected: $corrected, ')
+          ..write('explanation: $explanation, ')
+          ..write('category: $category, ')
+          ..write('exercise: $exercise, ')
+          ..write('occurrences: $occurrences, ')
+          ..write('dismissed: $dismissed, ')
+          ..write('easeFactor: $easeFactor, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('repetitions: $repetitions, ')
+          ..write('lapses: $lapses, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('lastSeen: $lastSeen, ')
+          ..write('reviewedAt: $reviewedAt, ')
+          ..write('reviewVersion: $reviewVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fingerprint,
+    original,
+    corrected,
+    explanation,
+    category,
+    exercise,
+    occurrences,
+    dismissed,
+    easeFactor,
+    intervalDays,
+    repetitions,
+    lapses,
+    dueAt,
+    lastSeen,
+    reviewedAt,
+    reviewVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SpeakingMistake &&
+          other.id == this.id &&
+          other.fingerprint == this.fingerprint &&
+          other.original == this.original &&
+          other.corrected == this.corrected &&
+          other.explanation == this.explanation &&
+          other.category == this.category &&
+          other.exercise == this.exercise &&
+          other.occurrences == this.occurrences &&
+          other.dismissed == this.dismissed &&
+          other.easeFactor == this.easeFactor &&
+          other.intervalDays == this.intervalDays &&
+          other.repetitions == this.repetitions &&
+          other.lapses == this.lapses &&
+          other.dueAt == this.dueAt &&
+          other.lastSeen == this.lastSeen &&
+          other.reviewedAt == this.reviewedAt &&
+          other.reviewVersion == this.reviewVersion);
+}
+
+class SpeakingMistakesCompanion extends UpdateCompanion<SpeakingMistake> {
+  final Value<int> id;
+  final Value<String> fingerprint;
+  final Value<String> original;
+  final Value<String> corrected;
+  final Value<String> explanation;
+  final Value<String> category;
+  final Value<String> exercise;
+  final Value<int> occurrences;
+  final Value<bool> dismissed;
+  final Value<double> easeFactor;
+  final Value<int> intervalDays;
+  final Value<int> repetitions;
+  final Value<int> lapses;
+  final Value<DateTime> dueAt;
+  final Value<DateTime> lastSeen;
+  final Value<DateTime?> reviewedAt;
+  final Value<int> reviewVersion;
+  const SpeakingMistakesCompanion({
+    this.id = const Value.absent(),
+    this.fingerprint = const Value.absent(),
+    this.original = const Value.absent(),
+    this.corrected = const Value.absent(),
+    this.explanation = const Value.absent(),
+    this.category = const Value.absent(),
+    this.exercise = const Value.absent(),
+    this.occurrences = const Value.absent(),
+    this.dismissed = const Value.absent(),
+    this.easeFactor = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    this.repetitions = const Value.absent(),
+    this.lapses = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.lastSeen = const Value.absent(),
+    this.reviewedAt = const Value.absent(),
+    this.reviewVersion = const Value.absent(),
+  });
+  SpeakingMistakesCompanion.insert({
+    this.id = const Value.absent(),
+    required String fingerprint,
+    required String original,
+    required String corrected,
+    required String explanation,
+    required String category,
+    required String exercise,
+    this.occurrences = const Value.absent(),
+    this.dismissed = const Value.absent(),
+    this.easeFactor = const Value.absent(),
+    this.intervalDays = const Value.absent(),
+    this.repetitions = const Value.absent(),
+    this.lapses = const Value.absent(),
+    required DateTime dueAt,
+    required DateTime lastSeen,
+    this.reviewedAt = const Value.absent(),
+    this.reviewVersion = const Value.absent(),
+  }) : fingerprint = Value(fingerprint),
+       original = Value(original),
+       corrected = Value(corrected),
+       explanation = Value(explanation),
+       category = Value(category),
+       exercise = Value(exercise),
+       dueAt = Value(dueAt),
+       lastSeen = Value(lastSeen);
+  static Insertable<SpeakingMistake> custom({
+    Expression<int>? id,
+    Expression<String>? fingerprint,
+    Expression<String>? original,
+    Expression<String>? corrected,
+    Expression<String>? explanation,
+    Expression<String>? category,
+    Expression<String>? exercise,
+    Expression<int>? occurrences,
+    Expression<bool>? dismissed,
+    Expression<double>? easeFactor,
+    Expression<int>? intervalDays,
+    Expression<int>? repetitions,
+    Expression<int>? lapses,
+    Expression<DateTime>? dueAt,
+    Expression<DateTime>? lastSeen,
+    Expression<DateTime>? reviewedAt,
+    Expression<int>? reviewVersion,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fingerprint != null) 'fingerprint': fingerprint,
+      if (original != null) 'original': original,
+      if (corrected != null) 'corrected': corrected,
+      if (explanation != null) 'explanation': explanation,
+      if (category != null) 'category': category,
+      if (exercise != null) 'exercise': exercise,
+      if (occurrences != null) 'occurrences': occurrences,
+      if (dismissed != null) 'dismissed': dismissed,
+      if (easeFactor != null) 'ease_factor': easeFactor,
+      if (intervalDays != null) 'interval_days': intervalDays,
+      if (repetitions != null) 'repetitions': repetitions,
+      if (lapses != null) 'lapses': lapses,
+      if (dueAt != null) 'due_at': dueAt,
+      if (lastSeen != null) 'last_seen': lastSeen,
+      if (reviewedAt != null) 'reviewed_at': reviewedAt,
+      if (reviewVersion != null) 'review_version': reviewVersion,
+    });
+  }
+
+  SpeakingMistakesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fingerprint,
+    Value<String>? original,
+    Value<String>? corrected,
+    Value<String>? explanation,
+    Value<String>? category,
+    Value<String>? exercise,
+    Value<int>? occurrences,
+    Value<bool>? dismissed,
+    Value<double>? easeFactor,
+    Value<int>? intervalDays,
+    Value<int>? repetitions,
+    Value<int>? lapses,
+    Value<DateTime>? dueAt,
+    Value<DateTime>? lastSeen,
+    Value<DateTime?>? reviewedAt,
+    Value<int>? reviewVersion,
+  }) {
+    return SpeakingMistakesCompanion(
+      id: id ?? this.id,
+      fingerprint: fingerprint ?? this.fingerprint,
+      original: original ?? this.original,
+      corrected: corrected ?? this.corrected,
+      explanation: explanation ?? this.explanation,
+      category: category ?? this.category,
+      exercise: exercise ?? this.exercise,
+      occurrences: occurrences ?? this.occurrences,
+      dismissed: dismissed ?? this.dismissed,
+      easeFactor: easeFactor ?? this.easeFactor,
+      intervalDays: intervalDays ?? this.intervalDays,
+      repetitions: repetitions ?? this.repetitions,
+      lapses: lapses ?? this.lapses,
+      dueAt: dueAt ?? this.dueAt,
+      lastSeen: lastSeen ?? this.lastSeen,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      reviewVersion: reviewVersion ?? this.reviewVersion,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fingerprint.present) {
+      map['fingerprint'] = Variable<String>(fingerprint.value);
+    }
+    if (original.present) {
+      map['original'] = Variable<String>(original.value);
+    }
+    if (corrected.present) {
+      map['corrected'] = Variable<String>(corrected.value);
+    }
+    if (explanation.present) {
+      map['explanation'] = Variable<String>(explanation.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (exercise.present) {
+      map['exercise'] = Variable<String>(exercise.value);
+    }
+    if (occurrences.present) {
+      map['occurrences'] = Variable<int>(occurrences.value);
+    }
+    if (dismissed.present) {
+      map['dismissed'] = Variable<bool>(dismissed.value);
+    }
+    if (easeFactor.present) {
+      map['ease_factor'] = Variable<double>(easeFactor.value);
+    }
+    if (intervalDays.present) {
+      map['interval_days'] = Variable<int>(intervalDays.value);
+    }
+    if (repetitions.present) {
+      map['repetitions'] = Variable<int>(repetitions.value);
+    }
+    if (lapses.present) {
+      map['lapses'] = Variable<int>(lapses.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<DateTime>(dueAt.value);
+    }
+    if (lastSeen.present) {
+      map['last_seen'] = Variable<DateTime>(lastSeen.value);
+    }
+    if (reviewedAt.present) {
+      map['reviewed_at'] = Variable<DateTime>(reviewedAt.value);
+    }
+    if (reviewVersion.present) {
+      map['review_version'] = Variable<int>(reviewVersion.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SpeakingMistakesCompanion(')
+          ..write('id: $id, ')
+          ..write('fingerprint: $fingerprint, ')
+          ..write('original: $original, ')
+          ..write('corrected: $corrected, ')
+          ..write('explanation: $explanation, ')
+          ..write('category: $category, ')
+          ..write('exercise: $exercise, ')
+          ..write('occurrences: $occurrences, ')
+          ..write('dismissed: $dismissed, ')
+          ..write('easeFactor: $easeFactor, ')
+          ..write('intervalDays: $intervalDays, ')
+          ..write('repetitions: $repetitions, ')
+          ..write('lapses: $lapses, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('lastSeen: $lastSeen, ')
+          ..write('reviewedAt: $reviewedAt, ')
+          ..write('reviewVersion: $reviewVersion')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5293,6 +7313,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MockResultsTable mockResults = $MockResultsTable(this);
   late final $ListeningAttemptsTable listeningAttempts =
       $ListeningAttemptsTable(this);
+  late final $SpeakingSessionsTable speakingSessions = $SpeakingSessionsTable(
+    this,
+  );
+  late final $SpeakingTurnsTable speakingTurns = $SpeakingTurnsTable(this);
+  late final $SpeakingMistakesTable speakingMistakes = $SpeakingMistakesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5312,6 +7339,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     oralAttempts,
     mockResults,
     listeningAttempts,
+    speakingSessions,
+    speakingTurns,
+    speakingMistakes,
   ];
 }
 
@@ -8205,6 +10235,985 @@ typedef $$ListeningAttemptsTableProcessedTableManager =
       ListeningAttempt,
       PrefetchHooks Function()
     >;
+typedef $$SpeakingSessionsTableCreateCompanionBuilder =
+    SpeakingSessionsCompanion Function({
+      Value<int> id,
+      required String topic,
+      required String promptFr,
+      Value<String> draft,
+      Value<int> turnCount,
+      Value<bool> finished,
+      Value<bool> repairMode,
+      Value<int?> focusMistakeId,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$SpeakingSessionsTableUpdateCompanionBuilder =
+    SpeakingSessionsCompanion Function({
+      Value<int> id,
+      Value<String> topic,
+      Value<String> promptFr,
+      Value<String> draft,
+      Value<int> turnCount,
+      Value<bool> finished,
+      Value<bool> repairMode,
+      Value<int?> focusMistakeId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$SpeakingSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SpeakingSessionsTable> {
+  $$SpeakingSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get topic => $composableBuilder(
+    column: $table.topic,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get draft => $composableBuilder(
+    column: $table.draft,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get turnCount => $composableBuilder(
+    column: $table.turnCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get finished => $composableBuilder(
+    column: $table.finished,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get repairMode => $composableBuilder(
+    column: $table.repairMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get focusMistakeId => $composableBuilder(
+    column: $table.focusMistakeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SpeakingSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SpeakingSessionsTable> {
+  $$SpeakingSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get topic => $composableBuilder(
+    column: $table.topic,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get draft => $composableBuilder(
+    column: $table.draft,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get turnCount => $composableBuilder(
+    column: $table.turnCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get finished => $composableBuilder(
+    column: $table.finished,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get repairMode => $composableBuilder(
+    column: $table.repairMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get focusMistakeId => $composableBuilder(
+    column: $table.focusMistakeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SpeakingSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SpeakingSessionsTable> {
+  $$SpeakingSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get topic =>
+      $composableBuilder(column: $table.topic, builder: (column) => column);
+
+  GeneratedColumn<String> get promptFr =>
+      $composableBuilder(column: $table.promptFr, builder: (column) => column);
+
+  GeneratedColumn<String> get draft =>
+      $composableBuilder(column: $table.draft, builder: (column) => column);
+
+  GeneratedColumn<int> get turnCount =>
+      $composableBuilder(column: $table.turnCount, builder: (column) => column);
+
+  GeneratedColumn<bool> get finished =>
+      $composableBuilder(column: $table.finished, builder: (column) => column);
+
+  GeneratedColumn<bool> get repairMode => $composableBuilder(
+    column: $table.repairMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get focusMistakeId => $composableBuilder(
+    column: $table.focusMistakeId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SpeakingSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SpeakingSessionsTable,
+          SpeakingSession,
+          $$SpeakingSessionsTableFilterComposer,
+          $$SpeakingSessionsTableOrderingComposer,
+          $$SpeakingSessionsTableAnnotationComposer,
+          $$SpeakingSessionsTableCreateCompanionBuilder,
+          $$SpeakingSessionsTableUpdateCompanionBuilder,
+          (
+            SpeakingSession,
+            BaseReferences<
+              _$AppDatabase,
+              $SpeakingSessionsTable,
+              SpeakingSession
+            >,
+          ),
+          SpeakingSession,
+          PrefetchHooks Function()
+        > {
+  $$SpeakingSessionsTableTableManager(
+    _$AppDatabase db,
+    $SpeakingSessionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SpeakingSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SpeakingSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SpeakingSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> topic = const Value.absent(),
+                Value<String> promptFr = const Value.absent(),
+                Value<String> draft = const Value.absent(),
+                Value<int> turnCount = const Value.absent(),
+                Value<bool> finished = const Value.absent(),
+                Value<bool> repairMode = const Value.absent(),
+                Value<int?> focusMistakeId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => SpeakingSessionsCompanion(
+                id: id,
+                topic: topic,
+                promptFr: promptFr,
+                draft: draft,
+                turnCount: turnCount,
+                finished: finished,
+                repairMode: repairMode,
+                focusMistakeId: focusMistakeId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String topic,
+                required String promptFr,
+                Value<String> draft = const Value.absent(),
+                Value<int> turnCount = const Value.absent(),
+                Value<bool> finished = const Value.absent(),
+                Value<bool> repairMode = const Value.absent(),
+                Value<int?> focusMistakeId = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => SpeakingSessionsCompanion.insert(
+                id: id,
+                topic: topic,
+                promptFr: promptFr,
+                draft: draft,
+                turnCount: turnCount,
+                finished: finished,
+                repairMode: repairMode,
+                focusMistakeId: focusMistakeId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SpeakingSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SpeakingSessionsTable,
+      SpeakingSession,
+      $$SpeakingSessionsTableFilterComposer,
+      $$SpeakingSessionsTableOrderingComposer,
+      $$SpeakingSessionsTableAnnotationComposer,
+      $$SpeakingSessionsTableCreateCompanionBuilder,
+      $$SpeakingSessionsTableUpdateCompanionBuilder,
+      (
+        SpeakingSession,
+        BaseReferences<_$AppDatabase, $SpeakingSessionsTable, SpeakingSession>,
+      ),
+      SpeakingSession,
+      PrefetchHooks Function()
+    >;
+typedef $$SpeakingTurnsTableCreateCompanionBuilder =
+    SpeakingTurnsCompanion Function({
+      Value<int> id,
+      required int sessionId,
+      required int turnNumber,
+      required String promptFr,
+      required String answer,
+      required String feedbackJson,
+      required DateTime createdAt,
+    });
+typedef $$SpeakingTurnsTableUpdateCompanionBuilder =
+    SpeakingTurnsCompanion Function({
+      Value<int> id,
+      Value<int> sessionId,
+      Value<int> turnNumber,
+      Value<String> promptFr,
+      Value<String> answer,
+      Value<String> feedbackJson,
+      Value<DateTime> createdAt,
+    });
+
+class $$SpeakingTurnsTableFilterComposer
+    extends Composer<_$AppDatabase, $SpeakingTurnsTable> {
+  $$SpeakingTurnsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get turnNumber => $composableBuilder(
+    column: $table.turnNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedbackJson => $composableBuilder(
+    column: $table.feedbackJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SpeakingTurnsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SpeakingTurnsTable> {
+  $$SpeakingTurnsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get turnNumber => $composableBuilder(
+    column: $table.turnNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get promptFr => $composableBuilder(
+    column: $table.promptFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedbackJson => $composableBuilder(
+    column: $table.feedbackJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SpeakingTurnsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SpeakingTurnsTable> {
+  $$SpeakingTurnsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<int> get turnNumber => $composableBuilder(
+    column: $table.turnNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get promptFr =>
+      $composableBuilder(column: $table.promptFr, builder: (column) => column);
+
+  GeneratedColumn<String> get answer =>
+      $composableBuilder(column: $table.answer, builder: (column) => column);
+
+  GeneratedColumn<String> get feedbackJson => $composableBuilder(
+    column: $table.feedbackJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$SpeakingTurnsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SpeakingTurnsTable,
+          SpeakingTurn,
+          $$SpeakingTurnsTableFilterComposer,
+          $$SpeakingTurnsTableOrderingComposer,
+          $$SpeakingTurnsTableAnnotationComposer,
+          $$SpeakingTurnsTableCreateCompanionBuilder,
+          $$SpeakingTurnsTableUpdateCompanionBuilder,
+          (
+            SpeakingTurn,
+            BaseReferences<_$AppDatabase, $SpeakingTurnsTable, SpeakingTurn>,
+          ),
+          SpeakingTurn,
+          PrefetchHooks Function()
+        > {
+  $$SpeakingTurnsTableTableManager(_$AppDatabase db, $SpeakingTurnsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SpeakingTurnsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SpeakingTurnsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SpeakingTurnsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> sessionId = const Value.absent(),
+                Value<int> turnNumber = const Value.absent(),
+                Value<String> promptFr = const Value.absent(),
+                Value<String> answer = const Value.absent(),
+                Value<String> feedbackJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SpeakingTurnsCompanion(
+                id: id,
+                sessionId: sessionId,
+                turnNumber: turnNumber,
+                promptFr: promptFr,
+                answer: answer,
+                feedbackJson: feedbackJson,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int sessionId,
+                required int turnNumber,
+                required String promptFr,
+                required String answer,
+                required String feedbackJson,
+                required DateTime createdAt,
+              }) => SpeakingTurnsCompanion.insert(
+                id: id,
+                sessionId: sessionId,
+                turnNumber: turnNumber,
+                promptFr: promptFr,
+                answer: answer,
+                feedbackJson: feedbackJson,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SpeakingTurnsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SpeakingTurnsTable,
+      SpeakingTurn,
+      $$SpeakingTurnsTableFilterComposer,
+      $$SpeakingTurnsTableOrderingComposer,
+      $$SpeakingTurnsTableAnnotationComposer,
+      $$SpeakingTurnsTableCreateCompanionBuilder,
+      $$SpeakingTurnsTableUpdateCompanionBuilder,
+      (
+        SpeakingTurn,
+        BaseReferences<_$AppDatabase, $SpeakingTurnsTable, SpeakingTurn>,
+      ),
+      SpeakingTurn,
+      PrefetchHooks Function()
+    >;
+typedef $$SpeakingMistakesTableCreateCompanionBuilder =
+    SpeakingMistakesCompanion Function({
+      Value<int> id,
+      required String fingerprint,
+      required String original,
+      required String corrected,
+      required String explanation,
+      required String category,
+      required String exercise,
+      Value<int> occurrences,
+      Value<bool> dismissed,
+      Value<double> easeFactor,
+      Value<int> intervalDays,
+      Value<int> repetitions,
+      Value<int> lapses,
+      required DateTime dueAt,
+      required DateTime lastSeen,
+      Value<DateTime?> reviewedAt,
+      Value<int> reviewVersion,
+    });
+typedef $$SpeakingMistakesTableUpdateCompanionBuilder =
+    SpeakingMistakesCompanion Function({
+      Value<int> id,
+      Value<String> fingerprint,
+      Value<String> original,
+      Value<String> corrected,
+      Value<String> explanation,
+      Value<String> category,
+      Value<String> exercise,
+      Value<int> occurrences,
+      Value<bool> dismissed,
+      Value<double> easeFactor,
+      Value<int> intervalDays,
+      Value<int> repetitions,
+      Value<int> lapses,
+      Value<DateTime> dueAt,
+      Value<DateTime> lastSeen,
+      Value<DateTime?> reviewedAt,
+      Value<int> reviewVersion,
+    });
+
+class $$SpeakingMistakesTableFilterComposer
+    extends Composer<_$AppDatabase, $SpeakingMistakesTable> {
+  $$SpeakingMistakesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get original => $composableBuilder(
+    column: $table.original,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get corrected => $composableBuilder(
+    column: $table.corrected,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get explanation => $composableBuilder(
+    column: $table.explanation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get exercise => $composableBuilder(
+    column: $table.exercise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get occurrences => $composableBuilder(
+    column: $table.occurrences,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dismissed => $composableBuilder(
+    column: $table.dismissed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get repetitions => $composableBuilder(
+    column: $table.repetitions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lapses => $composableBuilder(
+    column: $table.lapses,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSeen => $composableBuilder(
+    column: $table.lastSeen,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reviewVersion => $composableBuilder(
+    column: $table.reviewVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SpeakingMistakesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SpeakingMistakesTable> {
+  $$SpeakingMistakesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get original => $composableBuilder(
+    column: $table.original,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get corrected => $composableBuilder(
+    column: $table.corrected,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get explanation => $composableBuilder(
+    column: $table.explanation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get exercise => $composableBuilder(
+    column: $table.exercise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get occurrences => $composableBuilder(
+    column: $table.occurrences,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dismissed => $composableBuilder(
+    column: $table.dismissed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get repetitions => $composableBuilder(
+    column: $table.repetitions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lapses => $composableBuilder(
+    column: $table.lapses,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSeen => $composableBuilder(
+    column: $table.lastSeen,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reviewVersion => $composableBuilder(
+    column: $table.reviewVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SpeakingMistakesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SpeakingMistakesTable> {
+  $$SpeakingMistakesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fingerprint => $composableBuilder(
+    column: $table.fingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get original =>
+      $composableBuilder(column: $table.original, builder: (column) => column);
+
+  GeneratedColumn<String> get corrected =>
+      $composableBuilder(column: $table.corrected, builder: (column) => column);
+
+  GeneratedColumn<String> get explanation => $composableBuilder(
+    column: $table.explanation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get exercise =>
+      $composableBuilder(column: $table.exercise, builder: (column) => column);
+
+  GeneratedColumn<int> get occurrences => $composableBuilder(
+    column: $table.occurrences,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get dismissed =>
+      $composableBuilder(column: $table.dismissed, builder: (column) => column);
+
+  GeneratedColumn<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get intervalDays => $composableBuilder(
+    column: $table.intervalDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get repetitions => $composableBuilder(
+    column: $table.repetitions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lapses =>
+      $composableBuilder(column: $table.lapses, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSeen =>
+      $composableBuilder(column: $table.lastSeen, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get reviewedAt => $composableBuilder(
+    column: $table.reviewedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get reviewVersion => $composableBuilder(
+    column: $table.reviewVersion,
+    builder: (column) => column,
+  );
+}
+
+class $$SpeakingMistakesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SpeakingMistakesTable,
+          SpeakingMistake,
+          $$SpeakingMistakesTableFilterComposer,
+          $$SpeakingMistakesTableOrderingComposer,
+          $$SpeakingMistakesTableAnnotationComposer,
+          $$SpeakingMistakesTableCreateCompanionBuilder,
+          $$SpeakingMistakesTableUpdateCompanionBuilder,
+          (
+            SpeakingMistake,
+            BaseReferences<
+              _$AppDatabase,
+              $SpeakingMistakesTable,
+              SpeakingMistake
+            >,
+          ),
+          SpeakingMistake,
+          PrefetchHooks Function()
+        > {
+  $$SpeakingMistakesTableTableManager(
+    _$AppDatabase db,
+    $SpeakingMistakesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SpeakingMistakesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SpeakingMistakesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SpeakingMistakesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fingerprint = const Value.absent(),
+                Value<String> original = const Value.absent(),
+                Value<String> corrected = const Value.absent(),
+                Value<String> explanation = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> exercise = const Value.absent(),
+                Value<int> occurrences = const Value.absent(),
+                Value<bool> dismissed = const Value.absent(),
+                Value<double> easeFactor = const Value.absent(),
+                Value<int> intervalDays = const Value.absent(),
+                Value<int> repetitions = const Value.absent(),
+                Value<int> lapses = const Value.absent(),
+                Value<DateTime> dueAt = const Value.absent(),
+                Value<DateTime> lastSeen = const Value.absent(),
+                Value<DateTime?> reviewedAt = const Value.absent(),
+                Value<int> reviewVersion = const Value.absent(),
+              }) => SpeakingMistakesCompanion(
+                id: id,
+                fingerprint: fingerprint,
+                original: original,
+                corrected: corrected,
+                explanation: explanation,
+                category: category,
+                exercise: exercise,
+                occurrences: occurrences,
+                dismissed: dismissed,
+                easeFactor: easeFactor,
+                intervalDays: intervalDays,
+                repetitions: repetitions,
+                lapses: lapses,
+                dueAt: dueAt,
+                lastSeen: lastSeen,
+                reviewedAt: reviewedAt,
+                reviewVersion: reviewVersion,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fingerprint,
+                required String original,
+                required String corrected,
+                required String explanation,
+                required String category,
+                required String exercise,
+                Value<int> occurrences = const Value.absent(),
+                Value<bool> dismissed = const Value.absent(),
+                Value<double> easeFactor = const Value.absent(),
+                Value<int> intervalDays = const Value.absent(),
+                Value<int> repetitions = const Value.absent(),
+                Value<int> lapses = const Value.absent(),
+                required DateTime dueAt,
+                required DateTime lastSeen,
+                Value<DateTime?> reviewedAt = const Value.absent(),
+                Value<int> reviewVersion = const Value.absent(),
+              }) => SpeakingMistakesCompanion.insert(
+                id: id,
+                fingerprint: fingerprint,
+                original: original,
+                corrected: corrected,
+                explanation: explanation,
+                category: category,
+                exercise: exercise,
+                occurrences: occurrences,
+                dismissed: dismissed,
+                easeFactor: easeFactor,
+                intervalDays: intervalDays,
+                repetitions: repetitions,
+                lapses: lapses,
+                dueAt: dueAt,
+                lastSeen: lastSeen,
+                reviewedAt: reviewedAt,
+                reviewVersion: reviewVersion,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SpeakingMistakesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SpeakingMistakesTable,
+      SpeakingMistake,
+      $$SpeakingMistakesTableFilterComposer,
+      $$SpeakingMistakesTableOrderingComposer,
+      $$SpeakingMistakesTableAnnotationComposer,
+      $$SpeakingMistakesTableCreateCompanionBuilder,
+      $$SpeakingMistakesTableUpdateCompanionBuilder,
+      (
+        SpeakingMistake,
+        BaseReferences<_$AppDatabase, $SpeakingMistakesTable, SpeakingMistake>,
+      ),
+      SpeakingMistake,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8237,4 +11246,10 @@ class $AppDatabaseManager {
       $$MockResultsTableTableManager(_db, _db.mockResults);
   $$ListeningAttemptsTableTableManager get listeningAttempts =>
       $$ListeningAttemptsTableTableManager(_db, _db.listeningAttempts);
+  $$SpeakingSessionsTableTableManager get speakingSessions =>
+      $$SpeakingSessionsTableTableManager(_db, _db.speakingSessions);
+  $$SpeakingTurnsTableTableManager get speakingTurns =>
+      $$SpeakingTurnsTableTableManager(_db, _db.speakingTurns);
+  $$SpeakingMistakesTableTableManager get speakingMistakes =>
+      $$SpeakingMistakesTableTableManager(_db, _db.speakingMistakes);
 }

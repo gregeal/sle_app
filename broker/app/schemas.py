@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
 
 
 class RealtimeSessionRequest(BaseModel):
+    purpose: Literal["interview", "transcription"] = "interview"
     model: str | None = Field(default=None, min_length=1, max_length=100)
     voice: str = Field(default="marin", min_length=1, max_length=40)
 

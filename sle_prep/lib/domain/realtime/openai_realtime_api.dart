@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import '../llm/provider_http.dart';
+import '../speech/transcription_config.dart';
 
 import 'realtime_interview_prompt.dart';
 import 'realtime_voice_session.dart';
@@ -69,13 +70,22 @@ class OpenAiRealtimeApi {
   }) async {
     final provider = clientSecretProvider;
     if (provider != null) return provider(model: model, voice: voice);
+    return _createSecret(
+      buildRealtimeSessionConfig(model: model, voice: voice),
+    );
+  }
+
+  Future<String> createTranscriptionSecret() =>
+      _createSecret(buildTranscriptionSessionConfig());
+
+  Future<String> _createSecret(Map<String, dynamic> config) async {
     final response = await _post(
       _endpoint('realtime/client_secrets'),
       headers: {
         'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode(buildRealtimeSessionConfig(model: model, voice: voice)),
+      body: jsonEncode(config),
     );
     final payload = _decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {

@@ -127,6 +127,53 @@ class ListeningAttempts extends Table {
   DateTimeColumn get answeredAt => dateTime()();
 }
 
+class SpeakingSessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get topic => text()();
+  TextColumn get promptFr => text()();
+  TextColumn get draft => text().withDefault(const Constant(''))();
+  IntColumn get turnCount => integer().withDefault(const Constant(0))();
+  BoolColumn get finished => boolean().withDefault(const Constant(false))();
+  BoolColumn get repairMode => boolean().withDefault(const Constant(false))();
+  IntColumn get focusMistakeId => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+class SpeakingTurns extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get sessionId => integer()();
+  IntColumn get turnNumber => integer()();
+  TextColumn get promptFr => text()();
+  TextColumn get answer => text()();
+  TextColumn get feedbackJson => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {sessionId, turnNumber},
+  ];
+}
+
+class SpeakingMistakes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get fingerprint => text().unique()();
+  TextColumn get original => text()();
+  TextColumn get corrected => text()();
+  TextColumn get explanation => text()();
+  TextColumn get category => text()();
+  TextColumn get exercise => text()();
+  IntColumn get occurrences => integer().withDefault(const Constant(1))();
+  BoolColumn get dismissed => boolean().withDefault(const Constant(false))();
+  RealColumn get easeFactor => real().withDefault(const Constant(2.5))();
+  IntColumn get intervalDays => integer().withDefault(const Constant(0))();
+  IntColumn get repetitions => integer().withDefault(const Constant(0))();
+  IntColumn get lapses => integer().withDefault(const Constant(0))();
+  DateTimeColumn get dueAt => dateTime()();
+  DateTimeColumn get lastSeen => dateTime()();
+  DateTimeColumn get reviewedAt => dateTime().nullable()();
+  IntColumn get reviewVersion => integer().withDefault(const Constant(0))();
+}
+
 class OralAttempts extends Table {
   IntColumn get id => integer().autoIncrement()();
 
@@ -181,13 +228,16 @@ class WritingAttempts extends Table {
     OralAttempts,
     MockResults,
     ListeningAttempts,
+    SpeakingSessions,
+    SpeakingTurns,
+    SpeakingMistakes,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -209,6 +259,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.createTable(listeningAttempts);
+      }
+      if (from < 7) {
+        await m.createTable(speakingSessions);
+        await m.createTable(speakingTurns);
+        await m.createTable(speakingMistakes);
       }
     },
   );

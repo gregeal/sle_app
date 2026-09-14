@@ -16,6 +16,7 @@ import '../drills/drill_screen.dart';
 import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../writing/writing_screen.dart';
+import '../speaking/speaking_home_screen.dart';
 
 class LearningHubScreen extends ConsumerStatefulWidget {
   const LearningHubScreen({super.key});
@@ -59,6 +60,12 @@ class _LearningHubState extends ConsumerState<LearningHubScreen> {
           'puis écoutez un message et reformulez-le à voix haute.',
         ),
         const SizedBox(height: 16),
+        _HubTile(
+          Icons.forum_outlined,
+          'Parler et réparer mes erreurs',
+          'Partenaire IA qui se souvient · entraînement solo espacé',
+          () => _open(const SpeakingHomeScreen()),
+        ),
         _HubTile(
           Icons.style,
           'Réviser mes cartes dues',

@@ -24,10 +24,74 @@ Project documents in the repository root:
 - [`docs/plans/2026-07-12-p0-implementation-plan.md`](docs/plans/2026-07-12-p0-implementation-plan.md)
 - [`docs/plans/2026-07-13-p4-web-plan.md`](docs/plans/2026-07-13-p4-web-plan.md) — web architecture and implementation evidence
 - [`docs/plans/2026-09-11-learning-hub.md`](docs/plans/2026-09-11-learning-hub.md) — one-place learning features and remaining roadmap
+- [`docs/plans/2026-09-13-speaking-partner.md`](docs/plans/2026-09-13-speaking-partner.md) — persistent speaking partner, repair practice, and validation
+- [`docs/plans/2026-09-14-openai-dictation.md`](docs/plans/2026-09-14-openai-dictation.md) — optional OpenAI live transcription, privacy, and acceptance checks
 - [`docs/security/p4-web-security-checklist.md`](docs/security/p4-web-security-checklist.md) — web release security checklist
 - [`docs/design/objectif-c-ecrans-android.dc.html`](docs/design/objectif-c-ecrans-android.dc.html) — design screens
 
 ## Use the Learning Hub
+
+### Speaking partner: practise, repair, reuse
+
+Open **Coach → Mon partenaire de français** (also linked from the Learning Hub).
+Choose a workplace situation or **Réparer mes erreurs avec le partenaire**.
+Speak with **Parler / continuer**, stop dictation when you are ready, check the
+transcription, and tap **Envoyer ma pensée**. Pauses never submit automatically.
+The partner responds aloud and gives up to three correction suggestions tied to
+your actual submitted wording, with explanations and a new-context practice task.
+This mode uses your selected dictation engine → AI text feedback → device speech;
+corrections arrive after submission, not word by word while your microphone is on.
+The existing Realtime mock interview remains a separate mode.
+
+For improved live capture, choose **Transcription vocale → OpenAI en direct ·
+recommandé** in the response editor and accept the audio/cost notice. This uses
+OpenAI's `gpt-live-transcribe` over WebRTC, with French language hints and a
+higher-context setting (`delay: high`). It avoids restarting the device speech
+recognizer between phrases. The transcript remains visible and editable after
+you stop; wait for finalization before correcting or submitting it. Recognition
+is still fallible, especially with noise or unclear speech. No pronunciation
+accuracy guarantee is implied. The partner's spoken replies still use device TTS;
+this is not an embedded ChatGPT Voice subscription or a new voice-to-voice mode.
+
+Android requires **OpenAI** with the official API URL and an API key with access
+to `gpt-live-transcribe`. Web requires the updated broker, which issues a
+short-lived, transcription-only credential under its existing authentication,
+rate limits, and Realtime session budget reservation. Deploy both frontend and
+broker together. Older brokers are detected and do not start cloud recording.
+
+**Audio is sent directly to OpenAI while the microphone is active**, before you
+submit for feedback. API charges are separate from ChatGPT subscriptions; the app
+does not save an audio file. No silent fallback or automatic reconnect starts a
+second billed capture. You can explicitly switch back to **Dictée de l’appareil**.
+Each capture ends at ten minutes, preserving its transcript; continue if needed.
+Backgrounding stops the microphone and attempts to finalize the transcript. If
+finalization fails, the app warns that the retained partial text may be incomplete.
+
+Sessions and drafts are saved locally and can be resumed. New conversations use
+up to three due mistakes; targeted repair sessions concentrate on one chosen card.
+**Reprendre une réponse du Coach** copies a saved daily/guided/Realtime answer into
+a draft for repair, without modifying the original or making an automatic AI call.
+Reviewing/sending that draft is your choice. Each AI turn is limited to 6,000
+characters; longer drafts remain editable. A session allows 30 submitted turns.
+
+In **Mon carnet d’erreurs orales**, choose **Pratiquer en solo**: attempt the
+correction aloud before revealing it, then reuse it in a new sentence and grade
+your own recall. **À reprendre** returns in ten minutes; the other grades use the
+existing SM-2 spacing. A recurring mistake returns to practice; repeated network
+retries do not create duplicates. AI feedback never automatically marks mastery.
+Solo recall needs no AI request, although device speech may require a network.
+
+Corrections are suggestions, not verified diagnoses. Dismiss inaccurate suggestions
+or speech-recognition errors with **Erreur de dictée / écarter**; dismissed entries
+do not automatically reappear. Text alone cannot measure pronunciation, accent,
+speaking pace, or an official SLE level. No raw audio is stored by this feature.
+Only submitted answers and bounded recent/targeted context are sent for feedback
+through your existing AI provider or authenticated web broker. With OpenAI dictation,
+microphone audio also goes directly to OpenAI during capture, as described above.
+Avoid confidential work details.
+Android/web synchronization is still not implemented.
+
+### Other Learning Hub features
 
 To restart the 26-week course, open **Paramètres → Recommencer à la semaine 1**
 and confirm. Week 1 begins today. Existing vocabulary schedules, reports, results,

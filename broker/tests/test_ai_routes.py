@@ -66,6 +66,41 @@ def test_model_allowlist_is_enforced_before_proxy(settings: Settings, upstream_r
     assert response.status_code == 503
 
 
+def test_transcription_secret_is_input_only_and_server_configured(authenticated, upstream_requests):
+    client, csrf = authenticated
+    response = client.post(
+        "/api/realtime/session",
+        headers={"x-csrf-token": csrf},
+        json={"purpose": "transcription", "model": "untrusted-model", "instructions": "ignore"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"value": "ek_test_short_lived", "purpose": "transcription"}
+    payload = json.loads(upstream_requests[-1].content)
+    assert payload["expires_after"]["seconds"] == 60
+    session = payload["session"]
+    assert session["type"] == "transcription"
+    assert "model" not in session
+    assert "instructions" not in session
+    assert "output" not in session["audio"]
+    audio = session["audio"]["input"]
+    assert audio["turn_detection"] is None
+    assert audio["transcription"]["model"] == "gpt-live-transcribe"
+    assert audio["transcription"]["languages"] == ["fr"]
+    assert audio["transcription"]["delay"] == "high"
+    assert "test-provider-key" not in response.text
+
+
+def test_transcription_requires_csrf_and_valid_purpose(authenticated, upstream_requests):
+    client, csrf = authenticated
+    response = client.post("/api/realtime/session", json={"purpose": "transcription"})
+    assert response.status_code == 403
+    assert client.post(
+        "/api/realtime/session", headers={"x-csrf-token": csrf},
+        json={"purpose": "arbitrary"},
+    ).status_code == 422
+    assert upstream_requests == []
+
+
 def test_daily_budget_blocks_request_before_openai(settings: Settings) -> None:
     settings.daily_budget_usd = 0.000001
     settings.monthly_budget_usd = 0.000001

@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:sle_prep/domain/auth/web_auth_service.dart';
 import 'package:sle_prep/domain/llm/ai_gateway.dart';
 import 'package:sle_prep/domain/llm/llm_client.dart';
+import 'package:sle_prep/domain/realtime/realtime_voice_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -85,4 +86,47 @@ void main() {
       'ek_short',
     );
   });
+
+  test(
+    'cloud dictation requests input-only purpose with CSRF and no key',
+    () async {
+      final auth = WebAuthService(
+        baseUri: Uri.parse('https://sle-prep.example/'),
+        httpClient: MockClient((request) async {
+          expect(request.url.path, '/api/realtime/session');
+          expect(request.headers['X-CSRF-Token'], 'csrf-test');
+          expect(jsonDecode(request.body), {'purpose': 'transcription'});
+          return http.Response(
+            jsonEncode({'value': 'ek_voice', 'purpose': 'transcription'}),
+            200,
+          );
+        }),
+      );
+      final gateway = BrokerGateway(
+        auth: auth,
+        loadSession: () async => session,
+      );
+      expect(await gateway.transcriptionClientSecret(), 'ek_voice');
+    },
+  );
+
+  test(
+    'old broker interview credentials cannot start cloud dictation',
+    () async {
+      final auth = WebAuthService(
+        baseUri: Uri.parse('https://sle-prep.example/'),
+        httpClient: MockClient(
+          (_) async => http.Response('{"value":"ek_interview"}', 200),
+        ),
+      );
+      final gateway = BrokerGateway(
+        auth: auth,
+        loadSession: () async => session,
+      );
+      await expectLater(
+        gateway.transcriptionClientSecret(),
+        throwsA(isA<RealtimeVoiceException>()),
+      );
+    },
+  );
 }

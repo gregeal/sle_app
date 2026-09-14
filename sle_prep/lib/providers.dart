@@ -15,6 +15,8 @@ import 'domain/session/session_composer.dart';
 import 'domain/llm/llm_client.dart';
 import 'domain/llm/llm_config.dart';
 import 'domain/speech/speech_services.dart';
+import 'domain/speech/openai_speech_service.dart';
+import 'domain/speech/openai_dictation_transport.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final databaseName = kIsWeb
@@ -136,6 +138,16 @@ final llmClientProvider = FutureProvider<LlmClient>((ref) async {
 final speechServiceProvider = Provider<SpeechService>(
   (ref) => DeviceSpeechService(),
 );
+
+/// Each editor owns its cloud capture and closes it when leaving the route.
+final cloudSpeechFactoryProvider = Provider<SpeechService Function()>((ref) {
+  final gateway = ref.watch(aiGatewayProvider);
+  return () => OpenAiSpeechService(
+    createTransport: () => OpenAiDictationTransport(
+      createSecret: gateway.transcriptionClientSecret,
+    ),
+  );
+});
 
 final ttsServiceProvider = Provider<TtsService>((ref) => DeviceTtsService());
 

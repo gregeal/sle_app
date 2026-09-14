@@ -114,6 +114,8 @@ class OpenAiService:
         *,
         safety_identifier: str,
     ) -> str:
+        if request.purpose == "transcription":
+            return await self.transcription_secret(safety_identifier=safety_identifier)
         model = (request.model or self.settings.realtime_model).lower()
         voice = request.voice.lower()
         if model not in self.settings.allowed_realtime_models:
@@ -140,6 +142,36 @@ class OpenAiService:
                 "max_output_tokens": 800,
             }
         }
+        return await self._mint_secret(payload, safety_identifier=safety_identifier)
+
+    async def transcription_secret(self, *, safety_identifier: str) -> str:
+        # Fixed server-owned configuration, never arbitrary client session data.
+        payload = {
+            "expires_after": {"anchor": "created_at", "seconds": 60},
+            "session": {
+                "type": "transcription",
+                "audio": {
+                    "input": {
+                        "noise_reduction": {"type": "near_field"},
+                        "transcription": {
+                            "model": "gpt-live-transcribe",
+                            "languages": ["fr"],
+                            "delay": "high",
+                            "prompt": (
+                                "Pratique du français canadien par une personne apprenante. "
+                                "Contexte professionnel de la fonction publique du Canada. "
+                                "Transcrire fidèlement les mots prononcés, les hésitations et les "
+                                "autocorrections, sans corriger la grammaire ni inventer de mots."
+                            ),
+                        },
+                        "turn_detection": None,
+                    }
+                },
+            },
+        }
+        return await self._mint_secret(payload, safety_identifier=safety_identifier)
+
+    async def _mint_secret(self, payload: dict, *, safety_identifier: str) -> str:
         response = await self._post(
             "realtime/client_secrets",
             payload,

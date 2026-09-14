@@ -27,6 +27,9 @@ void main() {
       await before.close();
       final legacy = sqlite3.open(file.path);
       legacy.execute('DROP TABLE listening_attempts');
+      legacy.execute('DROP TABLE speaking_sessions');
+      legacy.execute('DROP TABLE speaking_turns');
+      legacy.execute('DROP TABLE speaking_mistakes');
       legacy.execute('PRAGMA user_version = 5');
       legacy.dispose();
       final after = AppDatabase(NativeDatabase(file));
@@ -43,7 +46,7 @@ void main() {
         at: DateTime.now(),
       );
       expect(await after.listeningHistory(), hasLength(1));
-      expect(after.schemaVersion, 6);
+      expect(after.schemaVersion, greaterThanOrEqualTo(6));
     },
   );
 }

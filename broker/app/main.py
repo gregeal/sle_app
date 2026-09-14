@@ -526,6 +526,8 @@ def create_app(
             store.audit(session.email, "/api/realtime/session", "internal-error", 500)
             raise
         store.audit(session.email, "/api/realtime/session", "ok", 200)
+        if body.purpose == "transcription":
+            return {"value": value, "purpose": "transcription"}
         return {"value": value}
 
     static_dir = settings.static_dir

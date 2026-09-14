@@ -17,6 +17,9 @@ abstract class AiGateway {
     required String voice,
   });
 
+  /// Creates an input-only live-transcription credential (no model response).
+  Future<String> transcriptionClientSecret();
+
   /// Whether this platform lets the user configure a provider key locally.
   bool get supportsDirectConfiguration;
 }
@@ -36,6 +39,28 @@ class DirectProviderGateway implements AiGateway {
   Future<LlmClient> textClient() async {
     final config = await loadConfig();
     return clientFor(config, apiKey: await loadApiKey(config));
+  }
+
+  @override
+  Future<String> transcriptionClientSecret() async {
+    final config = await loadConfig();
+    if (!supportsOpenAiRealtime(config)) {
+      throw const RealtimeVoiceException(
+        'La dictée OpenAI nécessite le fournisseur OpenAI officiel dans les paramètres.',
+      );
+    }
+    final key = (await loadApiKey(config))?.trim() ?? '';
+    if (key.isEmpty) {
+      throw const RealtimeVoiceException(
+        'Ajoutez votre clé API OpenAI dans les paramètres.',
+      );
+    }
+    final api = OpenAiRealtimeApi(baseUrl: config.baseUrl, apiKey: key);
+    try {
+      return await api.createTranscriptionSecret();
+    } finally {
+      api.close();
+    }
   }
 
   @override
@@ -78,6 +103,28 @@ class BrokerGateway implements AiGateway {
   @override
   Future<LlmClient> textClient() async =>
       BrokerLlmClient(auth: auth, session: await loadSession());
+
+  @override
+  Future<String> transcriptionClientSecret() async {
+    try {
+      final payload = await auth.postBroker(
+        '/api/realtime/session',
+        session: await loadSession(),
+        body: {'purpose': 'transcription'},
+      );
+      final value = payload['value'];
+      if (value is! String ||
+          value.isEmpty ||
+          payload['purpose'] != 'transcription') {
+        throw const RealtimeVoiceException(
+          'Le serveur doit être mis à jour pour la dictée OpenAI. Utilisez la dictée de l’appareil en attendant.',
+        );
+      }
+      return value;
+    } on WebAuthException catch (error) {
+      throw RealtimeVoiceException(error.message, statusCode: error.statusCode);
+    }
+  }
 
   @override
   Future<String> realtimeClientSecret({

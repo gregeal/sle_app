@@ -7,6 +7,7 @@ import '../../data/db/database.dart';
 import '../../providers.dart';
 import 'oral_session_screen.dart';
 import 'realtime_interview_screen.dart';
+import '../speaking/speaking_home_screen.dart';
 
 const coachAccent = Color(0xffa93b44);
 const officialOralAssessmentUrl =
@@ -68,6 +69,15 @@ class CoachScreen extends ConsumerWidget {
               'reconnaissance vocale sur l\'appareil.',
             ),
             const SizedBox(height: 16),
+            _CoachCard(
+              icon: Icons.forum_outlined,
+              title: 'Mon partenaire de français',
+              subtitle:
+                  'Conversations suivies · mes erreurs · réparation et rappel actif',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SpeakingHomeScreen()),
+              ),
+            ),
             _CoachCard(
               icon: Icons.graphic_eq,
               title: 'Entrevue Realtime',
