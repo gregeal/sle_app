@@ -31,6 +31,42 @@ Project documents in the repository root:
 
 ## Use the Learning Hub
 
+### Structured study: Parcours B → C
+
+Open **Accueil → Parcours B → C**, or find it in the Learning Hub. This is a
+separate, self-paced course: **8 modules and 16 original French lessons**, focused
+on oral communication with reading and writing activities to support it.
+
+The modules cover clear descriptions and narration; precise, connected sentences;
+opinions and comparisons; nuance and recommendations; hypotheses and hindsight;
+listening and summaries; abstract ideas and disagreement; and fluency and transfer.
+Every lesson includes explanations, short/developed examples, useful expressions,
+a reformulation exercise, two questions with explanations, an oral task, and notes.
+Examples can be read aloud with the existing device/browser synthetic voice.
+
+Start with **Continuer**, or open any lesson. Study and try the reformulation,
+pass the two-question check (retry as needed), then practise aloud and save your
+three-item self-assessment. These three activities mark the lesson complete;
+they do **not** certify SLE level C. You can practise solo without an AI key, or
+choose **Pratiquer avec mon partenaire** to reuse the existing speaking partner
+with that lesson's task. Opening it creates/resumes a local conversation, not an
+AI request. Submitting answers or starting cloud dictation uses the existing
+provider settings and privacy/cost notices. Avoid confidential workplace details.
+
+Completed lessons return for recall after 2 days, then 7, 21, and 60 days after
+successful recalls (subsequent recalls stay at 60 days). Explain the skill from
+memory, redo the check, and apply it to a **new situation** before confirming.
+The course also links to your personal oral-error notebook for targeted repair.
+Try one module per week across three short sessions, but adjust the pace; there
+is no promise of reaching C in eight weeks. For independent reading/writing exam
+practice, continue using the existing **Réviser** activities and checkpoints.
+
+Progress and notes are saved locally per installation/browser, not synchronized
+between Android and web. The 26-week plan is unchanged, and restarting that plan
+does not erase this separate track. Lesson text and checks require no AI/network
+once the app is available offline; synthetic speech availability depends on the
+device/browser. See [course design and validation](docs/plans/2026-09-25-b-to-c-course.md).
+
 ### Speaking partner: practise, repair, reuse
 
 Open **Coach → Mon partenaire de français** (also linked from the Learning Hub).

@@ -9,6 +9,7 @@ import '../../providers.dart';
 import '../drills/drill_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../learning/learning_hub_screen.dart';
+import '../course/course_screen.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -161,6 +162,19 @@ class _TodayContent extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.route_outlined),
+            title: const Text('Parcours B → C'),
+            subtitle: const Text(
+              'Classes structurées · séparées du plan de 26 semaines',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CourseScreen())),
+          ),
+        ),
         Card(
           child: ListTile(
             leading: const Icon(Icons.school_outlined),
