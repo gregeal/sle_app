@@ -17,7 +17,8 @@ import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../writing/writing_screen.dart';
 import '../speaking/speaking_home_screen.dart';
-import '../course/course_screen.dart';
+import '../course/course_library_screen.dart';
+import '../word_help/app_text_selection.dart';
 
 class LearningHubScreen extends ConsumerStatefulWidget {
   const LearningHubScreen({super.key});
@@ -63,9 +64,9 @@ class _LearningHubState extends ConsumerState<LearningHubScreen> {
         const SizedBox(height: 16),
         _HubTile(
           Icons.route_outlined,
-          'Parcours B → C',
-          '8 modules · 16 classes · progression et rappels indépendants',
-          () => _open(const CourseScreen()),
+          'Mes parcours · A → B et B → C',
+          '32 classes · quatre compétences · progression indépendante',
+          () => _open(const CourseLibraryScreen()),
         ),
         _HubTile(
           Icons.forum_outlined,
@@ -438,6 +439,7 @@ class _WordDialogState extends ConsumerState<_WordDialog> {
               ),
               TextField(
                 controller: _front,
+                contextMenuBuilder: learningTextContextMenu,
                 enabled: !_saving,
                 maxLength: 200,
                 decoration: const InputDecoration(
@@ -446,6 +448,7 @@ class _WordDialogState extends ConsumerState<_WordDialog> {
               ),
               TextField(
                 controller: _back,
+                contextMenuBuilder: learningTextContextMenu,
                 enabled: !_saving,
                 maxLength: 500,
                 decoration: const InputDecoration(
@@ -454,6 +457,7 @@ class _WordDialogState extends ConsumerState<_WordDialog> {
               ),
               TextField(
                 controller: _example,
+                contextMenuBuilder: learningTextContextMenu,
                 enabled: !_saving,
                 maxLength: 1000,
                 maxLines: 3,
@@ -631,7 +635,10 @@ class _HistoryState extends ConsumerState<FeedbackHistoryScreen> {
                     constraints: const BoxConstraints(maxHeight: 180),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
-                      child: SelectableText(original),
+                      child: SelectableText(
+                        original,
+                        contextMenuBuilder: learningTextContextMenu,
+                      ),
                     ),
                   ),
                 ],

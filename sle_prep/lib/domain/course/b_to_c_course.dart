@@ -36,6 +36,7 @@ class CourseLesson {
     required this.questions,
     required this.speakingTask,
     required this.criteria,
+    this.foundation = false,
   });
   final String id,
       title,
@@ -46,6 +47,7 @@ class CourseLesson {
       modelAnswer,
       speakingTask;
   final int module;
+  final bool foundation;
   final List<String> teaching, phrases, criteria;
   final List<CourseQuestion> questions;
 
@@ -53,7 +55,7 @@ class CourseLesson {
   /// without inventing the referenced discussion. Never include personal notes.
   String get partnerPrompt => [
     'Objectif de cette classe : $objective',
-    if (module == 6) ...[
+    if (!foundation && module == 6) ...[
       'Support pédagogique (ce n’est pas une réponse de l’apprenant) : $developedExample',
       'Exercice associé : $exercise',
     ],

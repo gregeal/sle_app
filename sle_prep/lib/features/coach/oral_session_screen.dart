@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../word_help/app_text_selection.dart';
+import '../word_help/word_help_guard.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/db/database.dart';
@@ -41,12 +43,19 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen>
   var _backgrounded = false;
   OralFeedback? _feedback;
   Object? _assessError;
+  VoidCallback _releaseWordHelp = () {};
 
   OralQuestion get _question => widget.questions[_index];
 
   @override
   void initState() {
     super.initState();
+    _releaseWordHelp = ref
+        .read(wordHelpGuardProvider)
+        .register(
+          () =>
+              _isListening || _startingListening || _stage == _Stage.assessing,
+        );
     _speech = ref.read(speechServiceProvider);
     _tts = ref.read(ttsServiceProvider);
     WidgetsBinding.instance.addObserver(this);
@@ -57,6 +66,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen>
 
   @override
   void dispose() {
+    _releaseWordHelp();
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_stopSpeechServices(_tts, _speech));
     super.dispose();
@@ -370,6 +380,7 @@ class _OralSessionScreenState extends ConsumerState<OralSessionScreen>
                             const SizedBox(height: 8),
                             if (reviewing)
                               TextFormField(
+                                contextMenuBuilder: learningTextContextMenu,
                                 initialValue: _transcript,
                                 minLines: 3,
                                 maxLines: null,

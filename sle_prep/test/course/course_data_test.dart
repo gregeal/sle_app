@@ -5,6 +5,7 @@ import 'package:sle_prep/data/db/speaking_daos.dart';
 import 'package:sle_prep/domain/course/b_to_c_course.dart';
 import 'package:sle_prep/domain/session/restart_course.dart';
 import '../support/test_db.dart';
+import 'course_fixtures.dart';
 
 void main() {
   test('restarting the calendar preserves the separate course track', () async {
@@ -85,6 +86,8 @@ void main() {
         ),
         2,
       );
+      expect((await db.courseProgress(lesson.id)).completed, isFalse);
+      await finishWorkshop(db, lesson.id);
       final progress = await db.courseProgress(lesson.id);
       expect(progress.completed, isTrue);
       expect(
@@ -143,11 +146,15 @@ void main() {
       await db.submitCourseQuiz(lesson.id, answers);
       await db.saveCoursePractice(lesson.id, [true, true, true]);
       var progress = await db.courseProgress(lesson.id);
+      await finishWorkshop(db, lesson.id);
+      progress = await db.courseProgress(lesson.id);
       final now = progress.reviewAt!;
       await expectLater(
         db.completeCourseRecall(
           lesson.id,
           answers: answers,
+          comprehensionAnswers: workshopAnswers(lesson.id),
+          writingRevised: true,
           criteria: [true, false, true],
           expectedCount: 0,
           now: now,
@@ -157,6 +164,8 @@ void main() {
       await db.completeCourseRecall(
         lesson.id,
         answers: answers,
+        comprehensionAnswers: workshopAnswers(lesson.id),
+        writingRevised: true,
         criteria: [true, true, true],
         expectedCount: 0,
         now: now,
@@ -168,6 +177,8 @@ void main() {
         db.completeCourseRecall(
           lesson.id,
           answers: answers,
+          comprehensionAnswers: workshopAnswers(lesson.id),
+          writingRevised: true,
           criteria: [true, true, true],
           expectedCount: 0,
           now: now,
@@ -177,6 +188,8 @@ void main() {
       await db.completeCourseRecall(
         lesson.id,
         answers: answers,
+        comprehensionAnswers: workshopAnswers(lesson.id),
+        writingRevised: true,
         criteria: [true, true, true],
         expectedCount: 1,
         now: progress.reviewAt!,

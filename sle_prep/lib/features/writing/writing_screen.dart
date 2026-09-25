@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../word_help/app_text_selection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/llm/llm_client.dart';
@@ -121,6 +122,7 @@ class _WritingScreenState extends ConsumerState<WritingScreen> {
       ),
       const SizedBox(height: 14),
       TextField(
+        contextMenuBuilder: learningTextContextMenu,
         controller: _textController,
         enabled: !_isSubmitting,
         minLines: 8,

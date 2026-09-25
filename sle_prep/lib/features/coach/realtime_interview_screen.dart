@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../word_help/word_help_guard.dart';
 
 import '../../domain/llm/oral_coach.dart';
 import '../../domain/realtime/openai_realtime_api.dart';
@@ -44,10 +45,14 @@ class _RealtimeInterviewScreenState
   var _sendingAnswer = false;
   var _backgrounded = false;
   var _needsAnswerRetry = false;
+  VoidCallback _releaseWordHelp = () {};
 
   @override
   void initState() {
     super.initState();
+    _releaseWordHelp = ref
+        .read(wordHelpGuardProvider)
+        .register(() => _session != null || _starting || _finishing);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -67,6 +72,7 @@ class _RealtimeInterviewScreenState
 
   @override
   void dispose() {
+    _releaseWordHelp();
     WidgetsBinding.instance.removeObserver(this);
     _maximumDurationTimer?.cancel();
     _maximumDurationTimer = null;

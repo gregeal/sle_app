@@ -31,41 +31,81 @@ Project documents in the repository root:
 
 ## Use the Learning Hub
 
-### Structured study: Parcours B → C
+### Structured study: Parcours A → B and B → C
 
-Open **Accueil → Parcours B → C**, or find it in the Learning Hub. This is a
-separate, self-paced course: **8 modules and 16 original French lessons**, focused
-on oral communication with reading and writing activities to support it.
+Open **Accueil → Mes parcours · A → B et B → C**, or use the Learning Hub.
+There are **two independent tracks, each with 8 modules and 16 original lessons**:
 
-The modules cover clear descriptions and narration; precise, connected sentences;
-opinions and comparisons; nuance and recommendations; hypotheses and hindsight;
-listening and summaries; abstract ideas and disagreement; and fluency and transfer.
-Every lesson includes explanations, short/developed examples, useful expressions,
-a reformulation exercise, two questions with explanations, an oral task, and notes.
-Examples can be read aloud with the existing device/browser synthetic voice.
+- **A → B:** introductions, routine tasks, questions, dates and numbers, places,
+  descriptions, polite requests, instructions, past events, future plans,
+  factual comparisons, emails, clarification, incidents, and an integrated task.
+- **B → C:** precise developed explanations, narration, cohesion, supported
+  opinions, comparisons, concessions, recommendations, hypotheses, hindsight,
+  synthesis, inferred meaning, abstract ideas, disagreement, fluency, and transfer.
 
-Start with **Continuer**, or open any lesson. Study and try the reformulation,
-pass the two-question check (retry as needed), then practise aloud and save your
-three-item self-assessment. These three activities mark the lesson complete;
-they do **not** certify SLE level C. You can practise solo without an AI key, or
-choose **Pratiquer avec mon partenaire** to reuse the existing speaking partner
-with that lesson's task. Opening it creates/resumes a local conversation, not an
-AI request. Submitting answers or starting cloud dictation uses the existing
-provider settings and privacy/cost notices. Avoid confidential workplace details.
+These are Canadian **SLE/ÉLS levels**, not CEFR A1/B2/C1 equivalents. The course
+design draws on the [public qualification standards](https://www.canada.ca/en/treasury-board-secretariat/services/staffing/qualification-standards/relation-official-languages.html).
+It does not provide official exam questions or certify any level.
+
+Every lesson now includes **all four skills**: a reading passage and question,
+a separate listening message and question, a writing task with a saved draft and
+revision checklist, and a speaking task. There are also teaching notes, examples,
+expressions, a reformulation exercise, two core questions, and personal notes.
+Writing models are illustrative excerpts, sometimes shorter than the suggested
+learner response. Word counts and study times are flexible practice guides.
+Listening uses device/browser synthetic speech, not recorded human conversations.
+
+Use **Continuer** or open any lesson. Study, complete the comprehension checks,
+write your own draft and revise it, then practise aloud and save your self-review.
+Writing is self-assessed, not automatically graded. Select a passage of your draft
+and choose **Poser une question** for optional AI feedback. Solo study needs no AI
+key; **Pratiquer avec mon partenaire** creates/resumes a local conversation. Its
+questions are adapted to concrete B-level work for A → B lessons. Provider calls
+start only when you send an answer or explicitly start cloud dictation.
 
 Completed lessons return for recall after 2 days, then 7, 21, and 60 days after
 successful recalls (subsequent recalls stay at 60 days). Explain the skill from
-memory, redo the check, and apply it to a **new situation** before confirming.
+memory, redo the checks, revise your writing, and apply it to a **new situation** before confirming.
 The course also links to your personal oral-error notebook for targeted repair.
-Try one module per week across three short sessions, but adjust the pace; there
-is no promise of reaching C in eight weeks. For independent reading/writing exam
-practice, continue using the existing **Réviser** activities and checkpoints.
+Split each class into comprehension and production sessions, then revisit it.
+There is no promise of reaching a level in eight weeks. Continue using **Réviser**,
+the oral coach, and the existing checkpoints for additional practice.
 
 Progress and notes are saved locally per installation/browser, not synchronized
 between Android and web. The 26-week plan is unchanged, and restarting that plan
-does not erase this separate track. Lesson text and checks require no AI/network
+does not erase either track. Existing B → C completion dates, notes, quizzes and
+conversations are preserved. Newly added four-skill workshops start uncompleted;
+the updated progress total counts lessons with those workshops completed too.
+Lesson text and checks require no AI/network
 once the app is available offline; synthetic speech availability depends on the
-device/browser. See [course design and validation](docs/plans/2026-09-25-b-to-c-course.md).
+device/browser. See [expanded course and selection design](docs/plans/2026-09-25-full-courses-and-word-help.md).
+
+### Select a word: copy, translate, or ask
+
+On Android, **long-press a word** and adjust the handles. On web, select text with
+the mouse (then use the selection toolbar/context menu). Choose **Copy**,
+**Traduire**, or **Poser une question**. The new actions cover normal app text,
+course notes/drafts, writing answers, and saved/transcribed speaking responses.
+They do not apply to text inside images, external websites/apps, or credential
+fields. Selections longer than 1,000 characters retain native copy actions;
+select a shorter passage to use the helper.
+
+The helper opens without an AI call. Review/edit the selected passage, choose
+English or French, optionally add context, and press **Envoyer à mon IA**.
+Only those explicit fields are sent—not the whole screen, clipboard, course
+notes, or hidden app state. Translation/questions require your configured AI and
+connectivity; API charges may apply. On web, requests use the existing authenticated
+broker. Results are suggestions, not guaranteed dictionary definitions. Closing
+the page does not guarantee cancellation of a request already sent.
+
+To retain an expression, expand **Garder dans mon vocabulaire à réviser**, check
+the English clue, French expression and example, then save. The existing notebook
+and spaced-review queue receive the card; duplicate saves do not reset its schedule.
+The helper's unsaved conversation is not stored as a new history feature.
+
+Stop dictation or finish the Realtime session before opening the helper. Its
+navigation actions are unavailable during active recording/voice connections so
+the microphone cannot be hidden behind the helper. Native copy remains available.
 
 ### Speaking partner: practise, repair, reuse
 

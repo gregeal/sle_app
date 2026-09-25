@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../data/db/course_daos.dart';
+import '../word_help/app_text_selection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/database.dart';
@@ -155,6 +157,7 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
           prompt: session.promptFr,
           topic: session.topic,
           repairMode: session.repairMode,
+          foundationCourse: await _db.isFoundationCourseSession(session.id),
           history: _turns.reversed
               .take(6)
               .toList()
@@ -388,7 +391,10 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Brouillon conservé (non envoyé)'),
-                            SelectableText(session.draft),
+                            SelectableText(
+                              session.draft,
+                              contextMenuBuilder: learningTextContextMenu,
+                            ),
                           ],
                         ),
                       ),
@@ -411,7 +417,10 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
                       for (final t in _turns)
                         ListTile(
                           title: Text(t.promptFr),
-                          subtitle: SelectableText(t.answer),
+                          subtitle: SelectableText(
+                            t.answer,
+                            contextMenuBuilder: learningTextContextMenu,
+                          ),
                         ),
                     ],
                   ),

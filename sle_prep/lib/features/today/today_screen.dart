@@ -9,7 +9,7 @@ import '../../providers.dart';
 import '../drills/drill_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../learning/learning_hub_screen.dart';
-import '../course/course_screen.dart';
+import '../course/course_library_screen.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -165,14 +165,14 @@ class _TodayContent extends StatelessWidget {
         Card(
           child: ListTile(
             leading: const Icon(Icons.route_outlined),
-            title: const Text('Parcours B → C'),
+            title: const Text('Mes parcours · A → B et B → C'),
             subtitle: const Text(
-              'Classes structurées · séparées du plan de 26 semaines',
+              '32 classes · lire, écouter, écrire et parler',
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const CourseScreen())),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CourseLibraryScreen()),
+            ),
           ),
         ),
         Card(

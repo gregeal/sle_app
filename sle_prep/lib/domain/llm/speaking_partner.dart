@@ -130,6 +130,7 @@ Future<PartnerFeedback> requestPartnerFeedback({
   required List<Map<String, String>> history,
   required List<Map<String, String>> focus,
   bool repairMode = false,
+  bool foundationCourse = false,
 }) async {
   if (answer.trim().isEmpty || answer.length > speakingAnswerLimit) {
     throw const LlmException(
@@ -164,7 +165,19 @@ Future<PartnerFeedback> requestPartnerFeedback({
   });
   // One bounded request per submitted thought; no paid background analysis.
   final raw = await client.complete(
-    system: speakingPartnerPrompt,
+    system:
+        speakingPartnerPrompt +
+        (foundationCourse
+            ? '''
+Adaptation prioritaire pour cette séance de cours A → B : vise les tâches
+concrètes de niveau B de l’ÉLS, et non C. Utilise des phrases courtes, un
+vocabulaire courant et UNE question factuelle à la fois. Aide à décrire,
+raconter des actions, donner des consignes et demander des précisions.
+N’exige pas de débat abstrait, de nuance avancée ni d’hypothèse complexe.
+Corrige les erreurs qui gênent le message et explique simplement. Le fait
+de viser B ne t’autorise pas à attribuer un niveau officiel.
+'''
+            : ''),
     user: context,
     temperature: 0.3,
     maxTokens: 2200,

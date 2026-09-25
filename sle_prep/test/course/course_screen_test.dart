@@ -9,6 +9,7 @@ import 'package:sle_prep/features/course/course_screen.dart';
 import 'package:sle_prep/providers.dart';
 import '../support/test_db.dart';
 import '../features/learning_hub_test.dart' show FakeTts;
+import 'course_fixtures.dart';
 
 Future<void> tapCourse(WidgetTester tester, Finder finder) async {
   await tester.scrollUntilVisible(
@@ -103,6 +104,32 @@ void main() {
       expect(tts.spoken, [lesson.developedExample]);
       await tapCourse(tester, find.byKey(const Key('course-read')));
       expect((await db.courseProgress(lesson.id)).read, isTrue);
+      final comprehension = workshopAnswers(lesson.id);
+      for (var i = 0; i < 2; i++) {
+        await tapCourse(
+          tester,
+          find.byKey(Key('course-comprehension-$i-${comprehension[i]}')),
+        );
+      }
+      await tapCourse(
+        tester,
+        find.byKey(const Key('course-check-comprehension')),
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('course-writing')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.enterText(
+        find.byKey(const Key('course-writing')),
+        'Mon texte personnel décrit le changement et précise une limite importante.',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 3; i++) {
+        await tapCourse(tester, find.byKey(Key('course-revision-$i')));
+      }
+      await tapCourse(tester, find.byKey(const Key('course-save-workshop')));
       for (var i = 0; i < lesson.questions.length; i++) {
         await tapCourse(
           tester,
@@ -150,6 +177,7 @@ void main() {
         first.questions.map((q) => q.correct).toList(),
       );
       await db.saveCoursePractice(first.id, [true, true, true]);
+      await finishWorkshop(db, first.id);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [

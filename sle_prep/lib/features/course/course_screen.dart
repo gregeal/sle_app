@@ -4,14 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/db/database.dart';
 import '../../data/db/course_daos.dart';
-import '../../domain/course/b_to_c_course.dart';
+import '../../domain/course/course_catalog.dart';
 import '../../domain/speech/speech_services.dart';
 import '../../providers.dart';
 import '../speaking/speaking_session_screen.dart';
 import '../speaking/speaking_mistakes_screen.dart';
+import '../word_help/app_text_selection.dart';
 
 class CourseScreen extends ConsumerStatefulWidget {
-  const CourseScreen({super.key});
+  const CourseScreen({super.key, this.track = bToCCourse});
+  final CourseTrack track;
   @override
   ConsumerState<CourseScreen> createState() => _CourseScreenState();
 }
@@ -38,7 +40,9 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
   }
 
   void _reload() {
-    _overview = ref.read(appDatabaseProvider).courseOverview();
+    _overview = ref
+        .read(appDatabaseProvider)
+        .courseOverview(track: widget.track);
   }
 
   Future<void> _open(CourseLesson lesson, {bool recall = false}) async {
@@ -53,7 +57,7 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Parcours B → C')),
+    appBar: AppBar(title: Text('Parcours ${widget.track.label}')),
     body: FutureBuilder<Map<String, CourseProgress>>(
       future: _overview,
       builder: (context, snapshot) {
@@ -69,11 +73,13 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
           return const Center(child: CircularProgressIndicator());
         }
         final progress = snapshot.data!;
-        final completed = progress.values.where((p) => p.completed).length;
-        final next = bToCLessons
-            .where((l) => !(progress[l.id]?.completed ?? false))
+        final completed = progress.values
+            .where((p) => p.fullCourseCompleted)
+            .length;
+        final next = widget.track.lessons
+            .where((l) => !(progress[l.id]?.fullCourseCompleted ?? false))
             .firstOrNull;
-        final due = bToCLessons
+        final due = widget.track.lessons
             .where((l) => progress[l.id]?.due(DateTime.now()) ?? false)
             .toList();
         return ListView(
@@ -84,20 +90,20 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
+            Text(widget.track.description),
             const Text(
-              'Un parcours autonome pour consolider B et travailler les tâches orales de niveau C. '
-              'Lecture et rédaction soutiennent l’oral. Ce parcours ne remplace pas un cours complet de préparation à chaque épreuve écrite.',
+              'Niveaux de l’ÉLS canadienne, pas équivalences A1/B2/C1. Chaque classe comprend lecture, écoute, rédaction et échange oral. Les durées et longueurs sont des repères pédagogiques, pas des exigences officielles.',
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: completed / bToCLessons.length,
+              value: completed / widget.track.lessons.length,
               semanticsLabel: 'Progression du parcours',
             ),
             Text(
-              '$completed / ${bToCLessons.length} leçons terminées · 8 modules',
+              '$completed / ${widget.track.lessons.length} leçons terminées · ${widget.track.modules.length} modules',
             ),
             const Text(
-              'Progression d’étude, pas certification de niveau C. Toutes les classes restent accessibles.',
+              'Progression d’étude des quatre compétences, pas certification de niveau. Toutes les classes restent accessibles; vos anciennes activités restent enregistrées.',
             ),
             const SizedBox(height: 12),
             if (next != null)
@@ -141,14 +147,13 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'Rythme suggéré, adaptable : un module par semaine.\n'
-                  'Séance 1 : première classe + un essai oral (25–35 min).\n'
-                  'Séance 2 : deuxième classe + une autre situation (25–35 min).\n'
-                  'Séance 3 : rappel sans notes + correction de vos erreurs (15–20 min).\n'
-                  'Avancez plus lentement si nécessaire : huit semaines n’est pas une promesse de niveau C.',
+                  'Pour chaque classe : comprendre, lire et écouter (20–30 min), puis écrire, réviser et parler (20–30 min).\n'
+                  'Ajoutez une séance de rappel sans notes et de correction personnelle.\n'
+                  'Avancez à votre rythme : aucune durée ne garantit un niveau officiel.',
                 ),
               ),
             ),
-            for (final module in courseModules)
+            for (final module in widget.track.modules)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -162,12 +167,12 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
                         ),
                         subtitle: Text(module.goal),
                       ),
-                      for (final lesson in bToCLessons.where(
+                      for (final lesson in widget.track.lessons.where(
                         (l) => l.module == module.number,
                       ))
                         ListTile(
                           leading: Icon(
-                            progress[lesson.id]?.completed == true
+                            progress[lesson.id]?.fullCourseCompleted == true
                                 ? Icons.check_circle
                                 : Icons.menu_book_outlined,
                           ),
@@ -198,7 +203,9 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
               onPressed: () async {
                 try {
                   if (!await launchUrl(
-                    Uri.parse(courseCriteriaUrl),
+                    Uri.parse(
+                      'https://www.canada.ca/en/treasury-board-secretariat/services/staffing/qualification-standards/relation-official-languages.html',
+                    ),
                     mode: LaunchMode.externalApplication,
                   )) {
                     throw StateError('Not opened');
@@ -215,7 +222,7 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
                   }
                 }
               },
-              child: const Text('Consulter les critères officiels de l’oral'),
+              child: const Text('Consulter les critères officiels de l’ÉLS'),
             ),
             const Text(
               'Contenu original d’entraînement, non officiel. Les notes et la progression restent sur cet appareil/navigateur. '
@@ -228,9 +235,10 @@ class _CourseScreenState extends ConsumerState<CourseScreen>
     ),
   );
 
-  String _status(CourseProgress p) => p.completed
+  String _status(CourseProgress p) => p.fullCourseCompleted
       ? 'Terminée · revoir librement'
-      : '${p.read ? '✓' : '○'} Cours  ·  ${p.quizPassed ? '✓' : '○'} Vérification  ·  ${p.practised ? '✓' : '○'} Pratique';
+      : '${p.read ? '✓' : '○'} Cours · ${p.quizPassed ? '✓' : '○'} Quiz · ${p.practised ? '✓' : '○'} Oral\n'
+            '${p.skills[0] ? '✓' : '○'} Lecture · ${p.skills[1] ? '✓' : '○'} Écoute · ${p.skills[2] ? '✓' : '○'} Écriture';
 }
 
 class CourseLessonScreen extends ConsumerStatefulWidget {
@@ -250,6 +258,11 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
   late final AppDatabase _db;
   late final TtsService _tts;
   final _notes = TextEditingController();
+  final _writing = TextEditingController();
+  final List<int?> _comprehension = [null, null];
+  final List<bool> _revision = [false, false, false];
+  bool _workshopChecked = false;
+  CourseWorkshop get workshop => workshopForLesson(lesson.id);
   CourseProgress? _progress;
   late List<int?> _answers;
   late List<bool> _criteria;
@@ -278,6 +291,8 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
       setState(() {
         _progress = value;
         _notes.text = value.notes;
+        _writing.text = value.writing;
+        if (!widget.recall && value.skills[2]) _revision.fillRange(0, 3, true);
         if (!widget.recall && value.practice.isNotEmpty) {
           _criteria = List.of(value.practice);
         }
@@ -314,9 +329,10 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
     _debounce?.cancel();
     if (_progress == null) return _notesWrite;
     final text = _notes.text;
+    final writing = _writing.text;
     _notesWrite = _notesWrite
         .catchError((Object _) {})
-        .then((_) => _db.saveCourseNotes(lesson.id, text));
+        .then((_) => _db.saveCourseNotes(lesson.id, text, writing: writing));
     return _notesWrite;
   }
 
@@ -361,10 +377,10 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
     );
   });
 
-  Future<void> _listen() async {
+  Future<void> _listen([String? text]) async {
     if (_background) return;
     try {
-      await _tts.speak(lesson.developedExample);
+      await _tts.speak(text ?? lesson.developedExample);
     } catch (_) {
       if (mounted) {
         setState(
@@ -410,6 +426,7 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
     unawaited(_flushNotes().catchError((Object _) {}));
     unawaited(_tts.stop().catchError((Object _) {}));
     _notes.dispose();
+    _writing.dispose();
     super.dispose();
   }
 
@@ -433,7 +450,7 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                 padding: const EdgeInsets.all(20),
                 children: [
                   Text(
-                    'Module ${lesson.module} · ${widget.recall ? 'Rappel sans notes' : 'Classe de 25–35 minutes'}',
+                    '${courseTrackForLesson(lesson.id).label} · Module ${lesson.module} · ${widget.recall ? 'Rappel sans notes' : 'Classe en deux séances'}',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   Text(
@@ -448,8 +465,12 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                       ),
                     ),
                   if (progress.completed)
-                    const Chip(
-                      label: Text('Leçon déjà terminée · niveau non certifié'),
+                    Chip(
+                      label: Text(
+                        progress.fullCourseCompleted
+                            ? 'Quatre compétences pratiquées · niveau non certifié'
+                            : 'Anciennes activités conservées · ateliers à compléter',
+                      ),
                     ),
                   if (_error != null)
                     Text(
@@ -509,7 +530,11 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                           : 'Voir une proposition après mon essai',
                     ),
                   ),
-                  if (_revealed) SelectableText(lesson.modelAnswer),
+                  if (_revealed)
+                    SelectableText(
+                      lesson.modelAnswer,
+                      contextMenuBuilder: learningTextContextMenu,
+                    ),
                   if (!widget.recall)
                     OutlinedButton(
                       key: const Key('course-read'),
@@ -522,6 +547,7 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                             : 'J’ai étudié et essayé la reformulation',
                       ),
                     ),
+                  ..._workshopWidgets(),
                   const SizedBox(height: 12),
                   Text(
                     '3. Vérifier ma compréhension',
@@ -598,6 +624,13 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                           _busy ||
                               _score != lesson.questions.length ||
                               !_criteria.every((v) => v) ||
+                              !_workshopChecked ||
+                              _comprehension.contains(null) ||
+                              !workshop.answersCorrect(
+                                _comprehension.cast<int>(),
+                              ) ||
+                              !_revision.every((v) => v) ||
+                              _writing.text.trim().length < 30 ||
                               !progress.due(DateTime.now())
                           ? null
                           : () => _act(
@@ -607,6 +640,9 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                                 criteria: _criteria,
                                 expectedCount: progress.reviewCount,
                                 now: DateTime.now(),
+                                comprehensionAnswers: _comprehension
+                                    .cast<int>(),
+                                writingRevised: _revision.every((v) => v),
                               ),
                             ),
                       child: Text(
@@ -615,13 +651,14 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
                             : 'Rappel enregistré ✓',
                       ),
                     ),
-                  if (progress.completed && !widget.recall)
+                  if (progress.fullCourseCompleted && !widget.recall)
                     const Text(
-                      'Les trois activités sont réalisées. Un rappel sera proposé pour réutiliser les acquis; la réussite orale reste à vérifier en situation réelle.',
+                      'Les activités des quatre compétences sont réalisées. Un rappel sera proposé; la maîtrise reste à vérifier dans de nouvelles situations.',
                     ),
                   const SizedBox(height: 16),
                   TextField(
                     key: const Key('course-notes'),
+                    contextMenuBuilder: learningTextContextMenu,
                     controller: _notes,
                     readOnly: _busy,
                     minLines: 3,
@@ -651,6 +688,166 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
     );
   }
 
+  List<Widget> _workshopWidgets() => [
+    const Divider(),
+    Text(
+      'Atelier des quatre compétences',
+      style: Theme.of(context).textTheme.titleLarge,
+    ),
+    const Text(
+      'Lecture et écoute : répondez avant de consulter les explications. Rédaction : produisez votre propre texte puis révisez-le. Les modèles illustrent une approche; ils ne sont pas à recopier.',
+    ),
+    ExpansionTile(
+      title: const Text('Lire le texte'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(workshop.reading),
+        ),
+      ],
+    ),
+    _workshopQuestion(0, workshop.readingQuestion),
+    OutlinedButton.icon(
+      key: const Key('course-listen-workshop'),
+      onPressed: _busy ? null : () => _listen(workshop.listening),
+      icon: const Icon(Icons.headphones),
+      label: const Text('Écouter le message · voix synthétique'),
+    ),
+    TextButton(
+      onPressed: () => _tts.stop().catchError((Object _) {}),
+      child: const Text('Arrêter le message'),
+    ),
+    ExpansionTile(
+      title: const Text('Transcription · après mon écoute'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(workshop.listening),
+        ),
+      ],
+    ),
+    const Text(
+      'Si la voix est indisponible, le texte reste accessible; reprenez une vraie écoute avant de valider votre pratique personnelle.',
+    ),
+    _workshopQuestion(1, workshop.listeningQuestion),
+    TextButton(
+      key: const Key('course-check-comprehension'),
+      onPressed: _busy || _comprehension.contains(null)
+          ? null
+          : () => setState(() => _workshopChecked = true),
+      child: const Text('Vérifier lecture et écoute'),
+    ),
+    if (_workshopChecked)
+      TextButton(
+        onPressed: _busy
+            ? null
+            : () => setState(() {
+                _workshopChecked = false;
+                _comprehension.fillRange(0, 2, null);
+              }),
+        child: const Text('Refaire la compréhension'),
+      ),
+    _section('Écrire avec mes propres mots', workshop.writingTask),
+    TextField(
+      key: const Key('course-writing'),
+      contextMenuBuilder: learningTextContextMenu,
+      controller: _writing,
+      readOnly: _busy,
+      minLines: 5,
+      maxLines: 12,
+      maxLength: 6000,
+      onChanged: (text) {
+        _notesChanged(text);
+        setState(() {});
+      },
+      decoration: const InputDecoration(
+        labelText: 'Mon texte · sauvegarde locale automatique',
+        border: OutlineInputBorder(),
+      ),
+    ),
+    ExpansionTile(
+      title: const Text('Après mon essai : exemple de formulation (extrait)'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(workshop.writingModel),
+        ),
+      ],
+    ),
+    for (var i = 0; i < 3; i++)
+      CheckboxListTile(
+        key: Key('course-revision-$i'),
+        value: _revision[i],
+        title: Text(
+          const [
+            'Mon texte répond à la consigne avec mes propres idées.',
+            'J’ai vérifié les faits, les liens entre les phrases et la structure étudiée.',
+            'J’ai relu et corrigé mon texte; je peux expliquer un changement.',
+          ][i],
+        ),
+        onChanged: _busy
+            ? null
+            : (value) => setState(() => _revision[i] = value ?? false),
+      ),
+    const Text(
+      'Autoévaluation de rédaction, sans note officielle. Le modèle est un extrait, pas nécessairement un texte de la longueur demandée. Pour un retour IA, sélectionnez un passage et choisissez « Poser une question ». La qualité ne se déduit pas du nombre de mots.',
+    ),
+    if (!widget.recall)
+      FilledButton(
+        key: const Key('course-save-workshop'),
+        onPressed:
+            _busy ||
+                !_workshopChecked ||
+                _comprehension.contains(null) ||
+                !workshop.answersCorrect(_comprehension.cast<int>()) ||
+                !_revision.every((v) => v) ||
+                _writing.text.trim().length < 30
+            ? null
+            : () => _act(
+                () => _db.saveCourseWorkshop(
+                  lesson.id,
+                  answers: _comprehension.cast<int>(),
+                  writingRevised: _revision.every((v) => v),
+                ),
+              ),
+        child: Text(
+          _progress!.skills.every((v) => v)
+              ? 'Atelier enregistré ✓'
+              : 'Enregistrer lecture, écoute et rédaction',
+        ),
+      ),
+    const Divider(),
+  ];
+
+  Widget _workshopQuestion(int index, CourseQuestion question) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('${index == 0 ? 'Lecture' : 'Écoute'} : ${question.prompt}'),
+          for (var option = 0; option < question.options.length; option++)
+            OutlinedButton.icon(
+              key: Key('course-comprehension-$index-$option'),
+              onPressed: _busy || _workshopChecked
+                  ? null
+                  : () => setState(() => _comprehension[index] = option),
+              icon: Icon(
+                _comprehension[index] == option
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+              ),
+              label: Text(question.options[option]),
+            ),
+          if (_workshopChecked)
+            Text(
+              '${_comprehension[index] == question.correct ? '✓' : 'À revoir'} ${question.explanation}',
+            ),
+        ],
+      ),
+    ),
+  );
+
   Widget _section(String title, String text) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 12),
     child: Column(
@@ -658,7 +855,7 @@ class _CourseLessonState extends ConsumerState<CourseLessonScreen>
       children: [
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
-        SelectableText(text),
+        SelectableText(text, contextMenuBuilder: learningTextContextMenu),
       ],
     ),
   );

@@ -10,15 +10,27 @@ import 'features/practice/practice_screen.dart';
 import 'features/progress/progress_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/today/today_screen.dart';
+import 'features/word_help/app_text_selection.dart';
 import 'providers.dart';
 
-class SlePrepApp extends ConsumerWidget {
+class SlePrepApp extends ConsumerStatefulWidget {
   const SlePrepApp({super.key});
+  @override
+  ConsumerState<SlePrepApp> createState() => _SlePrepAppState();
+}
+
+class _SlePrepAppState extends ConsumerState<SlePrepApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SLE Prep',
+      navigatorKey: _navigatorKey,
+      builder: (context, child) => AppTextSelection(
+        navigatorKey: _navigatorKey,
+        child: child ?? const SizedBox(),
+      ),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'NotoSans',

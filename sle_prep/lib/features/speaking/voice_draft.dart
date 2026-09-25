@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../word_help/app_text_selection.dart';
+import '../word_help/word_help_guard.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/speech/speech_services.dart';
 import '../../domain/speech/openai_speech_service.dart';
@@ -33,9 +35,13 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
   bool _cloud = false;
   bool _choiceMade = false;
   int _choiceRevision = 0;
+  VoidCallback _releaseWordHelp = () {};
   @override
   void initState() {
     super.initState();
+    _releaseWordHelp = ref
+        .read(wordHelpGuardProvider)
+        .register(() => _starting || _listening);
     _speech = ref.read(speechServiceProvider);
     _tts = ref.read(ttsServiceProvider);
     WidgetsBinding.instance.addObserver(this);
@@ -226,6 +232,7 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
 
   @override
   void dispose() {
+    _releaseWordHelp();
     ++_epoch;
     WidgetsBinding.instance.removeObserver(this);
     final speech = _speech;
@@ -265,6 +272,7 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
         ),
       const SizedBox(height: 12),
       TextField(
+        contextMenuBuilder: learningTextContextMenu,
         controller: widget.controller,
         minLines: 3,
         maxLines: 8,
