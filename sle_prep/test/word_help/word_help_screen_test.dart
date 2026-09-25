@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sle_prep/data/db/learning_daos.dart';
@@ -10,6 +12,205 @@ import '../support/test_db.dart';
 import 'word_help_test.dart' show WordClient;
 
 void main() {
+  testWidgets('course selectable paragraph translates only the touched word', (
+    tester,
+  ) async {
+    const passage = 'Nous préparons une réunion importante demain.';
+    final key = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          navigatorKey: key,
+          theme: ThemeData(
+            pageTransitionsTheme: const LearningPageTransitionsTheme(),
+          ),
+          home: Scaffold(
+            body: ListView(
+              children: const [
+                SizedBox(height: 100),
+                SelectableText(
+                  passage,
+                  contextMenuBuilder: learningTextContextMenu,
+                ),
+                Text('Un autre paragraphe.'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final editable = tester.state<EditableTextState>(find.byType(EditableText));
+    final render = editable.renderEditable;
+    final start = passage.indexOf('réunion');
+    final point = render
+        .getLocalRectForCaret(TextPosition(offset: start + 3))
+        .center;
+    await tester.longPressAt(render.localToGlobal(point));
+    await tester.pumpAndSettle();
+    expect(editable.textEditingValue.selection.textInside(passage), 'réunion');
+    expect(find.text('Traduire'), findsOneWidget);
+    await tester.tap(find.text('Traduire'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('word-selection')))
+          .controller!
+          .text,
+      'réunion',
+    );
+  });
+  testWidgets('long press copies only the touched word in a paragraph', (
+    tester,
+  ) async {
+    const passage = 'Nous préparons une réunion importante demain.';
+    final key = GlobalKey<NavigatorState>();
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          navigatorKey: key,
+          theme: ThemeData(
+            pageTransitionsTheme: const LearningPageTransitionsTheme(),
+          ),
+          home: Scaffold(
+            body: ListView(
+              children: const [
+                SizedBox(height: 100),
+                Text(
+                  'Ce contenu masqué ne doit jamais être sélectionné.',
+                  style: TextStyle(fontSize: 20),
+                ),
+                Text('Un autre paragraphe qui ne doit pas être copié.'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    key.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          body: ListView(
+            children: const [
+              SizedBox(height: 100),
+              Text(passage, style: TextStyle(fontSize: 20)),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(of: find.text(passage), matching: find.byType(RichText)),
+    );
+    final start = passage.indexOf('réunion');
+    final boxes = paragraph.getBoxesForSelection(
+      TextSelection(baseOffset: start, extentOffset: start + 7),
+    );
+    await tester.longPressAt(
+      paragraph.localToGlobal(boxes.single.toRect().center),
+    );
+    await tester.pumpAndSettle();
+    expect(paragraph.selections, [
+      TextSelection(baseOffset: start, extentOffset: start + 7),
+    ]);
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+    expect(copied, 'réunion');
+
+    // The visible selection handles must also let the learner extend a word.
+    await tester.longPressAt(
+      paragraph.localToGlobal(boxes.single.toRect().center),
+    );
+    await tester.pumpAndSettle();
+    final endHandle = paragraph.localToGlobal(
+      boxes.single.toRect().bottomRight,
+    );
+    final phraseEnd = passage.indexOf(' importante') + ' importante'.length;
+    final phraseBoxes = paragraph.getBoxesForSelection(
+      TextSelection(baseOffset: start, extentOffset: phraseEnd),
+    );
+    final drag = await tester.startGesture(endHandle + const Offset(4, 8));
+    await drag.moveBy(const Offset(25, 0));
+    await tester.pump();
+    await drag.moveTo(
+      paragraph.localToGlobal(
+        phraseBoxes.last.toRect().bottomRight + const Offset(0, 5),
+      ),
+    );
+    await tester.pump();
+    await drag.up();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+    expect(copied, 'réunion importante');
+  });
+  testWidgets('hidden tabs cannot contribute to the selected text', (
+    tester,
+  ) async {
+    const passage = 'Une réunion utile.';
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: ThemeData(
+            pageTransitionsTheme: const LearningPageTransitionsTheme(),
+          ),
+          home: Scaffold(
+            body: IndexedStack(
+              index: 1,
+              children: const [
+                AppTextSelection(
+                  child: Center(child: Text('Un ancien contenu masqué.')),
+                ),
+                AppTextSelection(child: Center(child: Text(passage))),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(of: find.text(passage), matching: find.byType(RichText)),
+    );
+    final box = paragraph
+        .getBoxesForSelection(
+          const TextSelection(baseOffset: 4, extentOffset: 11),
+        )
+        .single
+        .toRect();
+    await tester.longPressAt(paragraph.localToGlobal(box.center));
+    await tester.pumpAndSettle();
+    expect(paragraph.selections, [
+      const TextSelection(baseOffset: 4, extentOffset: 11),
+    ]);
+    await tester.tap(find.text('Traduire'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('word-selection')))
+          .controller!
+          .text,
+      'réunion',
+    );
+  });
   testWidgets(
     'a voice session starting after selection blocks helper navigation',
     (tester) async {
@@ -20,8 +221,9 @@ void main() {
           overrides: [wordHelpGuardProvider.overrideWithValue(guard)],
           child: MaterialApp(
             navigatorKey: key,
-            builder: (context, child) =>
-                AppTextSelection(navigatorKey: key, child: child!),
+            theme: ThemeData(
+              pageTransitionsTheme: const LearningPageTransitionsTheme(),
+            ),
             home: const Scaffold(body: Center(child: Text('échéance'))),
           ),
         ),
@@ -45,8 +247,9 @@ void main() {
           overrides: [llmClientProvider.overrideWith((ref) async => client)],
           child: MaterialApp(
             navigatorKey: key,
-            builder: (context, child) =>
-                AppTextSelection(navigatorKey: key, child: child!),
+            theme: ThemeData(
+              pageTransitionsTheme: const LearningPageTransitionsTheme(),
+            ),
             home: const Scaffold(body: Center(child: Text('échéance'))),
           ),
         ),

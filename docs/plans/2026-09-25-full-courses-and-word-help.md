@@ -57,7 +57,10 @@ All instructional passages/questions are original, not recalled examination item
 ## Selection and AI helper
 
 Flutter's [SelectionArea](https://api.flutter.dev/flutter/material/SelectionArea-class.html)
-covers ordinary rendered text through the app builder. Existing editable/selectable
+covers ordinary rendered text separately for each Material page route and app tab.
+It does not wrap the Navigator: retained hidden routes/tabs must not participate
+in the visible page's selection. Native page transitions remain intact.
+Existing editable/selectable
 study text uses a shared [context-menu builder](https://api.flutter.dev/flutter/material/TextField/contextMenuBuilder.html).
 The native copy/edit actions are retained. Flutter's web context menu replaces the
 browser menu within the app so custom actions are available.
@@ -123,3 +126,20 @@ connected Samsung SM-S908W using `adb install -r`, without uninstalling or clear
 app data. Android reports version `0.1.1` (code `2`) and an update time of
 `2026-09-25 17:29:17`. Physical-device feature and live-AI acceptance checks remain
 for the learner; installation success does not substitute for those checks.
+
+### Follow-up: precise word selection
+
+Replaced the Navigator-wide selection surface after reproducing a long-press
+selecting the wrong word from a retained route. Each page and tab now has an
+independent selection surface. The editable-text helper also resolves navigation
+from the originating text widget, not the toolbar's overlay context.
+Regression checks cover a specific accented word in a paragraph, exact clipboard
+contents, visible highlight boundaries, dragging a handle to extend to a phrase,
+hidden-tab isolation, and passing only the selected word to the translation helper.
+
+Follow-up validation: `flutter analyze --no-pub` reports no issues and the complete
+Flutter suite passes all 216 tests. Fresh Android and web release builds passed,
+including PWA finalization and validation. After user approval, this follow-up
+was installed on the Samsung SM-S908W with `adb install -r` and launched
+successfully. Android reports update time `2026-09-25 18:26:05`. App data was not
+cleared. Physical-device word-selection acceptance remains for the learner.

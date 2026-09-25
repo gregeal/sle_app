@@ -13,26 +13,16 @@ import 'features/today/today_screen.dart';
 import 'features/word_help/app_text_selection.dart';
 import 'providers.dart';
 
-class SlePrepApp extends ConsumerStatefulWidget {
+class SlePrepApp extends ConsumerWidget {
   const SlePrepApp({super.key});
-  @override
-  ConsumerState<SlePrepApp> createState() => _SlePrepAppState();
-}
-
-class _SlePrepAppState extends ConsumerState<SlePrepApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'SLE Prep',
-      navigatorKey: _navigatorKey,
-      builder: (context, child) => AppTextSelection(
-        navigatorKey: _navigatorKey,
-        child: child ?? const SizedBox(),
-      ),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        pageTransitionsTheme: const LearningPageTransitionsTheme(),
         fontFamily: 'NotoSans',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xff3b5ba9),
@@ -118,7 +108,13 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: IndexedStack(index: _index, children: _screens),
+    body: IndexedStack(
+      index: _index,
+      children: [
+        for (var i = 0; i < _screens.length; i++)
+          AppTextSelection(key: ValueKey(i), child: _screens[i]),
+      ],
+    ),
     bottomNavigationBar: NavigationBar(
       selectedIndex: _index,
       onDestinationSelected: (index) => setState(() => _index = index),

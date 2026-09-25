@@ -13,7 +13,7 @@ import '../features/learning_hub_test.dart' show FakeTts;
 
 void main() {
   testWidgets(
-    'real app opens the course library and A to B class with global selection enabled',
+    'real app opens the course library and A to B class with route-local selection',
     (tester) async {
       final db = inMemoryDatabase();
       addTearDown(db.close);

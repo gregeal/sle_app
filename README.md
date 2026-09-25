@@ -82,7 +82,11 @@ device/browser. See [expanded course and selection design](docs/plans/2026-09-25
 
 ### Select a word: copy, translate, or ask
 
-On Android, **long-press a word** and adjust the handles. On web, select text with
+On Android, **long-press directly on a word, then release**: that word is highlighted.
+Drag either blue selection handle to include more or fewer words. **Copy** and
+the AI actions use only the highlighted selection; **Select all** is a separate
+action. Each page and tab has its own selection, so hidden pages cannot contribute
+text. On web, select text with
 the mouse (then use the selection toolbar/context menu). Choose **Copy**,
 **Traduire**, or **Poser une question**. The new actions cover normal app text,
 course notes/drafts, writing answers, and saved/transcribed speaking responses.
