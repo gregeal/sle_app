@@ -6,7 +6,8 @@ import '../../domain/srs/sm2.dart';
 import '../../providers.dart';
 
 class VocabReviewScreen extends ConsumerStatefulWidget {
-  const VocabReviewScreen({super.key});
+  const VocabReviewScreen({super.key, this.onReviewed});
+  final ValueChanged<int>? onReviewed;
 
   @override
   ConsumerState<VocabReviewScreen> createState() => _VocabReviewScreenState();
@@ -44,6 +45,7 @@ class _VocabReviewScreenState extends ConsumerState<VocabReviewScreen> {
             dueDate: nextDue(DateTime.now(), nextState),
           );
       ref.invalidate(remainingDueCardsProvider);
+      widget.onReviewed?.call(dueCard.card.id);
       if (!mounted) return;
       setState(() {
         _cardIndex++;

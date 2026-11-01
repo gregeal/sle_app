@@ -12,8 +12,13 @@ import 'voice_draft.dart';
 import 'speaking_mistakes_screen.dart';
 
 class SpeakingSessionScreen extends ConsumerStatefulWidget {
-  const SpeakingSessionScreen({super.key, required this.sessionId});
+  const SpeakingSessionScreen({
+    super.key,
+    required this.sessionId,
+    this.foundationCourse,
+  });
   final int sessionId;
+  final bool? foundationCourse;
   @override
   ConsumerState<SpeakingSessionScreen> createState() => _PartnerSessionState();
 }
@@ -157,7 +162,9 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
           prompt: session.promptFr,
           topic: session.topic,
           repairMode: session.repairMode,
-          foundationCourse: await _db.isFoundationCourseSession(session.id),
+          foundationCourse:
+              widget.foundationCourse ??
+              await _db.isFoundationCourseSession(session.id),
           history: _turns.reversed
               .take(6)
               .toList()

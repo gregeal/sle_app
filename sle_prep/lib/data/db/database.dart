@@ -234,6 +234,51 @@ class StudyWeeks extends Table {
   TextColumn get reportJson => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get closedAt => dateTime().nullable()();
+  TextColumn get scheduleJson => text().withDefault(const Constant('[]'))();
+  BoolColumn get paused => boolean().withDefault(const Constant(false))();
+}
+
+class WeeklyClassStates extends Table {
+  // Explicit SQL also preserves FKs with the pinned generator/analyzer pair.
+  IntColumn get weekId =>
+      integer().customConstraint('NOT NULL REFERENCES study_weeks(id)')();
+  TextColumn get stateJson => text()();
+  @override
+  Set<Column> get primaryKey => {weekId};
+}
+
+class WeeklyEvidence extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get assignmentId => integer().customConstraint(
+    'NOT NULL REFERENCES weekly_assignments(id)',
+  )();
+  TextColumn get kind => text()();
+  IntColumn get sourceId => integer().nullable()();
+  TextColumn get dataJson => text()();
+  BoolColumn get assisted => boolean().withDefault(const Constant(false))();
+  BoolColumn get selfReported => boolean().withDefault(const Constant(false))();
+  IntColumn get observedSeconds => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+class WeeklyFeedbackJobs extends Table {
+  IntColumn get weekId =>
+      integer().customConstraint('NOT NULL REFERENCES study_weeks(id)')();
+  TextColumn get status => text().withDefault(const Constant('notRequested'))();
+  TextColumn get snapshotJson => text()();
+  TextColumn get reportJson => text().nullable()();
+  TextColumn get error => text().nullable()();
+  @override
+  Set<Column> get primaryKey => {weekId};
+}
+
+class WeeklyVoiceLeases extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get weekId =>
+      integer().customConstraint('NOT NULL REFERENCES study_weeks(id)')();
+  IntColumn get reservedSeconds => integer()();
+  IntColumn get usedSeconds => integer().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
 }
 
 /// One assignment of a week. Completion is tracked per assignment so a single
@@ -285,13 +330,17 @@ class WeeklyAssignments extends Table {
     SpeakingMistakes,
     StudyWeeks,
     WeeklyAssignments,
+    WeeklyClassStates,
+    WeeklyEvidence,
+    WeeklyFeedbackJobs,
+    WeeklyVoiceLeases,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -323,6 +372,39 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(studyWeeks);
         await m.createTable(weeklyAssignments);
       }
+      if (from < 9) {
+        if (from >= 8) {
+          await m.addColumn(studyWeeks, studyWeeks.scheduleJson);
+          await m.addColumn(studyWeeks, studyWeeks.paused);
+        }
+        await m.createTable(weeklyClassStates);
+        await m.createTable(weeklyEvidence);
+        await m.createTable(weeklyFeedbackJobs);
+        await m.createTable(weeklyVoiceLeases);
+        // Old completion links do not identify verified activity evidence.
+        // Preserve their dates for history; new reports use WeeklyEvidence.
+        await customStatement(
+          "UPDATE study_weeks SET status = 'archived' WHERE status = 'active' AND id != (SELECT MAX(id) FROM study_weeks WHERE status = 'active')",
+        );
+        await customStatement(
+          "UPDATE study_weeks SET status = 'archived' WHERE id IN (SELECT week_id FROM weekly_assignments GROUP BY week_id,spec_id HAVING COUNT(*)>1)",
+        );
+        await customStatement(
+          "UPDATE weekly_assignments SET spec_id = spec_id || ':legacy-' || id WHERE id NOT IN (SELECT MIN(id) FROM weekly_assignments GROUP BY week_id,spec_id)",
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS weekly_spec_unique ON weekly_assignments(week_id, spec_id)',
+        );
+      }
+    },
+    beforeOpen: (_) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement(
+        'CREATE UNIQUE INDEX IF NOT EXISTS weekly_spec_unique ON weekly_assignments(week_id, spec_id)',
+      );
+      await customStatement(
+        "CREATE UNIQUE INDEX IF NOT EXISTS weekly_one_active ON study_weeks(status) WHERE status = 'active'",
+      );
     },
   );
 }

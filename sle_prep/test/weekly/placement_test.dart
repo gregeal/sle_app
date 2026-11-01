@@ -39,7 +39,11 @@ String payload({
   'strengths': strengths ?? ['Vocabulaire du travail clair', 'Bon débit'],
   'priorities':
       priorities ??
-      ['Accord du participe passé', 'Connecteurs logiques', 'Poser des questions'],
+      [
+        'Accord du participe passé',
+        'Connecteurs logiques',
+        'Poser des questions',
+      ],
   'ignoredServerInstruction': 'ne doit pas être conservé',
 });
 
@@ -108,6 +112,28 @@ void main() {
   });
 
   group('requestPlacement', () {
+    test(
+      'provisional recommendation stays unknown and does not replace a confirmed choice',
+      () async {
+        final db = inMemoryDatabase();
+        addTearDown(db.close);
+        final result = await requestPlacement(
+          db: db,
+          client: _ScriptedClient([payload(track: 'b-to-c-v1')]),
+          spokenTranscript: _spoken,
+          writtenText: '',
+          diagnostic: {
+            'spokenCaptured': false,
+            'readingCorrect': 0,
+            'listeningCorrect': 0,
+          },
+          persist: false,
+        );
+        expect(result.trackId, 'a-to-b-v1');
+        expect(result.levelEstimate, 'unknown');
+        expect(await db.getSetting(placementSettingKey), isNull);
+      },
+    );
     test('stores only the canonical decision', () async {
       final db = inMemoryDatabase();
       addTearDown(db.close);
@@ -155,7 +181,7 @@ void main() {
           db: db,
           client: client,
           spokenTranscript: _spoken,
-          writtenText: _written,
+          writtenText: '',
         ),
         throwsA(isA<LlmException>()),
       );
@@ -172,7 +198,7 @@ void main() {
           db: db,
           client: client,
           spokenTranscript: 'Bonjour.',
-          writtenText: _written,
+          writtenText: '',
         ),
         throwsA(isA<LlmException>()),
       );
@@ -202,7 +228,10 @@ void main() {
     test('a corrupt stored placement reads as "not placed", not a crash', () {
       expect(PlacementResult.tryParse('{]'), isNull);
       expect(PlacementResult.tryParse('{"trackId":"zzz"}'), isNull);
-      expect(PlacementResult.tryParse(jsonEncode({'trackId': 'a-to-b-v1'})), isNull);
+      expect(
+        PlacementResult.tryParse(jsonEncode({'trackId': 'a-to-b-v1'})),
+        isNull,
+      );
     });
   });
 }

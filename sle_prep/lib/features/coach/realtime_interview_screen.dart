@@ -20,6 +20,10 @@ class RealtimeInterviewScreen extends ConsumerStatefulWidget {
     this.openingInstruction,
     this.mode = 'realtime',
     this.onCompleted,
+    this.onPracticeSaved,
+    this.onCheckpoint,
+    this.reserveDuration,
+    this.onConnectionEnded,
   });
 
   /// App-bar title, so the weekly class does not call itself an interview.
@@ -35,6 +39,15 @@ class RealtimeInterviewScreen extends ConsumerStatefulWidget {
 
   /// Called once a report has been produced and stored.
   final void Function()? onCompleted;
+  final Future<int> Function(
+    List<Map<String, dynamic>> exchanges,
+    int observedSeconds,
+  )?
+  onPracticeSaved;
+  final Future<void> Function(List<Map<String, dynamic>> exchanges)?
+  onCheckpoint;
+  final Future<int> Function()? reserveDuration;
+  final Future<void> Function(int seconds)? onConnectionEnded;
 
   @override
   ConsumerState<RealtimeInterviewScreen> createState() =>
@@ -54,6 +67,7 @@ class _RealtimeInterviewScreenState
   RealtimeVoiceSession? _session;
   StreamSubscription<RealtimeVoiceEvent>? _subscription;
   Timer? _maximumDurationTimer;
+  Timer? _hardLimitTimer;
   RealtimeVoiceActivity _activity = RealtimeVoiceActivity.disconnected;
   OralFeedback? _feedback;
   Object? _error;
@@ -67,6 +81,9 @@ class _RealtimeInterviewScreenState
   var _backgrounded = false;
   var _needsAnswerRetry = false;
   VoidCallback _releaseWordHelp = () {};
+  final _connectionWatch = Stopwatch();
+  bool _hasReservation = false, _classSaved = false;
+  Timer? _checkpointTimer;
 
   @override
   void initState() {
@@ -93,9 +110,12 @@ class _RealtimeInterviewScreenState
 
   @override
   void dispose() {
+    _checkpointTimer?.cancel();
+    unawaited(_settleAllowance());
     _releaseWordHelp();
     WidgetsBinding.instance.removeObserver(this);
     _maximumDurationTimer?.cancel();
+    _hardLimitTimer?.cancel();
     _maximumDurationTimer = null;
     final subscription = _subscription;
     _subscription = null;
@@ -121,6 +141,13 @@ class _RealtimeInterviewScreenState
       _assessmentFailed = false;
     });
     try {
+      final seconds = await widget.reserveDuration?.call() ?? 1200;
+      _hasReservation = widget.reserveDuration != null;
+      _connectionWatch.reset();
+      if (!mounted) {
+        await _settleAllowance();
+        return;
+      }
       final config = await ref.read(llmConfigProvider.future);
       if (!mounted) return;
       final gateway = ref.read(aiGatewayProvider);
@@ -140,12 +167,25 @@ class _RealtimeInterviewScreenState
         (event) => _handleEvent(session, event),
       );
       await session.connect();
+      _connectionWatch.start();
       if (_session != session) return;
-      _maximumDurationTimer = Timer(const Duration(minutes: 20), () {
-        if (mounted && _session == session) {
-          unawaited(_finishAtLimit());
-        }
-      });
+      if (widget.reserveDuration != null) {
+        _hardLimitTimer = Timer(Duration(seconds: seconds), () {
+          if (_session == session) unawaited(_disposeActiveSession());
+        });
+      }
+      _maximumDurationTimer = Timer(
+        Duration(
+          seconds: widget.reserveDuration != null && seconds > 30
+              ? seconds - 30
+              : seconds,
+        ),
+        () {
+          if (mounted && _session == session) {
+            unawaited(_finishAtLimit());
+          }
+        },
+      );
     } catch (error) {
       await _disposeActiveSession();
       if (mounted) {
@@ -180,6 +220,15 @@ class _RealtimeInterviewScreenState
           failed = shouldTerminateRealtimeInterview(event);
       }
     });
+    if (widget.onCheckpoint != null && event is RealtimeTranscriptEvent) {
+      _checkpointTimer?.cancel();
+      _checkpointTimer = Timer(const Duration(seconds: 2), () {
+        final pairs = pairRealtimeTranscript(_transcript.orderedTurns);
+        if (pairs.isNotEmpty) {
+          unawaited(widget.onCheckpoint!(pairs).catchError((Object _) {}));
+        }
+      });
+    }
     if (failed && !_finishing) {
       unawaited(_handleUnexpectedFailure(source));
     }
@@ -193,6 +242,7 @@ class _RealtimeInterviewScreenState
     final subscription = _subscription;
     _subscription = null;
     await _disposeDetached(subscription, source);
+    await _settleAllowance();
     if (mounted && !_finishing) {
       setState(() {
         _activity = RealtimeVoiceActivity.disconnected;
@@ -204,6 +254,8 @@ class _RealtimeInterviewScreenState
   }
 
   Future<void> _disposeActiveSession() async {
+    _hardLimitTimer?.cancel();
+    _hardLimitTimer = null;
     _maximumDurationTimer?.cancel();
     _maximumDurationTimer = null;
     final subscription = _subscription;
@@ -211,6 +263,14 @@ class _RealtimeInterviewScreenState
     final session = _session;
     _session = null;
     await _disposeDetached(subscription, session);
+    await _settleAllowance();
+  }
+
+  Future<void> _settleAllowance() async {
+    _connectionWatch.stop();
+    if (!_hasReservation) return;
+    _hasReservation = false;
+    await widget.onConnectionEnded?.call(_connectionWatch.elapsed.inSeconds);
   }
 
   Future<void> _disposeDetached(
@@ -419,6 +479,22 @@ class _RealtimeInterviewScreenState
     }
 
     try {
+      if (widget.mode == 'class' && widget.onPracticeSaved != null) {
+        await widget.onPracticeSaved!(
+          exchanges,
+          _connectionWatch.elapsed.inSeconds,
+        );
+        await _settleAllowance();
+        if (mounted) {
+          setState(() {
+            _classSaved = true;
+            _finishing = false;
+            _assessmentFailed = false;
+          });
+        }
+        widget.onCompleted?.call();
+        return;
+      }
       final client = await ref.read(llmClientProvider.future);
       final feedback = await requestOralFeedback(
         db: ref.read(appDatabaseProvider),
@@ -452,7 +528,20 @@ class _RealtimeInterviewScreenState
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: SafeArea(
-        child: feedback != null
+        child: _classSaved
+            ? ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  const Text(
+                    'Votre pratique est enregistrée. Vous pouvez demander une rétroaction depuis la classe; elle ne conditionne pas votre progression.',
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Revenir à la classe'),
+                  ),
+                ],
+              )
+            : feedback != null
             ? OralReportView(feedback: feedback, exchanges: exchanges)
             : _finishing
             ? const _AssessingView()
@@ -469,15 +558,19 @@ class _RealtimeInterviewScreenState
       Icon(Icons.graphic_eq, size: 72, color: coachAccent),
       const SizedBox(height: 16),
       Text(
-        'Une vraie entrevue voix-à-voix',
+        widget.mode == 'class'
+            ? 'Pratique avec votre enseignante'
+            : 'Une vraie entrevue voix-à-voix',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 12),
-      const Text(
-        'L’évaluatrice vous entend et répond directement en audio. Elle '
-        'commence par des questions concrètes, relance vos réponses, puis '
-        'progresse vers les opinions et hypothèses du niveau C.',
+      Text(
+        widget.mode == 'class'
+            ? 'Votre enseignante vous aide à réemployer les structures de cette leçon. Parlez à votre rythme, puis envoyez votre tour. Aucun niveau n’est attribué pendant la pratique.'
+            : 'L’évaluatrice vous entend et répond directement en audio. Elle '
+                  'commence par des questions concrètes, relance vos réponses, puis '
+                  'progresse vers les opinions et hypothèses du niveau C.',
         textAlign: TextAlign.center,
       ),
       const SizedBox(height: 20),
@@ -511,7 +604,11 @@ class _RealtimeInterviewScreenState
       FilledButton.icon(
         onPressed: _start,
         icon: const Icon(Icons.headset_mic),
-        label: const Text('Commencer l’entrevue'),
+        label: Text(
+          widget.mode == 'class'
+              ? 'Commencer la pratique'
+              : 'Commencer l’entrevue',
+        ),
       ),
       const SizedBox(height: 10),
       const Text(

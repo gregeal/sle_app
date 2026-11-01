@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/llm/oral_coach.dart' show levelProgress;
 import '../../providers.dart';
 import '../mocks/mock_exam_screen.dart';
+import '../weekly/weekly_progress_card.dart';
 
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
@@ -24,6 +25,7 @@ class ProgressScreen extends ConsumerWidget {
               'Estimations non officielles, fondées sur vos examens blancs.',
             ),
             const SizedBox(height: 18),
+            const WeeklyProgressCard(),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18),

@@ -10,7 +10,7 @@ import '../llm/llm_client.dart';
 const placementPromptVersion = 1;
 
 const placementSettingKey = 'placement:v1';
-const placementLevels = {'A', 'A+', 'B', 'B+', 'C'};
+const placementLevels = {'A', 'A+', 'B', 'B+', 'C', 'unknown'};
 const placementTracks = {'a-to-b-v1', 'b-to-c-v1'};
 
 const _maxRawResponseChars = 100000;
@@ -54,7 +54,10 @@ class PlacementResult {
   static PlacementResult? tryParse(String raw) {
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
+      if (decoded is! Map<String, dynamic> ||
+          decoded['version'] != placementPromptVersion) {
+        return null;
+      }
       final decidedAt = DateTime.parse(decoded['decidedAt'] as String);
       return _validate(decoded, decidedAt);
     } on Object {
@@ -189,10 +192,12 @@ Future<PlacementResult> requestPlacement({
   required LlmClient client,
   required String spokenTranscript,
   required String writtenText,
+  Map<String, dynamic>? diagnostic,
+  bool persist = true,
 }) async {
   final spoken = spokenTranscript.trim();
   final written = writtenText.trim();
-  if (spoken.length < _minSpokenChars) {
+  if (spoken.length < _minSpokenChars && written.length < _minSpokenChars) {
     throw const LlmException(
       'Parlez un peu plus longtemps : la transcription est trop courte pour '
       'un classement honnête.',
@@ -226,6 +231,32 @@ Future<PlacementResult> requestPlacement({
     }
   }
 
-  await db.setSetting(placementSettingKey, jsonEncode(result!.toJson()));
-  return result;
+  var decision = result!;
+  if (diagnostic != null) {
+    final sufficient =
+        diagnostic['spokenCaptured'] == true &&
+        spoken.split(RegExp(r'\s+')).length >= 80 &&
+        written.split(RegExp(r'\s+')).length >= 50 &&
+        (diagnostic['readingCorrect'] as int? ?? 0) >= 3 &&
+        (diagnostic['listeningCorrect'] as int? ?? 0) >= 3 &&
+        diagnostic['listeningAssisted'] != true;
+    if (!sufficient || !{'B', 'B+', 'C'}.contains(decision.levelEstimate)) {
+      decision = PlacementResult(
+        trackId: 'a-to-b-v1',
+        levelEstimate: 'unknown',
+        reasoning:
+            'Placement provisoire : les preuves dans les quatre compétences sont encore limitées. ${decision.reasoning}',
+        strengths: decision.strengths,
+        priorities: decision.priorities,
+        decidedAt: decision.decidedAt,
+      );
+    }
+    if (persist) {
+      await db.setSetting('placement:evidence:v1', jsonEncode(diagnostic));
+    }
+  }
+  if (persist) {
+    await db.setSetting(placementSettingKey, jsonEncode(decision.toJson()));
+  }
+  return decision;
 }

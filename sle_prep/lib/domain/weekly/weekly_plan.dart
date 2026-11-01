@@ -7,6 +7,8 @@
 /// without ever reshaping the week into something lopsided.
 library;
 
+import '../course/course_catalog.dart';
+
 /// Speaking never drops below this share of the week, and never exceeds the
 /// ceiling: beyond it the other skills lose their guaranteed floor.
 const kSpeakingMinShare = 0.40;
@@ -150,11 +152,73 @@ class WeeklyPlan {
   final int minutesPerDay;
   final List<WeeklyAssignmentSpec> assignments;
 
+  void validate() {
+    final track = courseTracks.where((t) => t.id == trackId);
+    if (track.length != 1 ||
+        !track.single.lessons.any((l) => l.id == lessonId)) {
+      throw const FormatException('Unknown course/lesson binding');
+    }
+    if (weekNumber < 1 ||
+        studyDays < 3 ||
+        studyDays > 7 ||
+        minutesPerDay < 30 ||
+        minutesPerDay > 120 ||
+        minutesPerDay % 5 != 0 ||
+        assignments.isEmpty ||
+        assignments.length > 100 ||
+        assignments.map((a) => a.id).toSet().length != assignments.length) {
+      throw const FormatException('Invalid weekly schedule');
+    }
+    const modes = {
+      SkillKind.teaching: {'classTeaching'},
+      SkillKind.speaking: {'liveClassPractice', 'speakingTask'},
+      SkillKind.listening: {'listeningWorkshop'},
+      SkillKind.reading: {'readingWorkshop'},
+      SkillKind.writing: {'writingDraft', 'writingRevision'},
+      SkillKind.vocabulary: {'vocabularyReview'},
+    };
+    for (final a in assignments) {
+      if (a.id.isEmpty ||
+          a.dayIndex < 1 ||
+          a.dayIndex > studyDays ||
+          a.minutes < 5 ||
+          a.minutes % 5 != 0 ||
+          a.titleFr.trim().isEmpty ||
+          a.payload['trackId'] != trackId ||
+          a.payload['lessonId'] != lessonId ||
+          !modes[a.skill]!.contains(a.payload['mode'])) {
+        throw const FormatException('Invalid weekly assignment');
+      }
+    }
+    for (var d = 1; d <= studyDays; d++) {
+      final day = assignmentsForDay(d);
+      if (day.fold<int>(0, (n, a) => n + a.minutes) != minutesPerDay ||
+          !day.any((a) => a.skill == SkillKind.speaking)) {
+        throw const FormatException('Daily budget or speaking missing');
+      }
+    }
+    bool band(SkillKind skill, double low, double high) =>
+        shareOf(skill) >= low - 1e-9 && shareOf(skill) <= high + 1e-9;
+    final shares = distributedSkills.map(shareOf).toList()..sort();
+    if (!band(SkillKind.speaking, .4, .5) ||
+        !band(SkillKind.vocabulary, .05, .12) ||
+        !band(SkillKind.teaching, 0, .08) ||
+        distributedSkills.any((s) => !band(s, .12, .20)) ||
+        shares.last - shares.first > .08 + 1e-9 ||
+        assignments.where((a) => a.skill == SkillKind.teaching).length != 1 ||
+        assignments.first.skill != SkillKind.teaching ||
+        assignments.first.dayIndex != 1) {
+      throw const FormatException('Weekly skill contract violated');
+    }
+  }
+
   int get totalMinutes =>
       assignments.fold(0, (sum, block) => sum + block.minutes);
 
   Map<SkillKind, int> get minutesBySkill {
-    final totals = <SkillKind, int>{for (final skill in SkillKind.values) skill: 0};
+    final totals = <SkillKind, int>{
+      for (final skill in SkillKind.values) skill: 0,
+    };
     for (final block in assignments) {
       totals[block.skill] = totals[block.skill]! + block.minutes;
     }
@@ -185,7 +249,9 @@ class WeeklyPlan {
 
   factory WeeklyPlan.fromJson(Map<String, dynamic> json) {
     if (json['version'] != version) {
-      throw FormatException('Unsupported weekly plan version: ${json['version']}');
+      throw FormatException(
+        'Unsupported weekly plan version: ${json['version']}',
+      );
     }
     final weekNumber = json['weekNumber'];
     final trackId = json['trackId'];
@@ -195,7 +261,9 @@ class WeeklyPlan {
     final minutesPerDay = json['minutesPerDay'];
     final rawAssignments = json['assignments'];
     if (weekNumber is! int || weekNumber < 1) {
-      throw const FormatException('A weekly plan needs a positive week number.');
+      throw const FormatException(
+        'A weekly plan needs a positive week number.',
+      );
     }
     if (trackId is! String ||
         trackId.isEmpty ||
@@ -228,7 +296,7 @@ class WeeklyPlan {
                 : throw const FormatException('Assignments must be objects.'),
           ),
       ]),
-    );
+    )..validate();
   }
 }
 
@@ -292,11 +360,16 @@ WeeklyPlan composeWeeklyPlan({
     studyDays: studyDays,
     minutesPerDay: minutesPerDay,
     budget: budget,
-  );
+  )..validate();
 }
 
 class _Budget {
-  const _Budget(this.teaching, this.speaking, this.vocabulary, this.distributed);
+  const _Budget(
+    this.teaching,
+    this.speaking,
+    this.vocabulary,
+    this.distributed,
+  );
   final int teaching;
   final int speaking;
   final int vocabulary;
@@ -305,7 +378,77 @@ class _Budget {
   final Map<SkillKind, int> distributed;
 }
 
+final _allocationCache = <String, _Budget>{};
 _Budget _allocate(int units, WeeklyEmphasis emphasis) {
+  final names = emphasis.reinforce.map((s) => s.name).toList()..sort();
+  final key = '$units:${emphasis.speakingBoost}:${names.join(',')}';
+  final cached = _allocationCache[key];
+  if (cached != null) return cached;
+  final desired = _allocateCandidate(units, emphasis);
+  final teaching = desired.teaching;
+  _Budget? best;
+  double bestScore = double.infinity;
+  for (
+    var speaking = (.4 * units).ceil();
+    speaking <= (.5 * units).floor();
+    speaking++
+  ) {
+    for (
+      var vocab = (.05 * units).ceil();
+      vocab <= (.12 * units).floor();
+      vocab++
+    ) {
+      for (
+        var listening = (.12 * units).ceil();
+        listening <= (.2 * units).floor();
+        listening++
+      ) {
+        for (
+          var reading = (.12 * units).ceil();
+          reading <= (.2 * units).floor();
+          reading++
+        ) {
+          final writing =
+              units - teaching - speaking - vocab - listening - reading;
+          final values = [listening, reading, writing]..sort();
+          if (writing < (.12 * units).ceil() ||
+              writing > (.2 * units).floor() ||
+              values.last - values.first > (.08 * units).floor()) {
+            continue;
+          }
+          final distributed = {
+            SkillKind.listening: listening,
+            SkillKind.reading: reading,
+            SkillKind.writing: writing,
+          };
+          var score =
+              4.0 *
+                  (speaking - desired.speaking) *
+                  (speaking - desired.speaking) +
+              (vocab - desired.vocabulary) * (vocab - desired.vocabulary);
+          for (final s in distributedSkills) {
+            final delta = distributed[s]! - desired.distributed[s]!;
+            score += delta * delta;
+          }
+          if (score < bestScore) {
+            bestScore = score;
+            best = _Budget(teaching, speaking, vocab, distributed);
+          }
+        }
+      }
+    }
+  }
+  if (best == null) {
+    throw ArgumentError(
+      'Ce budget ne permet pas de respecter les six composantes. Choisissez davantage de minutes.',
+    );
+  }
+  if (_allocationCache.length > 256) _allocationCache.clear();
+  _allocationCache[key] = best;
+  return best;
+}
+
+_Budget _allocateCandidate(int units, WeeklyEmphasis emphasis) {
   final minDistributedEach = (kDistributedMinShare * units).ceil();
   final maxDistributedEach = (kDistributedMaxShare * units).floor();
   final minPool = minDistributedEach * distributedSkills.length;
@@ -346,7 +489,8 @@ _Budget _allocate(int units, WeeklyEmphasis emphasis) {
 
   // Even split, with any remainder handed out in a fixed order.
   final distributed = <SkillKind, int>{
-    for (final skill in distributedSkills) skill: pool ~/ distributedSkills.length,
+    for (final skill in distributedSkills)
+      skill: pool ~/ distributedSkills.length,
   };
   for (var i = 0; i < pool % distributedSkills.length; i++) {
     final skill = distributedSkills[i];
@@ -408,7 +552,8 @@ WeeklyPlan _layout({
   final speakingChunks = List<int>.generate(
     studyDays,
     (index) =>
-        budget.speaking ~/ studyDays + (index < budget.speaking % studyDays ? 1 : 0),
+        budget.speaking ~/ studyDays +
+        (index < budget.speaking % studyDays ? 1 : 0),
   );
 
   final remaining = <SkillKind, int>{
@@ -476,15 +621,16 @@ WeeklyPlan _layout({
     while (capacity > 0 && guard++ < fillOrder.length * 4) {
       SkillKind? chosen;
       for (var offset = 0; offset < fillOrder.length; offset++) {
-        final skill =
-            fillOrder[(weekNumber + day + offset) % fillOrder.length];
+        final skill = fillOrder[(weekNumber + day + offset) % fillOrder.length];
         if ((remaining[skill] ?? 0) > 0) {
           chosen = skill;
           break;
         }
       }
       if (chosen == null) break;
-      final take = capacity < remaining[chosen]! ? capacity : remaining[chosen]!;
+      final take = capacity < remaining[chosen]!
+          ? capacity
+          : remaining[chosen]!;
       remaining[chosen] = remaining[chosen]! - take;
       capacity -= take;
       assignments.add(
@@ -534,13 +680,14 @@ WeeklyAssignmentSpec _otherBlock({
       'Compréhension de l’écrit · $lessonTitleFr',
       'readingWorkshop',
     ),
-    SkillKind.writing => occurrence <= 1
-        ? ('Rédaction', 'Premier jet · $lessonTitleFr', 'writingDraft')
-        : (
-            'Révision écrite',
-            'Reprendre la rétroaction · $lessonTitleFr',
-            'writingRevision',
-          ),
+    SkillKind.writing =>
+      occurrence <= 1
+          ? ('Rédaction', 'Premier jet · $lessonTitleFr', 'writingDraft')
+          : (
+              'Révision écrite',
+              'Reprendre la rétroaction · $lessonTitleFr',
+              'writingRevision',
+            ),
     SkillKind.vocabulary => (
       'Vocabulaire',
       'Révision espacée',

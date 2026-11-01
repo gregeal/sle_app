@@ -7406,6 +7406,31 @@ class $StudyWeeksTable extends StudyWeeks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _scheduleJsonMeta = const VerificationMeta(
+    'scheduleJson',
+  );
+  @override
+  late final GeneratedColumn<String> scheduleJson = GeneratedColumn<String>(
+    'schedule_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _pausedMeta = const VerificationMeta('paused');
+  @override
+  late final GeneratedColumn<bool> paused = GeneratedColumn<bool>(
+    'paused',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("paused" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -7418,6 +7443,8 @@ class $StudyWeeksTable extends StudyWeeks
     reportJson,
     createdAt,
     closedAt,
+    scheduleJson,
+    paused,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7500,6 +7527,21 @@ class $StudyWeeksTable extends StudyWeeks
         closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
       );
     }
+    if (data.containsKey('schedule_json')) {
+      context.handle(
+        _scheduleJsonMeta,
+        scheduleJson.isAcceptableOrUnknown(
+          data['schedule_json']!,
+          _scheduleJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('paused')) {
+      context.handle(
+        _pausedMeta,
+        paused.isAcceptableOrUnknown(data['paused']!, _pausedMeta),
+      );
+    }
     return context;
   }
 
@@ -7549,6 +7591,14 @@ class $StudyWeeksTable extends StudyWeeks
         DriftSqlType.dateTime,
         data['${effectivePrefix}closed_at'],
       ),
+      scheduleJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schedule_json'],
+      )!,
+      paused: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}paused'],
+      )!,
     );
   }
 
@@ -7578,6 +7628,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
   final String? reportJson;
   final DateTime createdAt;
   final DateTime? closedAt;
+  final String scheduleJson;
+  final bool paused;
   const StudyWeek({
     required this.id,
     required this.weekNumber,
@@ -7589,6 +7641,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
     this.reportJson,
     required this.createdAt,
     this.closedAt,
+    required this.scheduleJson,
+    required this.paused,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7607,6 +7661,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
     if (!nullToAbsent || closedAt != null) {
       map['closed_at'] = Variable<DateTime>(closedAt);
     }
+    map['schedule_json'] = Variable<String>(scheduleJson);
+    map['paused'] = Variable<bool>(paused);
     return map;
   }
 
@@ -7626,6 +7682,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
       closedAt: closedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(closedAt),
+      scheduleJson: Value(scheduleJson),
+      paused: Value(paused),
     );
   }
 
@@ -7645,6 +7703,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
       reportJson: serializer.fromJson<String?>(json['reportJson']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+      scheduleJson: serializer.fromJson<String>(json['scheduleJson']),
+      paused: serializer.fromJson<bool>(json['paused']),
     );
   }
   @override
@@ -7661,6 +7721,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
       'reportJson': serializer.toJson<String?>(reportJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'closedAt': serializer.toJson<DateTime?>(closedAt),
+      'scheduleJson': serializer.toJson<String>(scheduleJson),
+      'paused': serializer.toJson<bool>(paused),
     };
   }
 
@@ -7675,6 +7737,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
     Value<String?> reportJson = const Value.absent(),
     DateTime? createdAt,
     Value<DateTime?> closedAt = const Value.absent(),
+    String? scheduleJson,
+    bool? paused,
   }) => StudyWeek(
     id: id ?? this.id,
     weekNumber: weekNumber ?? this.weekNumber,
@@ -7686,6 +7750,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
     reportJson: reportJson.present ? reportJson.value : this.reportJson,
     createdAt: createdAt ?? this.createdAt,
     closedAt: closedAt.present ? closedAt.value : this.closedAt,
+    scheduleJson: scheduleJson ?? this.scheduleJson,
+    paused: paused ?? this.paused,
   );
   StudyWeek copyWithCompanion(StudyWeeksCompanion data) {
     return StudyWeek(
@@ -7703,6 +7769,10 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
           : this.reportJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      scheduleJson: data.scheduleJson.present
+          ? data.scheduleJson.value
+          : this.scheduleJson,
+      paused: data.paused.present ? data.paused.value : this.paused,
     );
   }
 
@@ -7718,7 +7788,9 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
           ..write('planJson: $planJson, ')
           ..write('reportJson: $reportJson, ')
           ..write('createdAt: $createdAt, ')
-          ..write('closedAt: $closedAt')
+          ..write('closedAt: $closedAt, ')
+          ..write('scheduleJson: $scheduleJson, ')
+          ..write('paused: $paused')
           ..write(')'))
         .toString();
   }
@@ -7735,6 +7807,8 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
     reportJson,
     createdAt,
     closedAt,
+    scheduleJson,
+    paused,
   );
   @override
   bool operator ==(Object other) =>
@@ -7749,7 +7823,9 @@ class StudyWeek extends DataClass implements Insertable<StudyWeek> {
           other.planJson == this.planJson &&
           other.reportJson == this.reportJson &&
           other.createdAt == this.createdAt &&
-          other.closedAt == this.closedAt);
+          other.closedAt == this.closedAt &&
+          other.scheduleJson == this.scheduleJson &&
+          other.paused == this.paused);
 }
 
 class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
@@ -7763,6 +7839,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
   final Value<String?> reportJson;
   final Value<DateTime> createdAt;
   final Value<DateTime?> closedAt;
+  final Value<String> scheduleJson;
+  final Value<bool> paused;
   const StudyWeeksCompanion({
     this.id = const Value.absent(),
     this.weekNumber = const Value.absent(),
@@ -7774,6 +7852,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
     this.reportJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.closedAt = const Value.absent(),
+    this.scheduleJson = const Value.absent(),
+    this.paused = const Value.absent(),
   });
   StudyWeeksCompanion.insert({
     this.id = const Value.absent(),
@@ -7786,6 +7866,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
     this.reportJson = const Value.absent(),
     required DateTime createdAt,
     this.closedAt = const Value.absent(),
+    this.scheduleJson = const Value.absent(),
+    this.paused = const Value.absent(),
   }) : weekNumber = Value(weekNumber),
        trackId = Value(trackId),
        lessonId = Value(lessonId),
@@ -7803,6 +7885,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
     Expression<String>? reportJson,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? closedAt,
+    Expression<String>? scheduleJson,
+    Expression<bool>? paused,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7815,6 +7899,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
       if (reportJson != null) 'report_json': reportJson,
       if (createdAt != null) 'created_at': createdAt,
       if (closedAt != null) 'closed_at': closedAt,
+      if (scheduleJson != null) 'schedule_json': scheduleJson,
+      if (paused != null) 'paused': paused,
     });
   }
 
@@ -7829,6 +7915,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
     Value<String?>? reportJson,
     Value<DateTime>? createdAt,
     Value<DateTime?>? closedAt,
+    Value<String>? scheduleJson,
+    Value<bool>? paused,
   }) {
     return StudyWeeksCompanion(
       id: id ?? this.id,
@@ -7841,6 +7929,8 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
       reportJson: reportJson ?? this.reportJson,
       createdAt: createdAt ?? this.createdAt,
       closedAt: closedAt ?? this.closedAt,
+      scheduleJson: scheduleJson ?? this.scheduleJson,
+      paused: paused ?? this.paused,
     );
   }
 
@@ -7877,6 +7967,12 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
     if (closedAt.present) {
       map['closed_at'] = Variable<DateTime>(closedAt.value);
     }
+    if (scheduleJson.present) {
+      map['schedule_json'] = Variable<String>(scheduleJson.value);
+    }
+    if (paused.present) {
+      map['paused'] = Variable<bool>(paused.value);
+    }
     return map;
   }
 
@@ -7892,7 +7988,9 @@ class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
           ..write('planJson: $planJson, ')
           ..write('reportJson: $reportJson, ')
           ..write('createdAt: $createdAt, ')
-          ..write('closedAt: $closedAt')
+          ..write('closedAt: $closedAt, ')
+          ..write('scheduleJson: $scheduleJson, ')
+          ..write('paused: $paused')
           ..write(')'))
         .toString();
   }
@@ -8619,6 +8717,1502 @@ class WeeklyAssignmentsCompanion extends UpdateCompanion<WeeklyAssignment> {
   }
 }
 
+class $WeeklyClassStatesTable extends WeeklyClassStates
+    with TableInfo<$WeeklyClassStatesTable, WeeklyClassState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyClassStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _weekIdMeta = const VerificationMeta('weekId');
+  @override
+  late final GeneratedColumn<int> weekId = GeneratedColumn<int>(
+    'week_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL REFERENCES study_weeks(id)',
+  );
+  static const VerificationMeta _stateJsonMeta = const VerificationMeta(
+    'stateJson',
+  );
+  @override
+  late final GeneratedColumn<String> stateJson = GeneratedColumn<String>(
+    'state_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [weekId, stateJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_class_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyClassState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('week_id')) {
+      context.handle(
+        _weekIdMeta,
+        weekId.isAcceptableOrUnknown(data['week_id']!, _weekIdMeta),
+      );
+    }
+    if (data.containsKey('state_json')) {
+      context.handle(
+        _stateJsonMeta,
+        stateJson.isAcceptableOrUnknown(data['state_json']!, _stateJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {weekId};
+  @override
+  WeeklyClassState map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyClassState(
+      weekId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_id'],
+      )!,
+      stateJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state_json'],
+      )!,
+    );
+  }
+
+  @override
+  $WeeklyClassStatesTable createAlias(String alias) {
+    return $WeeklyClassStatesTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyClassState extends DataClass
+    implements Insertable<WeeklyClassState> {
+  final int weekId;
+  final String stateJson;
+  const WeeklyClassState({required this.weekId, required this.stateJson});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['week_id'] = Variable<int>(weekId);
+    map['state_json'] = Variable<String>(stateJson);
+    return map;
+  }
+
+  WeeklyClassStatesCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyClassStatesCompanion(
+      weekId: Value(weekId),
+      stateJson: Value(stateJson),
+    );
+  }
+
+  factory WeeklyClassState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyClassState(
+      weekId: serializer.fromJson<int>(json['weekId']),
+      stateJson: serializer.fromJson<String>(json['stateJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'weekId': serializer.toJson<int>(weekId),
+      'stateJson': serializer.toJson<String>(stateJson),
+    };
+  }
+
+  WeeklyClassState copyWith({int? weekId, String? stateJson}) =>
+      WeeklyClassState(
+        weekId: weekId ?? this.weekId,
+        stateJson: stateJson ?? this.stateJson,
+      );
+  WeeklyClassState copyWithCompanion(WeeklyClassStatesCompanion data) {
+    return WeeklyClassState(
+      weekId: data.weekId.present ? data.weekId.value : this.weekId,
+      stateJson: data.stateJson.present ? data.stateJson.value : this.stateJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyClassState(')
+          ..write('weekId: $weekId, ')
+          ..write('stateJson: $stateJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(weekId, stateJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyClassState &&
+          other.weekId == this.weekId &&
+          other.stateJson == this.stateJson);
+}
+
+class WeeklyClassStatesCompanion extends UpdateCompanion<WeeklyClassState> {
+  final Value<int> weekId;
+  final Value<String> stateJson;
+  const WeeklyClassStatesCompanion({
+    this.weekId = const Value.absent(),
+    this.stateJson = const Value.absent(),
+  });
+  WeeklyClassStatesCompanion.insert({
+    this.weekId = const Value.absent(),
+    required String stateJson,
+  }) : stateJson = Value(stateJson);
+  static Insertable<WeeklyClassState> custom({
+    Expression<int>? weekId,
+    Expression<String>? stateJson,
+  }) {
+    return RawValuesInsertable({
+      if (weekId != null) 'week_id': weekId,
+      if (stateJson != null) 'state_json': stateJson,
+    });
+  }
+
+  WeeklyClassStatesCompanion copyWith({
+    Value<int>? weekId,
+    Value<String>? stateJson,
+  }) {
+    return WeeklyClassStatesCompanion(
+      weekId: weekId ?? this.weekId,
+      stateJson: stateJson ?? this.stateJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (weekId.present) {
+      map['week_id'] = Variable<int>(weekId.value);
+    }
+    if (stateJson.present) {
+      map['state_json'] = Variable<String>(stateJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyClassStatesCompanion(')
+          ..write('weekId: $weekId, ')
+          ..write('stateJson: $stateJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WeeklyEvidenceTable extends WeeklyEvidence
+    with TableInfo<$WeeklyEvidenceTable, WeeklyEvidenceData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyEvidenceTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _assignmentIdMeta = const VerificationMeta(
+    'assignmentId',
+  );
+  @override
+  late final GeneratedColumn<int> assignmentId = GeneratedColumn<int>(
+    'assignment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES weekly_assignments(id)',
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<int> sourceId = GeneratedColumn<int>(
+    'source_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dataJsonMeta = const VerificationMeta(
+    'dataJson',
+  );
+  @override
+  late final GeneratedColumn<String> dataJson = GeneratedColumn<String>(
+    'data_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assistedMeta = const VerificationMeta(
+    'assisted',
+  );
+  @override
+  late final GeneratedColumn<bool> assisted = GeneratedColumn<bool>(
+    'assisted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("assisted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _selfReportedMeta = const VerificationMeta(
+    'selfReported',
+  );
+  @override
+  late final GeneratedColumn<bool> selfReported = GeneratedColumn<bool>(
+    'self_reported',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("self_reported" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _observedSecondsMeta = const VerificationMeta(
+    'observedSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> observedSeconds = GeneratedColumn<int>(
+    'observed_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    assignmentId,
+    kind,
+    sourceId,
+    dataJson,
+    assisted,
+    selfReported,
+    observedSeconds,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_evidence';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyEvidenceData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('assignment_id')) {
+      context.handle(
+        _assignmentIdMeta,
+        assignmentId.isAcceptableOrUnknown(
+          data['assignment_id']!,
+          _assignmentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_assignmentIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    }
+    if (data.containsKey('data_json')) {
+      context.handle(
+        _dataJsonMeta,
+        dataJson.isAcceptableOrUnknown(data['data_json']!, _dataJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataJsonMeta);
+    }
+    if (data.containsKey('assisted')) {
+      context.handle(
+        _assistedMeta,
+        assisted.isAcceptableOrUnknown(data['assisted']!, _assistedMeta),
+      );
+    }
+    if (data.containsKey('self_reported')) {
+      context.handle(
+        _selfReportedMeta,
+        selfReported.isAcceptableOrUnknown(
+          data['self_reported']!,
+          _selfReportedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('observed_seconds')) {
+      context.handle(
+        _observedSecondsMeta,
+        observedSeconds.isAcceptableOrUnknown(
+          data['observed_seconds']!,
+          _observedSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WeeklyEvidenceData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyEvidenceData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      assignmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}assignment_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_id'],
+      ),
+      dataJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data_json'],
+      )!,
+      assisted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}assisted'],
+      )!,
+      selfReported: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}self_reported'],
+      )!,
+      observedSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}observed_seconds'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WeeklyEvidenceTable createAlias(String alias) {
+    return $WeeklyEvidenceTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyEvidenceData extends DataClass
+    implements Insertable<WeeklyEvidenceData> {
+  final int id;
+  final int assignmentId;
+  final String kind;
+  final int? sourceId;
+  final String dataJson;
+  final bool assisted;
+  final bool selfReported;
+  final int? observedSeconds;
+  final DateTime createdAt;
+  const WeeklyEvidenceData({
+    required this.id,
+    required this.assignmentId,
+    required this.kind,
+    this.sourceId,
+    required this.dataJson,
+    required this.assisted,
+    required this.selfReported,
+    this.observedSeconds,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['assignment_id'] = Variable<int>(assignmentId);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || sourceId != null) {
+      map['source_id'] = Variable<int>(sourceId);
+    }
+    map['data_json'] = Variable<String>(dataJson);
+    map['assisted'] = Variable<bool>(assisted);
+    map['self_reported'] = Variable<bool>(selfReported);
+    if (!nullToAbsent || observedSeconds != null) {
+      map['observed_seconds'] = Variable<int>(observedSeconds);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  WeeklyEvidenceCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyEvidenceCompanion(
+      id: Value(id),
+      assignmentId: Value(assignmentId),
+      kind: Value(kind),
+      sourceId: sourceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceId),
+      dataJson: Value(dataJson),
+      assisted: Value(assisted),
+      selfReported: Value(selfReported),
+      observedSeconds: observedSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(observedSeconds),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory WeeklyEvidenceData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyEvidenceData(
+      id: serializer.fromJson<int>(json['id']),
+      assignmentId: serializer.fromJson<int>(json['assignmentId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      sourceId: serializer.fromJson<int?>(json['sourceId']),
+      dataJson: serializer.fromJson<String>(json['dataJson']),
+      assisted: serializer.fromJson<bool>(json['assisted']),
+      selfReported: serializer.fromJson<bool>(json['selfReported']),
+      observedSeconds: serializer.fromJson<int?>(json['observedSeconds']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'assignmentId': serializer.toJson<int>(assignmentId),
+      'kind': serializer.toJson<String>(kind),
+      'sourceId': serializer.toJson<int?>(sourceId),
+      'dataJson': serializer.toJson<String>(dataJson),
+      'assisted': serializer.toJson<bool>(assisted),
+      'selfReported': serializer.toJson<bool>(selfReported),
+      'observedSeconds': serializer.toJson<int?>(observedSeconds),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  WeeklyEvidenceData copyWith({
+    int? id,
+    int? assignmentId,
+    String? kind,
+    Value<int?> sourceId = const Value.absent(),
+    String? dataJson,
+    bool? assisted,
+    bool? selfReported,
+    Value<int?> observedSeconds = const Value.absent(),
+    DateTime? createdAt,
+  }) => WeeklyEvidenceData(
+    id: id ?? this.id,
+    assignmentId: assignmentId ?? this.assignmentId,
+    kind: kind ?? this.kind,
+    sourceId: sourceId.present ? sourceId.value : this.sourceId,
+    dataJson: dataJson ?? this.dataJson,
+    assisted: assisted ?? this.assisted,
+    selfReported: selfReported ?? this.selfReported,
+    observedSeconds: observedSeconds.present
+        ? observedSeconds.value
+        : this.observedSeconds,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  WeeklyEvidenceData copyWithCompanion(WeeklyEvidenceCompanion data) {
+    return WeeklyEvidenceData(
+      id: data.id.present ? data.id.value : this.id,
+      assignmentId: data.assignmentId.present
+          ? data.assignmentId.value
+          : this.assignmentId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      dataJson: data.dataJson.present ? data.dataJson.value : this.dataJson,
+      assisted: data.assisted.present ? data.assisted.value : this.assisted,
+      selfReported: data.selfReported.present
+          ? data.selfReported.value
+          : this.selfReported,
+      observedSeconds: data.observedSeconds.present
+          ? data.observedSeconds.value
+          : this.observedSeconds,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyEvidenceData(')
+          ..write('id: $id, ')
+          ..write('assignmentId: $assignmentId, ')
+          ..write('kind: $kind, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('assisted: $assisted, ')
+          ..write('selfReported: $selfReported, ')
+          ..write('observedSeconds: $observedSeconds, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    assignmentId,
+    kind,
+    sourceId,
+    dataJson,
+    assisted,
+    selfReported,
+    observedSeconds,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyEvidenceData &&
+          other.id == this.id &&
+          other.assignmentId == this.assignmentId &&
+          other.kind == this.kind &&
+          other.sourceId == this.sourceId &&
+          other.dataJson == this.dataJson &&
+          other.assisted == this.assisted &&
+          other.selfReported == this.selfReported &&
+          other.observedSeconds == this.observedSeconds &&
+          other.createdAt == this.createdAt);
+}
+
+class WeeklyEvidenceCompanion extends UpdateCompanion<WeeklyEvidenceData> {
+  final Value<int> id;
+  final Value<int> assignmentId;
+  final Value<String> kind;
+  final Value<int?> sourceId;
+  final Value<String> dataJson;
+  final Value<bool> assisted;
+  final Value<bool> selfReported;
+  final Value<int?> observedSeconds;
+  final Value<DateTime> createdAt;
+  const WeeklyEvidenceCompanion({
+    this.id = const Value.absent(),
+    this.assignmentId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.sourceId = const Value.absent(),
+    this.dataJson = const Value.absent(),
+    this.assisted = const Value.absent(),
+    this.selfReported = const Value.absent(),
+    this.observedSeconds = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  WeeklyEvidenceCompanion.insert({
+    this.id = const Value.absent(),
+    required int assignmentId,
+    required String kind,
+    this.sourceId = const Value.absent(),
+    required String dataJson,
+    this.assisted = const Value.absent(),
+    this.selfReported = const Value.absent(),
+    this.observedSeconds = const Value.absent(),
+    required DateTime createdAt,
+  }) : assignmentId = Value(assignmentId),
+       kind = Value(kind),
+       dataJson = Value(dataJson),
+       createdAt = Value(createdAt);
+  static Insertable<WeeklyEvidenceData> custom({
+    Expression<int>? id,
+    Expression<int>? assignmentId,
+    Expression<String>? kind,
+    Expression<int>? sourceId,
+    Expression<String>? dataJson,
+    Expression<bool>? assisted,
+    Expression<bool>? selfReported,
+    Expression<int>? observedSeconds,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (assignmentId != null) 'assignment_id': assignmentId,
+      if (kind != null) 'kind': kind,
+      if (sourceId != null) 'source_id': sourceId,
+      if (dataJson != null) 'data_json': dataJson,
+      if (assisted != null) 'assisted': assisted,
+      if (selfReported != null) 'self_reported': selfReported,
+      if (observedSeconds != null) 'observed_seconds': observedSeconds,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  WeeklyEvidenceCompanion copyWith({
+    Value<int>? id,
+    Value<int>? assignmentId,
+    Value<String>? kind,
+    Value<int?>? sourceId,
+    Value<String>? dataJson,
+    Value<bool>? assisted,
+    Value<bool>? selfReported,
+    Value<int?>? observedSeconds,
+    Value<DateTime>? createdAt,
+  }) {
+    return WeeklyEvidenceCompanion(
+      id: id ?? this.id,
+      assignmentId: assignmentId ?? this.assignmentId,
+      kind: kind ?? this.kind,
+      sourceId: sourceId ?? this.sourceId,
+      dataJson: dataJson ?? this.dataJson,
+      assisted: assisted ?? this.assisted,
+      selfReported: selfReported ?? this.selfReported,
+      observedSeconds: observedSeconds ?? this.observedSeconds,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (assignmentId.present) {
+      map['assignment_id'] = Variable<int>(assignmentId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (sourceId.present) {
+      map['source_id'] = Variable<int>(sourceId.value);
+    }
+    if (dataJson.present) {
+      map['data_json'] = Variable<String>(dataJson.value);
+    }
+    if (assisted.present) {
+      map['assisted'] = Variable<bool>(assisted.value);
+    }
+    if (selfReported.present) {
+      map['self_reported'] = Variable<bool>(selfReported.value);
+    }
+    if (observedSeconds.present) {
+      map['observed_seconds'] = Variable<int>(observedSeconds.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyEvidenceCompanion(')
+          ..write('id: $id, ')
+          ..write('assignmentId: $assignmentId, ')
+          ..write('kind: $kind, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('assisted: $assisted, ')
+          ..write('selfReported: $selfReported, ')
+          ..write('observedSeconds: $observedSeconds, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WeeklyFeedbackJobsTable extends WeeklyFeedbackJobs
+    with TableInfo<$WeeklyFeedbackJobsTable, WeeklyFeedbackJob> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyFeedbackJobsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _weekIdMeta = const VerificationMeta('weekId');
+  @override
+  late final GeneratedColumn<int> weekId = GeneratedColumn<int>(
+    'week_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL REFERENCES study_weeks(id)',
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('notRequested'),
+  );
+  static const VerificationMeta _snapshotJsonMeta = const VerificationMeta(
+    'snapshotJson',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotJson = GeneratedColumn<String>(
+    'snapshot_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reportJsonMeta = const VerificationMeta(
+    'reportJson',
+  );
+  @override
+  late final GeneratedColumn<String> reportJson = GeneratedColumn<String>(
+    'report_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    weekId,
+    status,
+    snapshotJson,
+    reportJson,
+    error,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_feedback_jobs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyFeedbackJob> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('week_id')) {
+      context.handle(
+        _weekIdMeta,
+        weekId.isAcceptableOrUnknown(data['week_id']!, _weekIdMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('snapshot_json')) {
+      context.handle(
+        _snapshotJsonMeta,
+        snapshotJson.isAcceptableOrUnknown(
+          data['snapshot_json']!,
+          _snapshotJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_snapshotJsonMeta);
+    }
+    if (data.containsKey('report_json')) {
+      context.handle(
+        _reportJsonMeta,
+        reportJson.isAcceptableOrUnknown(data['report_json']!, _reportJsonMeta),
+      );
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {weekId};
+  @override
+  WeeklyFeedbackJob map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyFeedbackJob(
+      weekId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      snapshotJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_json'],
+      )!,
+      reportJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}report_json'],
+      ),
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      ),
+    );
+  }
+
+  @override
+  $WeeklyFeedbackJobsTable createAlias(String alias) {
+    return $WeeklyFeedbackJobsTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyFeedbackJob extends DataClass
+    implements Insertable<WeeklyFeedbackJob> {
+  final int weekId;
+  final String status;
+  final String snapshotJson;
+  final String? reportJson;
+  final String? error;
+  const WeeklyFeedbackJob({
+    required this.weekId,
+    required this.status,
+    required this.snapshotJson,
+    this.reportJson,
+    this.error,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['week_id'] = Variable<int>(weekId);
+    map['status'] = Variable<String>(status);
+    map['snapshot_json'] = Variable<String>(snapshotJson);
+    if (!nullToAbsent || reportJson != null) {
+      map['report_json'] = Variable<String>(reportJson);
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    return map;
+  }
+
+  WeeklyFeedbackJobsCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyFeedbackJobsCompanion(
+      weekId: Value(weekId),
+      status: Value(status),
+      snapshotJson: Value(snapshotJson),
+      reportJson: reportJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reportJson),
+      error: error == null && nullToAbsent
+          ? const Value.absent()
+          : Value(error),
+    );
+  }
+
+  factory WeeklyFeedbackJob.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyFeedbackJob(
+      weekId: serializer.fromJson<int>(json['weekId']),
+      status: serializer.fromJson<String>(json['status']),
+      snapshotJson: serializer.fromJson<String>(json['snapshotJson']),
+      reportJson: serializer.fromJson<String?>(json['reportJson']),
+      error: serializer.fromJson<String?>(json['error']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'weekId': serializer.toJson<int>(weekId),
+      'status': serializer.toJson<String>(status),
+      'snapshotJson': serializer.toJson<String>(snapshotJson),
+      'reportJson': serializer.toJson<String?>(reportJson),
+      'error': serializer.toJson<String?>(error),
+    };
+  }
+
+  WeeklyFeedbackJob copyWith({
+    int? weekId,
+    String? status,
+    String? snapshotJson,
+    Value<String?> reportJson = const Value.absent(),
+    Value<String?> error = const Value.absent(),
+  }) => WeeklyFeedbackJob(
+    weekId: weekId ?? this.weekId,
+    status: status ?? this.status,
+    snapshotJson: snapshotJson ?? this.snapshotJson,
+    reportJson: reportJson.present ? reportJson.value : this.reportJson,
+    error: error.present ? error.value : this.error,
+  );
+  WeeklyFeedbackJob copyWithCompanion(WeeklyFeedbackJobsCompanion data) {
+    return WeeklyFeedbackJob(
+      weekId: data.weekId.present ? data.weekId.value : this.weekId,
+      status: data.status.present ? data.status.value : this.status,
+      snapshotJson: data.snapshotJson.present
+          ? data.snapshotJson.value
+          : this.snapshotJson,
+      reportJson: data.reportJson.present
+          ? data.reportJson.value
+          : this.reportJson,
+      error: data.error.present ? data.error.value : this.error,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyFeedbackJob(')
+          ..write('weekId: $weekId, ')
+          ..write('status: $status, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('error: $error')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(weekId, status, snapshotJson, reportJson, error);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyFeedbackJob &&
+          other.weekId == this.weekId &&
+          other.status == this.status &&
+          other.snapshotJson == this.snapshotJson &&
+          other.reportJson == this.reportJson &&
+          other.error == this.error);
+}
+
+class WeeklyFeedbackJobsCompanion extends UpdateCompanion<WeeklyFeedbackJob> {
+  final Value<int> weekId;
+  final Value<String> status;
+  final Value<String> snapshotJson;
+  final Value<String?> reportJson;
+  final Value<String?> error;
+  const WeeklyFeedbackJobsCompanion({
+    this.weekId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.snapshotJson = const Value.absent(),
+    this.reportJson = const Value.absent(),
+    this.error = const Value.absent(),
+  });
+  WeeklyFeedbackJobsCompanion.insert({
+    this.weekId = const Value.absent(),
+    this.status = const Value.absent(),
+    required String snapshotJson,
+    this.reportJson = const Value.absent(),
+    this.error = const Value.absent(),
+  }) : snapshotJson = Value(snapshotJson);
+  static Insertable<WeeklyFeedbackJob> custom({
+    Expression<int>? weekId,
+    Expression<String>? status,
+    Expression<String>? snapshotJson,
+    Expression<String>? reportJson,
+    Expression<String>? error,
+  }) {
+    return RawValuesInsertable({
+      if (weekId != null) 'week_id': weekId,
+      if (status != null) 'status': status,
+      if (snapshotJson != null) 'snapshot_json': snapshotJson,
+      if (reportJson != null) 'report_json': reportJson,
+      if (error != null) 'error': error,
+    });
+  }
+
+  WeeklyFeedbackJobsCompanion copyWith({
+    Value<int>? weekId,
+    Value<String>? status,
+    Value<String>? snapshotJson,
+    Value<String?>? reportJson,
+    Value<String?>? error,
+  }) {
+    return WeeklyFeedbackJobsCompanion(
+      weekId: weekId ?? this.weekId,
+      status: status ?? this.status,
+      snapshotJson: snapshotJson ?? this.snapshotJson,
+      reportJson: reportJson ?? this.reportJson,
+      error: error ?? this.error,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (weekId.present) {
+      map['week_id'] = Variable<int>(weekId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (snapshotJson.present) {
+      map['snapshot_json'] = Variable<String>(snapshotJson.value);
+    }
+    if (reportJson.present) {
+      map['report_json'] = Variable<String>(reportJson.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyFeedbackJobsCompanion(')
+          ..write('weekId: $weekId, ')
+          ..write('status: $status, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('error: $error')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WeeklyVoiceLeasesTable extends WeeklyVoiceLeases
+    with TableInfo<$WeeklyVoiceLeasesTable, WeeklyVoiceLease> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyVoiceLeasesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _weekIdMeta = const VerificationMeta('weekId');
+  @override
+  late final GeneratedColumn<int> weekId = GeneratedColumn<int>(
+    'week_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES study_weeks(id)',
+  );
+  static const VerificationMeta _reservedSecondsMeta = const VerificationMeta(
+    'reservedSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> reservedSeconds = GeneratedColumn<int>(
+    'reserved_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usedSecondsMeta = const VerificationMeta(
+    'usedSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> usedSeconds = GeneratedColumn<int>(
+    'used_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    weekId,
+    reservedSeconds,
+    usedSeconds,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_voice_leases';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyVoiceLease> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('week_id')) {
+      context.handle(
+        _weekIdMeta,
+        weekId.isAcceptableOrUnknown(data['week_id']!, _weekIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekIdMeta);
+    }
+    if (data.containsKey('reserved_seconds')) {
+      context.handle(
+        _reservedSecondsMeta,
+        reservedSeconds.isAcceptableOrUnknown(
+          data['reserved_seconds']!,
+          _reservedSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_reservedSecondsMeta);
+    }
+    if (data.containsKey('used_seconds')) {
+      context.handle(
+        _usedSecondsMeta,
+        usedSeconds.isAcceptableOrUnknown(
+          data['used_seconds']!,
+          _usedSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WeeklyVoiceLease map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyVoiceLease(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      weekId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_id'],
+      )!,
+      reservedSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reserved_seconds'],
+      )!,
+      usedSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}used_seconds'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WeeklyVoiceLeasesTable createAlias(String alias) {
+    return $WeeklyVoiceLeasesTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyVoiceLease extends DataClass
+    implements Insertable<WeeklyVoiceLease> {
+  final int id;
+  final int weekId;
+  final int reservedSeconds;
+  final int? usedSeconds;
+  final DateTime createdAt;
+  const WeeklyVoiceLease({
+    required this.id,
+    required this.weekId,
+    required this.reservedSeconds,
+    this.usedSeconds,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['week_id'] = Variable<int>(weekId);
+    map['reserved_seconds'] = Variable<int>(reservedSeconds);
+    if (!nullToAbsent || usedSeconds != null) {
+      map['used_seconds'] = Variable<int>(usedSeconds);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  WeeklyVoiceLeasesCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyVoiceLeasesCompanion(
+      id: Value(id),
+      weekId: Value(weekId),
+      reservedSeconds: Value(reservedSeconds),
+      usedSeconds: usedSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(usedSeconds),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory WeeklyVoiceLease.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyVoiceLease(
+      id: serializer.fromJson<int>(json['id']),
+      weekId: serializer.fromJson<int>(json['weekId']),
+      reservedSeconds: serializer.fromJson<int>(json['reservedSeconds']),
+      usedSeconds: serializer.fromJson<int?>(json['usedSeconds']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'weekId': serializer.toJson<int>(weekId),
+      'reservedSeconds': serializer.toJson<int>(reservedSeconds),
+      'usedSeconds': serializer.toJson<int?>(usedSeconds),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  WeeklyVoiceLease copyWith({
+    int? id,
+    int? weekId,
+    int? reservedSeconds,
+    Value<int?> usedSeconds = const Value.absent(),
+    DateTime? createdAt,
+  }) => WeeklyVoiceLease(
+    id: id ?? this.id,
+    weekId: weekId ?? this.weekId,
+    reservedSeconds: reservedSeconds ?? this.reservedSeconds,
+    usedSeconds: usedSeconds.present ? usedSeconds.value : this.usedSeconds,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  WeeklyVoiceLease copyWithCompanion(WeeklyVoiceLeasesCompanion data) {
+    return WeeklyVoiceLease(
+      id: data.id.present ? data.id.value : this.id,
+      weekId: data.weekId.present ? data.weekId.value : this.weekId,
+      reservedSeconds: data.reservedSeconds.present
+          ? data.reservedSeconds.value
+          : this.reservedSeconds,
+      usedSeconds: data.usedSeconds.present
+          ? data.usedSeconds.value
+          : this.usedSeconds,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyVoiceLease(')
+          ..write('id: $id, ')
+          ..write('weekId: $weekId, ')
+          ..write('reservedSeconds: $reservedSeconds, ')
+          ..write('usedSeconds: $usedSeconds, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, weekId, reservedSeconds, usedSeconds, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyVoiceLease &&
+          other.id == this.id &&
+          other.weekId == this.weekId &&
+          other.reservedSeconds == this.reservedSeconds &&
+          other.usedSeconds == this.usedSeconds &&
+          other.createdAt == this.createdAt);
+}
+
+class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
+  final Value<int> id;
+  final Value<int> weekId;
+  final Value<int> reservedSeconds;
+  final Value<int?> usedSeconds;
+  final Value<DateTime> createdAt;
+  const WeeklyVoiceLeasesCompanion({
+    this.id = const Value.absent(),
+    this.weekId = const Value.absent(),
+    this.reservedSeconds = const Value.absent(),
+    this.usedSeconds = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  WeeklyVoiceLeasesCompanion.insert({
+    this.id = const Value.absent(),
+    required int weekId,
+    required int reservedSeconds,
+    this.usedSeconds = const Value.absent(),
+    required DateTime createdAt,
+  }) : weekId = Value(weekId),
+       reservedSeconds = Value(reservedSeconds),
+       createdAt = Value(createdAt);
+  static Insertable<WeeklyVoiceLease> custom({
+    Expression<int>? id,
+    Expression<int>? weekId,
+    Expression<int>? reservedSeconds,
+    Expression<int>? usedSeconds,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (weekId != null) 'week_id': weekId,
+      if (reservedSeconds != null) 'reserved_seconds': reservedSeconds,
+      if (usedSeconds != null) 'used_seconds': usedSeconds,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  WeeklyVoiceLeasesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? weekId,
+    Value<int>? reservedSeconds,
+    Value<int?>? usedSeconds,
+    Value<DateTime>? createdAt,
+  }) {
+    return WeeklyVoiceLeasesCompanion(
+      id: id ?? this.id,
+      weekId: weekId ?? this.weekId,
+      reservedSeconds: reservedSeconds ?? this.reservedSeconds,
+      usedSeconds: usedSeconds ?? this.usedSeconds,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (weekId.present) {
+      map['week_id'] = Variable<int>(weekId.value);
+    }
+    if (reservedSeconds.present) {
+      map['reserved_seconds'] = Variable<int>(reservedSeconds.value);
+    }
+    if (usedSeconds.present) {
+      map['used_seconds'] = Variable<int>(usedSeconds.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyVoiceLeasesCompanion(')
+          ..write('id: $id, ')
+          ..write('weekId: $weekId, ')
+          ..write('reservedSeconds: $reservedSeconds, ')
+          ..write('usedSeconds: $usedSeconds, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8653,6 +10247,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $StudyWeeksTable studyWeeks = $StudyWeeksTable(this);
   late final $WeeklyAssignmentsTable weeklyAssignments =
       $WeeklyAssignmentsTable(this);
+  late final $WeeklyClassStatesTable weeklyClassStates =
+      $WeeklyClassStatesTable(this);
+  late final $WeeklyEvidenceTable weeklyEvidence = $WeeklyEvidenceTable(this);
+  late final $WeeklyFeedbackJobsTable weeklyFeedbackJobs =
+      $WeeklyFeedbackJobsTable(this);
+  late final $WeeklyVoiceLeasesTable weeklyVoiceLeases =
+      $WeeklyVoiceLeasesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8677,6 +10278,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     speakingMistakes,
     studyWeeks,
     weeklyAssignments,
+    weeklyClassStates,
+    weeklyEvidence,
+    weeklyFeedbackJobs,
+    weeklyVoiceLeases,
   ];
 }
 
@@ -12561,6 +14166,8 @@ typedef $$StudyWeeksTableCreateCompanionBuilder =
       Value<String?> reportJson,
       required DateTime createdAt,
       Value<DateTime?> closedAt,
+      Value<String> scheduleJson,
+      Value<bool> paused,
     });
 typedef $$StudyWeeksTableUpdateCompanionBuilder =
     StudyWeeksCompanion Function({
@@ -12574,7 +14181,86 @@ typedef $$StudyWeeksTableUpdateCompanionBuilder =
       Value<String?> reportJson,
       Value<DateTime> createdAt,
       Value<DateTime?> closedAt,
+      Value<String> scheduleJson,
+      Value<bool> paused,
     });
+
+final class $$StudyWeeksTableReferences
+    extends BaseReferences<_$AppDatabase, $StudyWeeksTable, StudyWeek> {
+  $$StudyWeeksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$WeeklyClassStatesTable, List<WeeklyClassState>>
+  _weeklyClassStatesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.weeklyClassStates,
+        aliasName: $_aliasNameGenerator(
+          db.studyWeeks.id,
+          db.weeklyClassStates.weekId,
+        ),
+      );
+
+  $$WeeklyClassStatesTableProcessedTableManager get weeklyClassStatesRefs {
+    final manager = $$WeeklyClassStatesTableTableManager(
+      $_db,
+      $_db.weeklyClassStates,
+    ).filter((f) => f.weekId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _weeklyClassStatesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$WeeklyFeedbackJobsTable, List<WeeklyFeedbackJob>>
+  _weeklyFeedbackJobsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.weeklyFeedbackJobs,
+        aliasName: $_aliasNameGenerator(
+          db.studyWeeks.id,
+          db.weeklyFeedbackJobs.weekId,
+        ),
+      );
+
+  $$WeeklyFeedbackJobsTableProcessedTableManager get weeklyFeedbackJobsRefs {
+    final manager = $$WeeklyFeedbackJobsTableTableManager(
+      $_db,
+      $_db.weeklyFeedbackJobs,
+    ).filter((f) => f.weekId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _weeklyFeedbackJobsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$WeeklyVoiceLeasesTable, List<WeeklyVoiceLease>>
+  _weeklyVoiceLeasesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.weeklyVoiceLeases,
+        aliasName: $_aliasNameGenerator(
+          db.studyWeeks.id,
+          db.weeklyVoiceLeases.weekId,
+        ),
+      );
+
+  $$WeeklyVoiceLeasesTableProcessedTableManager get weeklyVoiceLeasesRefs {
+    final manager = $$WeeklyVoiceLeasesTableTableManager(
+      $_db,
+      $_db.weeklyVoiceLeases,
+    ).filter((f) => f.weekId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _weeklyVoiceLeasesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$StudyWeeksTableFilterComposer
     extends Composer<_$AppDatabase, $StudyWeeksTable> {
@@ -12634,6 +14320,91 @@ class $$StudyWeeksTableFilterComposer
     column: $table.closedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get scheduleJson => $composableBuilder(
+    column: $table.scheduleJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get paused => $composableBuilder(
+    column: $table.paused,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> weeklyClassStatesRefs(
+    Expression<bool> Function($$WeeklyClassStatesTableFilterComposer f) f,
+  ) {
+    final $$WeeklyClassStatesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyClassStates,
+      getReferencedColumn: (t) => t.weekId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyClassStatesTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyClassStates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> weeklyFeedbackJobsRefs(
+    Expression<bool> Function($$WeeklyFeedbackJobsTableFilterComposer f) f,
+  ) {
+    final $$WeeklyFeedbackJobsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyFeedbackJobs,
+      getReferencedColumn: (t) => t.weekId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyFeedbackJobsTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyFeedbackJobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> weeklyVoiceLeasesRefs(
+    Expression<bool> Function($$WeeklyVoiceLeasesTableFilterComposer f) f,
+  ) {
+    final $$WeeklyVoiceLeasesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyVoiceLeases,
+      getReferencedColumn: (t) => t.weekId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyVoiceLeasesTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyVoiceLeases,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$StudyWeeksTableOrderingComposer
@@ -12694,6 +14465,16 @@ class $$StudyWeeksTableOrderingComposer
     column: $table.closedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get scheduleJson => $composableBuilder(
+    column: $table.scheduleJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get paused => $composableBuilder(
+    column: $table.paused,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$StudyWeeksTableAnnotationComposer
@@ -12738,6 +14519,92 @@ class $$StudyWeeksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get closedAt =>
       $composableBuilder(column: $table.closedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get scheduleJson => $composableBuilder(
+    column: $table.scheduleJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get paused =>
+      $composableBuilder(column: $table.paused, builder: (column) => column);
+
+  Expression<T> weeklyClassStatesRefs<T extends Object>(
+    Expression<T> Function($$WeeklyClassStatesTableAnnotationComposer a) f,
+  ) {
+    final $$WeeklyClassStatesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.weeklyClassStates,
+          getReferencedColumn: (t) => t.weekId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WeeklyClassStatesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.weeklyClassStates,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> weeklyFeedbackJobsRefs<T extends Object>(
+    Expression<T> Function($$WeeklyFeedbackJobsTableAnnotationComposer a) f,
+  ) {
+    final $$WeeklyFeedbackJobsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.weeklyFeedbackJobs,
+          getReferencedColumn: (t) => t.weekId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WeeklyFeedbackJobsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.weeklyFeedbackJobs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> weeklyVoiceLeasesRefs<T extends Object>(
+    Expression<T> Function($$WeeklyVoiceLeasesTableAnnotationComposer a) f,
+  ) {
+    final $$WeeklyVoiceLeasesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.weeklyVoiceLeases,
+          getReferencedColumn: (t) => t.weekId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WeeklyVoiceLeasesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.weeklyVoiceLeases,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$StudyWeeksTableTableManager
@@ -12751,12 +14618,13 @@ class $$StudyWeeksTableTableManager
           $$StudyWeeksTableAnnotationComposer,
           $$StudyWeeksTableCreateCompanionBuilder,
           $$StudyWeeksTableUpdateCompanionBuilder,
-          (
-            StudyWeek,
-            BaseReferences<_$AppDatabase, $StudyWeeksTable, StudyWeek>,
-          ),
+          (StudyWeek, $$StudyWeeksTableReferences),
           StudyWeek,
-          PrefetchHooks Function()
+          PrefetchHooks Function({
+            bool weeklyClassStatesRefs,
+            bool weeklyFeedbackJobsRefs,
+            bool weeklyVoiceLeasesRefs,
+          })
         > {
   $$StudyWeeksTableTableManager(_$AppDatabase db, $StudyWeeksTable table)
     : super(
@@ -12781,6 +14649,8 @@ class $$StudyWeeksTableTableManager
                 Value<String?> reportJson = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime?> closedAt = const Value.absent(),
+                Value<String> scheduleJson = const Value.absent(),
+                Value<bool> paused = const Value.absent(),
               }) => StudyWeeksCompanion(
                 id: id,
                 weekNumber: weekNumber,
@@ -12792,6 +14662,8 @@ class $$StudyWeeksTableTableManager
                 reportJson: reportJson,
                 createdAt: createdAt,
                 closedAt: closedAt,
+                scheduleJson: scheduleJson,
+                paused: paused,
               ),
           createCompanionCallback:
               ({
@@ -12805,6 +14677,8 @@ class $$StudyWeeksTableTableManager
                 Value<String?> reportJson = const Value.absent(),
                 required DateTime createdAt,
                 Value<DateTime?> closedAt = const Value.absent(),
+                Value<String> scheduleJson = const Value.absent(),
+                Value<bool> paused = const Value.absent(),
               }) => StudyWeeksCompanion.insert(
                 id: id,
                 weekNumber: weekNumber,
@@ -12816,11 +14690,100 @@ class $$StudyWeeksTableTableManager
                 reportJson: reportJson,
                 createdAt: createdAt,
                 closedAt: closedAt,
+                scheduleJson: scheduleJson,
+                paused: paused,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$StudyWeeksTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback:
+              ({
+                weeklyClassStatesRefs = false,
+                weeklyFeedbackJobsRefs = false,
+                weeklyVoiceLeasesRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (weeklyClassStatesRefs) db.weeklyClassStates,
+                    if (weeklyFeedbackJobsRefs) db.weeklyFeedbackJobs,
+                    if (weeklyVoiceLeasesRefs) db.weeklyVoiceLeases,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (weeklyClassStatesRefs)
+                        await $_getPrefetchedData<
+                          StudyWeek,
+                          $StudyWeeksTable,
+                          WeeklyClassState
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudyWeeksTableReferences
+                              ._weeklyClassStatesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudyWeeksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).weeklyClassStatesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.weekId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (weeklyFeedbackJobsRefs)
+                        await $_getPrefetchedData<
+                          StudyWeek,
+                          $StudyWeeksTable,
+                          WeeklyFeedbackJob
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudyWeeksTableReferences
+                              ._weeklyFeedbackJobsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudyWeeksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).weeklyFeedbackJobsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.weekId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (weeklyVoiceLeasesRefs)
+                        await $_getPrefetchedData<
+                          StudyWeek,
+                          $StudyWeeksTable,
+                          WeeklyVoiceLease
+                        >(
+                          currentTable: table,
+                          referencedTable: $$StudyWeeksTableReferences
+                              ._weeklyVoiceLeasesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$StudyWeeksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).weeklyVoiceLeasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.weekId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
         ),
       );
 }
@@ -12835,9 +14798,13 @@ typedef $$StudyWeeksTableProcessedTableManager =
       $$StudyWeeksTableAnnotationComposer,
       $$StudyWeeksTableCreateCompanionBuilder,
       $$StudyWeeksTableUpdateCompanionBuilder,
-      (StudyWeek, BaseReferences<_$AppDatabase, $StudyWeeksTable, StudyWeek>),
+      (StudyWeek, $$StudyWeeksTableReferences),
       StudyWeek,
-      PrefetchHooks Function()
+      PrefetchHooks Function({
+        bool weeklyClassStatesRefs,
+        bool weeklyFeedbackJobsRefs,
+        bool weeklyVoiceLeasesRefs,
+      })
     >;
 typedef $$WeeklyAssignmentsTableCreateCompanionBuilder =
     WeeklyAssignmentsCompanion Function({
@@ -12869,6 +14836,41 @@ typedef $$WeeklyAssignmentsTableUpdateCompanionBuilder =
       Value<String?> evidenceKind,
       Value<int?> evidenceId,
     });
+
+final class $$WeeklyAssignmentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $WeeklyAssignmentsTable,
+          WeeklyAssignment
+        > {
+  $$WeeklyAssignmentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$WeeklyEvidenceTable, List<WeeklyEvidenceData>>
+  _weeklyEvidenceRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.weeklyEvidence,
+    aliasName: $_aliasNameGenerator(
+      db.weeklyAssignments.id,
+      db.weeklyEvidence.assignmentId,
+    ),
+  );
+
+  $$WeeklyEvidenceTableProcessedTableManager get weeklyEvidenceRefs {
+    final manager = $$WeeklyEvidenceTableTableManager(
+      $_db,
+      $_db.weeklyEvidence,
+    ).filter((f) => f.assignmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_weeklyEvidenceRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$WeeklyAssignmentsTableFilterComposer
     extends Composer<_$AppDatabase, $WeeklyAssignmentsTable> {
@@ -12938,6 +14940,31 @@ class $$WeeklyAssignmentsTableFilterComposer
     column: $table.evidenceId,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> weeklyEvidenceRefs(
+    Expression<bool> Function($$WeeklyEvidenceTableFilterComposer f) f,
+  ) {
+    final $$WeeklyEvidenceTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyEvidence,
+      getReferencedColumn: (t) => t.assignmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyEvidenceTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyEvidence,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$WeeklyAssignmentsTableOrderingComposer
@@ -13064,6 +15091,31 @@ class $$WeeklyAssignmentsTableAnnotationComposer
     column: $table.evidenceId,
     builder: (column) => column,
   );
+
+  Expression<T> weeklyEvidenceRefs<T extends Object>(
+    Expression<T> Function($$WeeklyEvidenceTableAnnotationComposer a) f,
+  ) {
+    final $$WeeklyEvidenceTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.weeklyEvidence,
+      getReferencedColumn: (t) => t.assignmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyEvidenceTableAnnotationComposer(
+            $db: $db,
+            $table: $db.weeklyEvidence,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$WeeklyAssignmentsTableTableManager
@@ -13077,16 +15129,9 @@ class $$WeeklyAssignmentsTableTableManager
           $$WeeklyAssignmentsTableAnnotationComposer,
           $$WeeklyAssignmentsTableCreateCompanionBuilder,
           $$WeeklyAssignmentsTableUpdateCompanionBuilder,
-          (
-            WeeklyAssignment,
-            BaseReferences<
-              _$AppDatabase,
-              $WeeklyAssignmentsTable,
-              WeeklyAssignment
-            >,
-          ),
+          (WeeklyAssignment, $$WeeklyAssignmentsTableReferences),
           WeeklyAssignment,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool weeklyEvidenceRefs})
         > {
   $$WeeklyAssignmentsTableTableManager(
     _$AppDatabase db,
@@ -13161,9 +15206,47 @@ class $$WeeklyAssignmentsTableTableManager
                 evidenceId: evidenceId,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyAssignmentsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({weeklyEvidenceRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (weeklyEvidenceRefs) db.weeklyEvidence,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (weeklyEvidenceRefs)
+                    await $_getPrefetchedData<
+                      WeeklyAssignment,
+                      $WeeklyAssignmentsTable,
+                      WeeklyEvidenceData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$WeeklyAssignmentsTableReferences
+                          ._weeklyEvidenceRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$WeeklyAssignmentsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).weeklyEvidenceRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.assignmentId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -13178,16 +15261,1356 @@ typedef $$WeeklyAssignmentsTableProcessedTableManager =
       $$WeeklyAssignmentsTableAnnotationComposer,
       $$WeeklyAssignmentsTableCreateCompanionBuilder,
       $$WeeklyAssignmentsTableUpdateCompanionBuilder,
-      (
-        WeeklyAssignment,
+      (WeeklyAssignment, $$WeeklyAssignmentsTableReferences),
+      WeeklyAssignment,
+      PrefetchHooks Function({bool weeklyEvidenceRefs})
+    >;
+typedef $$WeeklyClassStatesTableCreateCompanionBuilder =
+    WeeklyClassStatesCompanion Function({
+      Value<int> weekId,
+      required String stateJson,
+    });
+typedef $$WeeklyClassStatesTableUpdateCompanionBuilder =
+    WeeklyClassStatesCompanion Function({
+      Value<int> weekId,
+      Value<String> stateJson,
+    });
+
+final class $$WeeklyClassStatesTableReferences
+    extends
         BaseReferences<
           _$AppDatabase,
-          $WeeklyAssignmentsTable,
-          WeeklyAssignment
-        >,
-      ),
-      WeeklyAssignment,
-      PrefetchHooks Function()
+          $WeeklyClassStatesTable,
+          WeeklyClassState
+        > {
+  $$WeeklyClassStatesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StudyWeeksTable _weekIdTable(_$AppDatabase db) =>
+      db.studyWeeks.createAlias(
+        $_aliasNameGenerator(db.weeklyClassStates.weekId, db.studyWeeks.id),
+      );
+
+  $$StudyWeeksTableProcessedTableManager get weekId {
+    final $_column = $_itemColumn<int>('week_id')!;
+
+    final manager = $$StudyWeeksTableTableManager(
+      $_db,
+      $_db.studyWeeks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_weekIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WeeklyClassStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyClassStatesTable> {
+  $$WeeklyClassStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stateJson => $composableBuilder(
+    column: $table.stateJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudyWeeksTableFilterComposer get weekId {
+    final $$StudyWeeksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableFilterComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyClassStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyClassStatesTable> {
+  $$WeeklyClassStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stateJson => $composableBuilder(
+    column: $table.stateJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudyWeeksTableOrderingComposer get weekId {
+    final $$StudyWeeksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableOrderingComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyClassStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyClassStatesTable> {
+  $$WeeklyClassStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stateJson =>
+      $composableBuilder(column: $table.stateJson, builder: (column) => column);
+
+  $$StudyWeeksTableAnnotationComposer get weekId {
+    final $$StudyWeeksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyClassStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyClassStatesTable,
+          WeeklyClassState,
+          $$WeeklyClassStatesTableFilterComposer,
+          $$WeeklyClassStatesTableOrderingComposer,
+          $$WeeklyClassStatesTableAnnotationComposer,
+          $$WeeklyClassStatesTableCreateCompanionBuilder,
+          $$WeeklyClassStatesTableUpdateCompanionBuilder,
+          (WeeklyClassState, $$WeeklyClassStatesTableReferences),
+          WeeklyClassState,
+          PrefetchHooks Function({bool weekId})
+        > {
+  $$WeeklyClassStatesTableTableManager(
+    _$AppDatabase db,
+    $WeeklyClassStatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyClassStatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyClassStatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyClassStatesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> weekId = const Value.absent(),
+                Value<String> stateJson = const Value.absent(),
+              }) => WeeklyClassStatesCompanion(
+                weekId: weekId,
+                stateJson: stateJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> weekId = const Value.absent(),
+                required String stateJson,
+              }) => WeeklyClassStatesCompanion.insert(
+                weekId: weekId,
+                stateJson: stateJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyClassStatesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({weekId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (weekId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.weekId,
+                                referencedTable:
+                                    $$WeeklyClassStatesTableReferences
+                                        ._weekIdTable(db),
+                                referencedColumn:
+                                    $$WeeklyClassStatesTableReferences
+                                        ._weekIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WeeklyClassStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyClassStatesTable,
+      WeeklyClassState,
+      $$WeeklyClassStatesTableFilterComposer,
+      $$WeeklyClassStatesTableOrderingComposer,
+      $$WeeklyClassStatesTableAnnotationComposer,
+      $$WeeklyClassStatesTableCreateCompanionBuilder,
+      $$WeeklyClassStatesTableUpdateCompanionBuilder,
+      (WeeklyClassState, $$WeeklyClassStatesTableReferences),
+      WeeklyClassState,
+      PrefetchHooks Function({bool weekId})
+    >;
+typedef $$WeeklyEvidenceTableCreateCompanionBuilder =
+    WeeklyEvidenceCompanion Function({
+      Value<int> id,
+      required int assignmentId,
+      required String kind,
+      Value<int?> sourceId,
+      required String dataJson,
+      Value<bool> assisted,
+      Value<bool> selfReported,
+      Value<int?> observedSeconds,
+      required DateTime createdAt,
+    });
+typedef $$WeeklyEvidenceTableUpdateCompanionBuilder =
+    WeeklyEvidenceCompanion Function({
+      Value<int> id,
+      Value<int> assignmentId,
+      Value<String> kind,
+      Value<int?> sourceId,
+      Value<String> dataJson,
+      Value<bool> assisted,
+      Value<bool> selfReported,
+      Value<int?> observedSeconds,
+      Value<DateTime> createdAt,
+    });
+
+final class $$WeeklyEvidenceTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $WeeklyEvidenceTable,
+          WeeklyEvidenceData
+        > {
+  $$WeeklyEvidenceTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WeeklyAssignmentsTable _assignmentIdTable(_$AppDatabase db) =>
+      db.weeklyAssignments.createAlias(
+        $_aliasNameGenerator(
+          db.weeklyEvidence.assignmentId,
+          db.weeklyAssignments.id,
+        ),
+      );
+
+  $$WeeklyAssignmentsTableProcessedTableManager get assignmentId {
+    final $_column = $_itemColumn<int>('assignment_id')!;
+
+    final manager = $$WeeklyAssignmentsTableTableManager(
+      $_db,
+      $_db.weeklyAssignments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assignmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WeeklyEvidenceTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyEvidenceTable> {
+  $$WeeklyEvidenceTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get assisted => $composableBuilder(
+    column: $table.assisted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get selfReported => $composableBuilder(
+    column: $table.selfReported,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get observedSeconds => $composableBuilder(
+    column: $table.observedSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WeeklyAssignmentsTableFilterComposer get assignmentId {
+    final $$WeeklyAssignmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assignmentId,
+      referencedTable: $db.weeklyAssignments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyAssignmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.weeklyAssignments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyEvidenceTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyEvidenceTable> {
+  $$WeeklyEvidenceTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceId => $composableBuilder(
+    column: $table.sourceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get assisted => $composableBuilder(
+    column: $table.assisted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get selfReported => $composableBuilder(
+    column: $table.selfReported,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get observedSeconds => $composableBuilder(
+    column: $table.observedSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WeeklyAssignmentsTableOrderingComposer get assignmentId {
+    final $$WeeklyAssignmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assignmentId,
+      referencedTable: $db.weeklyAssignments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WeeklyAssignmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.weeklyAssignments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyEvidenceTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyEvidenceTable> {
+  $$WeeklyEvidenceTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceId =>
+      $composableBuilder(column: $table.sourceId, builder: (column) => column);
+
+  GeneratedColumn<String> get dataJson =>
+      $composableBuilder(column: $table.dataJson, builder: (column) => column);
+
+  GeneratedColumn<bool> get assisted =>
+      $composableBuilder(column: $table.assisted, builder: (column) => column);
+
+  GeneratedColumn<bool> get selfReported => $composableBuilder(
+    column: $table.selfReported,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get observedSeconds => $composableBuilder(
+    column: $table.observedSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$WeeklyAssignmentsTableAnnotationComposer get assignmentId {
+    final $$WeeklyAssignmentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.assignmentId,
+          referencedTable: $db.weeklyAssignments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$WeeklyAssignmentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.weeklyAssignments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$WeeklyEvidenceTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyEvidenceTable,
+          WeeklyEvidenceData,
+          $$WeeklyEvidenceTableFilterComposer,
+          $$WeeklyEvidenceTableOrderingComposer,
+          $$WeeklyEvidenceTableAnnotationComposer,
+          $$WeeklyEvidenceTableCreateCompanionBuilder,
+          $$WeeklyEvidenceTableUpdateCompanionBuilder,
+          (WeeklyEvidenceData, $$WeeklyEvidenceTableReferences),
+          WeeklyEvidenceData,
+          PrefetchHooks Function({bool assignmentId})
+        > {
+  $$WeeklyEvidenceTableTableManager(
+    _$AppDatabase db,
+    $WeeklyEvidenceTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyEvidenceTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyEvidenceTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyEvidenceTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> assignmentId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int?> sourceId = const Value.absent(),
+                Value<String> dataJson = const Value.absent(),
+                Value<bool> assisted = const Value.absent(),
+                Value<bool> selfReported = const Value.absent(),
+                Value<int?> observedSeconds = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => WeeklyEvidenceCompanion(
+                id: id,
+                assignmentId: assignmentId,
+                kind: kind,
+                sourceId: sourceId,
+                dataJson: dataJson,
+                assisted: assisted,
+                selfReported: selfReported,
+                observedSeconds: observedSeconds,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int assignmentId,
+                required String kind,
+                Value<int?> sourceId = const Value.absent(),
+                required String dataJson,
+                Value<bool> assisted = const Value.absent(),
+                Value<bool> selfReported = const Value.absent(),
+                Value<int?> observedSeconds = const Value.absent(),
+                required DateTime createdAt,
+              }) => WeeklyEvidenceCompanion.insert(
+                id: id,
+                assignmentId: assignmentId,
+                kind: kind,
+                sourceId: sourceId,
+                dataJson: dataJson,
+                assisted: assisted,
+                selfReported: selfReported,
+                observedSeconds: observedSeconds,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyEvidenceTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assignmentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assignmentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assignmentId,
+                                referencedTable: $$WeeklyEvidenceTableReferences
+                                    ._assignmentIdTable(db),
+                                referencedColumn:
+                                    $$WeeklyEvidenceTableReferences
+                                        ._assignmentIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WeeklyEvidenceTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyEvidenceTable,
+      WeeklyEvidenceData,
+      $$WeeklyEvidenceTableFilterComposer,
+      $$WeeklyEvidenceTableOrderingComposer,
+      $$WeeklyEvidenceTableAnnotationComposer,
+      $$WeeklyEvidenceTableCreateCompanionBuilder,
+      $$WeeklyEvidenceTableUpdateCompanionBuilder,
+      (WeeklyEvidenceData, $$WeeklyEvidenceTableReferences),
+      WeeklyEvidenceData,
+      PrefetchHooks Function({bool assignmentId})
+    >;
+typedef $$WeeklyFeedbackJobsTableCreateCompanionBuilder =
+    WeeklyFeedbackJobsCompanion Function({
+      Value<int> weekId,
+      Value<String> status,
+      required String snapshotJson,
+      Value<String?> reportJson,
+      Value<String?> error,
+    });
+typedef $$WeeklyFeedbackJobsTableUpdateCompanionBuilder =
+    WeeklyFeedbackJobsCompanion Function({
+      Value<int> weekId,
+      Value<String> status,
+      Value<String> snapshotJson,
+      Value<String?> reportJson,
+      Value<String?> error,
+    });
+
+final class $$WeeklyFeedbackJobsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $WeeklyFeedbackJobsTable,
+          WeeklyFeedbackJob
+        > {
+  $$WeeklyFeedbackJobsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StudyWeeksTable _weekIdTable(_$AppDatabase db) =>
+      db.studyWeeks.createAlias(
+        $_aliasNameGenerator(db.weeklyFeedbackJobs.weekId, db.studyWeeks.id),
+      );
+
+  $$StudyWeeksTableProcessedTableManager get weekId {
+    final $_column = $_itemColumn<int>('week_id')!;
+
+    final manager = $$StudyWeeksTableTableManager(
+      $_db,
+      $_db.studyWeeks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_weekIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WeeklyFeedbackJobsTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyFeedbackJobsTable> {
+  $$WeeklyFeedbackJobsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudyWeeksTableFilterComposer get weekId {
+    final $$StudyWeeksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableFilterComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyFeedbackJobsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyFeedbackJobsTable> {
+  $$WeeklyFeedbackJobsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudyWeeksTableOrderingComposer get weekId {
+    final $$StudyWeeksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableOrderingComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyFeedbackJobsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyFeedbackJobsTable> {
+  $$WeeklyFeedbackJobsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  $$StudyWeeksTableAnnotationComposer get weekId {
+    final $$StudyWeeksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyFeedbackJobsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyFeedbackJobsTable,
+          WeeklyFeedbackJob,
+          $$WeeklyFeedbackJobsTableFilterComposer,
+          $$WeeklyFeedbackJobsTableOrderingComposer,
+          $$WeeklyFeedbackJobsTableAnnotationComposer,
+          $$WeeklyFeedbackJobsTableCreateCompanionBuilder,
+          $$WeeklyFeedbackJobsTableUpdateCompanionBuilder,
+          (WeeklyFeedbackJob, $$WeeklyFeedbackJobsTableReferences),
+          WeeklyFeedbackJob,
+          PrefetchHooks Function({bool weekId})
+        > {
+  $$WeeklyFeedbackJobsTableTableManager(
+    _$AppDatabase db,
+    $WeeklyFeedbackJobsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyFeedbackJobsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyFeedbackJobsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyFeedbackJobsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> weekId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> snapshotJson = const Value.absent(),
+                Value<String?> reportJson = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+              }) => WeeklyFeedbackJobsCompanion(
+                weekId: weekId,
+                status: status,
+                snapshotJson: snapshotJson,
+                reportJson: reportJson,
+                error: error,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> weekId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                required String snapshotJson,
+                Value<String?> reportJson = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+              }) => WeeklyFeedbackJobsCompanion.insert(
+                weekId: weekId,
+                status: status,
+                snapshotJson: snapshotJson,
+                reportJson: reportJson,
+                error: error,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyFeedbackJobsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({weekId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (weekId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.weekId,
+                                referencedTable:
+                                    $$WeeklyFeedbackJobsTableReferences
+                                        ._weekIdTable(db),
+                                referencedColumn:
+                                    $$WeeklyFeedbackJobsTableReferences
+                                        ._weekIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WeeklyFeedbackJobsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyFeedbackJobsTable,
+      WeeklyFeedbackJob,
+      $$WeeklyFeedbackJobsTableFilterComposer,
+      $$WeeklyFeedbackJobsTableOrderingComposer,
+      $$WeeklyFeedbackJobsTableAnnotationComposer,
+      $$WeeklyFeedbackJobsTableCreateCompanionBuilder,
+      $$WeeklyFeedbackJobsTableUpdateCompanionBuilder,
+      (WeeklyFeedbackJob, $$WeeklyFeedbackJobsTableReferences),
+      WeeklyFeedbackJob,
+      PrefetchHooks Function({bool weekId})
+    >;
+typedef $$WeeklyVoiceLeasesTableCreateCompanionBuilder =
+    WeeklyVoiceLeasesCompanion Function({
+      Value<int> id,
+      required int weekId,
+      required int reservedSeconds,
+      Value<int?> usedSeconds,
+      required DateTime createdAt,
+    });
+typedef $$WeeklyVoiceLeasesTableUpdateCompanionBuilder =
+    WeeklyVoiceLeasesCompanion Function({
+      Value<int> id,
+      Value<int> weekId,
+      Value<int> reservedSeconds,
+      Value<int?> usedSeconds,
+      Value<DateTime> createdAt,
+    });
+
+final class $$WeeklyVoiceLeasesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $WeeklyVoiceLeasesTable,
+          WeeklyVoiceLease
+        > {
+  $$WeeklyVoiceLeasesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StudyWeeksTable _weekIdTable(_$AppDatabase db) =>
+      db.studyWeeks.createAlias(
+        $_aliasNameGenerator(db.weeklyVoiceLeases.weekId, db.studyWeeks.id),
+      );
+
+  $$StudyWeeksTableProcessedTableManager get weekId {
+    final $_column = $_itemColumn<int>('week_id')!;
+
+    final manager = $$StudyWeeksTableTableManager(
+      $_db,
+      $_db.studyWeeks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_weekIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$WeeklyVoiceLeasesTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyVoiceLeasesTable> {
+  $$WeeklyVoiceLeasesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reservedSeconds => $composableBuilder(
+    column: $table.reservedSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get usedSeconds => $composableBuilder(
+    column: $table.usedSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StudyWeeksTableFilterComposer get weekId {
+    final $$StudyWeeksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableFilterComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyVoiceLeasesTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyVoiceLeasesTable> {
+  $$WeeklyVoiceLeasesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reservedSeconds => $composableBuilder(
+    column: $table.reservedSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get usedSeconds => $composableBuilder(
+    column: $table.usedSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StudyWeeksTableOrderingComposer get weekId {
+    final $$StudyWeeksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableOrderingComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyVoiceLeasesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyVoiceLeasesTable> {
+  $$WeeklyVoiceLeasesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get reservedSeconds => $composableBuilder(
+    column: $table.reservedSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get usedSeconds => $composableBuilder(
+    column: $table.usedSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$StudyWeeksTableAnnotationComposer get weekId {
+    final $$StudyWeeksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.weekId,
+      referencedTable: $db.studyWeeks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StudyWeeksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.studyWeeks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$WeeklyVoiceLeasesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyVoiceLeasesTable,
+          WeeklyVoiceLease,
+          $$WeeklyVoiceLeasesTableFilterComposer,
+          $$WeeklyVoiceLeasesTableOrderingComposer,
+          $$WeeklyVoiceLeasesTableAnnotationComposer,
+          $$WeeklyVoiceLeasesTableCreateCompanionBuilder,
+          $$WeeklyVoiceLeasesTableUpdateCompanionBuilder,
+          (WeeklyVoiceLease, $$WeeklyVoiceLeasesTableReferences),
+          WeeklyVoiceLease,
+          PrefetchHooks Function({bool weekId})
+        > {
+  $$WeeklyVoiceLeasesTableTableManager(
+    _$AppDatabase db,
+    $WeeklyVoiceLeasesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyVoiceLeasesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyVoiceLeasesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyVoiceLeasesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> weekId = const Value.absent(),
+                Value<int> reservedSeconds = const Value.absent(),
+                Value<int?> usedSeconds = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => WeeklyVoiceLeasesCompanion(
+                id: id,
+                weekId: weekId,
+                reservedSeconds: reservedSeconds,
+                usedSeconds: usedSeconds,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int weekId,
+                required int reservedSeconds,
+                Value<int?> usedSeconds = const Value.absent(),
+                required DateTime createdAt,
+              }) => WeeklyVoiceLeasesCompanion.insert(
+                id: id,
+                weekId: weekId,
+                reservedSeconds: reservedSeconds,
+                usedSeconds: usedSeconds,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WeeklyVoiceLeasesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({weekId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (weekId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.weekId,
+                                referencedTable:
+                                    $$WeeklyVoiceLeasesTableReferences
+                                        ._weekIdTable(db),
+                                referencedColumn:
+                                    $$WeeklyVoiceLeasesTableReferences
+                                        ._weekIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$WeeklyVoiceLeasesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyVoiceLeasesTable,
+      WeeklyVoiceLease,
+      $$WeeklyVoiceLeasesTableFilterComposer,
+      $$WeeklyVoiceLeasesTableOrderingComposer,
+      $$WeeklyVoiceLeasesTableAnnotationComposer,
+      $$WeeklyVoiceLeasesTableCreateCompanionBuilder,
+      $$WeeklyVoiceLeasesTableUpdateCompanionBuilder,
+      (WeeklyVoiceLease, $$WeeklyVoiceLeasesTableReferences),
+      WeeklyVoiceLease,
+      PrefetchHooks Function({bool weekId})
     >;
 
 class $AppDatabaseManager {
@@ -13231,4 +16654,12 @@ class $AppDatabaseManager {
       $$StudyWeeksTableTableManager(_db, _db.studyWeeks);
   $$WeeklyAssignmentsTableTableManager get weeklyAssignments =>
       $$WeeklyAssignmentsTableTableManager(_db, _db.weeklyAssignments);
+  $$WeeklyClassStatesTableTableManager get weeklyClassStates =>
+      $$WeeklyClassStatesTableTableManager(_db, _db.weeklyClassStates);
+  $$WeeklyEvidenceTableTableManager get weeklyEvidence =>
+      $$WeeklyEvidenceTableTableManager(_db, _db.weeklyEvidence);
+  $$WeeklyFeedbackJobsTableTableManager get weeklyFeedbackJobs =>
+      $$WeeklyFeedbackJobsTableTableManager(_db, _db.weeklyFeedbackJobs);
+  $$WeeklyVoiceLeasesTableTableManager get weeklyVoiceLeases =>
+      $$WeeklyVoiceLeasesTableTableManager(_db, _db.weeklyVoiceLeases);
 }

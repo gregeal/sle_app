@@ -168,12 +168,13 @@ final activeStudyWeekProvider = FutureProvider<StudyWeek?>(
 );
 
 /// Assignments of the active week, oldest day first.
-final activeWeekAssignmentsProvider =
-    FutureProvider<List<WeeklyAssignment>>((ref) async {
-      final week = await ref.watch(activeStudyWeekProvider.future);
-      if (week == null) return const [];
-      return ref.watch(appDatabaseProvider).assignmentsForWeek(week.id);
-    });
+final activeWeekAssignmentsProvider = FutureProvider<List<WeeklyAssignment>>((
+  ref,
+) async {
+  final week = await ref.watch(activeStudyWeekProvider.future);
+  if (week == null) return const [];
+  return ref.watch(appDatabaseProvider).assignmentsForWeek(week.id);
+});
 
 final seedImportProvider = FutureProvider<void>((ref) async {
   await importSeedFromAssets(ref.watch(appDatabaseProvider));

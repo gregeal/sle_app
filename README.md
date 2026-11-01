@@ -1,8 +1,8 @@
 # SLE Prep / Objectif C
 
-An Android and authenticated-web Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. The goal is C-level readiness across reading, writing, and oral interaction, built around a 26-week study plan at 60–90 minutes per day.
+An Android and authenticated-web Flutter app for preparing for the Canadian federal public-service Second Language Evaluation (SLE) in French. Structured A → B and B → C tracks support a weekly teacher plan across reading, listening, writing, and speaking. The original 26-week daily planner remains available before weekly mode is enabled.
 
-The repository contains implementations for all five planned phases (P0–P4).
+The repository contains implementations for P0–P5, including the weekly teacher.
 Production-only validation gates are called out explicitly below and in the
 security checklist:
 
@@ -14,7 +14,50 @@ security checklist:
 - **Secure web session (P4)** — Flutter Web with a per-user browser-local SQLite/OPFS database, an allowlisted FastAPI AI Broker, Google OAuth bootstrap, passkey sign-in, HttpOnly sessions + CSRF, model/rate/budget enforcement, and feature parity including Realtime WebRTC. A custom application-shell service worker keeps seeded practice available during a short offline return visit without ever caching `/api/*` or `/auth/*`. Deployment is defined by `Dockerfile` and `render.yaml`.
 - **Learning Hub (P5 increment)** — a searchable personal vocabulary notebook with spaced repetition, edit/delete controls, a queue of grammar mistakes to retry, four original workplace listening lessons with optional transcripts and saved results, and a library of previously saved oral/writing feedback. No additional AI subscription is required for these features.
 
-Navigation: **Accueil** (today's session), **Réviser** (vocabulary, grammar, reading, writing, AI generation), **Coach** (oral practice), **Progrès** (trajectory, stats, mock exams), **Paramètres** (AI provider).
+Navigation: **Accueil**, **Classe**, **Réviser**, **Coach**, **Progrès**. Open **Paramètres** using the gear on Accueil.
+
+## Weekly teacher (P5)
+
+Open **Classe → Placement**. The short four-skill diagnostic includes editable
+speaking/writing samples and original reading/listening checks. You may complete
+it without AI and choose a provisional starting point. The suggested lesson uses
+your existing course progress; confirm or change the track and lesson explicitly.
+Unassessed skills remain unknown. Course completion and estimates are unofficial.
+
+Choose five study weekdays (Monday–Friday initially). Each week has five dated
+60-minute sessions; speaking is 40–50%, reading/listening/writing each 12–20%,
+vocabulary 5–12%, and teaching at most 8%. Unsupported smaller schedules are
+rejected instead of dropping a skill. Your weekly assignments become Accueil's
+plan. Rest days remain free, and missed days do not accumulate. A compatible
+catch-up replaces one same-skill, equal-duration block; it never adds time.
+Weekday changes apply to the next cycle. Pause/resume moves remaining dates.
+
+The class saves its stage and quiz answers. Wrong answers show explanations;
+**Reporter** records an explicit skip. Practice can use a live teacher, editable
+dictation/manual work, or an offline solo confirmation. Speaking evidence saves
+before optional AI feedback; a failed assessment does not erase the activity.
+Long conversations are assessed in bounded chunks and successful chunks are reused.
+The live teacher has **20 connection minutes total per study week**, shared by
+reconnections. The default remaining speaking time uses solo practice. Interrupted
+connections conservatively retain reservations; the app does not promise to infer
+exact spending or actual learner airtime. Cloud dictation has its separate existing
+cost notice. Teaching/listening audio requires an available French device voice;
+device dictation may itself require connectivity.
+
+Weeks close offline, with a frozen local summary. One automatic AI report for the
+latest closed week is enabled by default and can be disabled in Classe. It runs on
+an online app visit; failed requests require explicit retry. Older missed reports
+are not generated in a batch. Reports distinguish assisted/self-reported evidence,
+and show planned, credited and observed minutes separately. They recommend the
+next lesson and emphasis; you can override the recommendation. At track completion,
+choose revision or the next track rather than silently repeating the last lesson.
+
+Study data remains local to the phone/browser. Schema v9 retains prior course,
+vocabulary and speaking history. Legacy weekly completion links without verifiable
+evidence remain historical and do not establish mastery. An unreadable weekly plan
+can be archived from its recovery screen without deleting other study records.
+
+Implementation and acceptance details: [P5 delivery notes](docs/plans/2026-11-01-p5-delivery.md).
 
 Vocabulary, grammar drills, and seeded reading passages work fully offline. On Android, AI features use the provider configured in-app and the key remains in encrypted device storage. On the web, the browser never receives a long-lived provider key: text calls pass through the authenticated broker and Realtime receives only a short-lived OpenAI client credential. The Realtime interview sends microphone audio directly to OpenAI. All level estimates are **unofficial**; the app makes no official SLE claims.
 

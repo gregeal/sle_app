@@ -7,10 +7,10 @@ import '../../data/db/database.dart';
 import '../../data/db/weekly_daos.dart';
 import '../../domain/course/course_catalog.dart';
 import '../../domain/speech/speech_services.dart';
-import '../../domain/weekly/weekly_class_prompt.dart';
 import '../../domain/weekly/weekly_plan.dart';
+import '../../domain/weekly/weekly_report.dart';
 import '../../providers.dart';
-import '../coach/realtime_interview_screen.dart';
+import 'weekly_practice_screen.dart';
 
 /// The weekly class: the teacher explains, checks understanding, practises
 /// out loud with the learner, then hands over the week's assignments.
@@ -26,13 +26,19 @@ class WeeklyClassScreen extends ConsumerStatefulWidget {
   ConsumerState<WeeklyClassScreen> createState() => _WeeklyClassScreenState();
 }
 
-class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
+class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen>
+    with WidgetsBindingObserver {
   var _step = 0;
   List<int?> _answers = const [];
   var _quizChecked = false;
   var _practiceDone = false;
   var _speaking = false;
   late final TtsService _tts;
+  bool _loading = true, _saving = false;
+  String? _error;
+  int? _practiceEvidence;
+  List<int> _skips = [];
+  Future<void> _writes = Future.value();
 
   CourseLesson get _lesson => findCourseLesson(widget.week.lessonId);
   WeeklyPlan get _plan => widget.week.plan;
@@ -41,13 +47,89 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
   void initState() {
     super.initState();
     _tts = ref.read(ttsServiceProvider);
+    WidgetsBinding.instance.addObserver(this);
     _answers = List<int?>.filled(_lesson.questions.length, null);
+    unawaited(_restore());
+  }
+
+  Future<void> _restore() async {
+    try {
+      final state = await ref
+          .read(appDatabaseProvider)
+          .classProgress(widget.week.id);
+      _step = state.stage;
+      _quizChecked = state.checked;
+      _skips = state.skips;
+      _practiceEvidence = state.practiceEvidenceId;
+      _practiceDone = _practiceEvidence != null;
+      if (state.answers.length == _answers.length &&
+          state.answers.indexed.every(
+            (e) =>
+                e.$2 == null || e.$2! < _lesson.questions[e.$1].options.length,
+          )) {
+        _answers = state.answers.toList();
+      }
+    } catch (e) {
+      _error = 'Progression illisible : $e';
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _persist({int? stage}) {
+    final db = ref.read(appDatabaseProvider);
+    final state = ClassProgress(
+      stage: stage ?? _step,
+      answers: _answers.toList(),
+      checked: _quizChecked,
+      practiceEvidenceId: _practiceEvidence,
+      skips: _skips.toList(),
+    );
+    return _writes = _writes
+        .catchError((Object _) {})
+        .then((_) => db.saveClassProgress(widget.week.id, state));
+  }
+
+  Future<void> _move(int step, {bool skip = false}) async {
+    if (_saving) return;
+    if (step > _step &&
+        !skip &&
+        ((_step == 1 && !_quizChecked) || (_step == 2 && !_practiceDone))) {
+      setState(
+        () => _error =
+            'Terminez cette étape ou choisissez explicitement de la reporter.',
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await _tts.stop();
+      if (skip && !_skips.contains(_step)) _skips.add(_step);
+      await _persist(stage: step);
+      if (mounted) {
+        setState(() {
+          _step = step;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Enregistrement impossible : $e');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_tts.stop().catchError((Object _) {}));
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_tts.stop().catchError((Object _) {}));
+    }
   }
 
   String get _spokenLesson => [
@@ -92,96 +174,128 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
       (row) => row.skill == skill.name && row.dayIndex == 1,
     );
     if (match.isEmpty) return;
-    await db.completeAssignment(
+    if (skill != SkillKind.teaching) return;
+    await db.saveAssignmentEvidence(
       match.first.id,
-      evidenceKind: 'courseLesson',
-      evidenceId: widget.week.id,
+      AssignmentEvidence(
+        kind: EvidenceKind.quiz,
+        data: {'answers': _answers.cast<int>()},
+      ),
       at: DateTime.now(),
     );
     ref.invalidate(activeWeekAssignmentsProvider);
   }
 
   Future<void> _startPractice() async {
-    final lesson = _lesson;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => RealtimeInterviewScreen(
-          title: 'Pratique guidée',
-          mode: 'class',
-          sessionInstructions: buildClassTeacherInstructions(
-            lessonTitle: lesson.title,
-            objective: lesson.objective,
-            targetPhrases: lesson.phrases,
-            speakingTask: lesson.speakingTask,
-          ),
-          openingInstruction: buildClassOpeningInstruction(
-            lessonTitle: lesson.title,
-          ),
-          onCompleted: () => _practiceDone = true,
+    try {
+      await _tts.stop();
+      final db = ref.read(appDatabaseProvider);
+      final rows = await db.assignmentsForWeek(widget.week.id);
+      final assignment = rows.firstWhere(
+        (a) => a.dayIndex == 1 && a.skill == 'speaking',
+      );
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WeeklyPracticeScreen(assignment: assignment),
         ),
-      ),
-    );
-    if (!mounted) return;
-    if (_practiceDone) await _complete(SkillKind.speaking);
-    if (mounted) setState(() {});
+      );
+      final saved = await db.weeklyAssignment(assignment.id);
+      if (!mounted) return;
+      _practiceDone = saved.completed && saved.evidenceKind == 'weeklyEvidence';
+      _practiceEvidence = _practiceDone ? saved.evidenceId : null;
+      await _persist();
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (mounted) setState(() => _error = '$e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final lesson = _lesson;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Semaine ${_plan.weekNumber} · classe'),
-      ),
+      appBar: AppBar(title: Text('Semaine ${_plan.weekNumber} · classe')),
       body: SafeArea(
-        child: Stepper(
-          currentStep: _step,
-          onStepTapped: (step) => setState(() => _step = step),
-          controlsBuilder: (context, details) => Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Row(
-              children: [
-                if (details.stepIndex < 3)
-                  FilledButton(
-                    key: Key('class-continue-${details.stepIndex}'),
-                    onPressed: details.onStepContinue,
-                    child: const Text('Continuer'),
-                  ),
-                if (details.stepIndex > 0) ...[
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: details.onStepCancel,
-                    child: const Text('Retour'),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(_error!),
+                    ),
+                  Expanded(
+                    child: Stepper(
+                      currentStep: _step,
+                      onStepTapped: (step) {
+                        if (step <= _step) unawaited(_move(step));
+                      },
+                      controlsBuilder: (context, details) => Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Row(
+                          children: [
+                            if (details.stepIndex < 3)
+                              FilledButton(
+                                key: Key('class-continue-${details.stepIndex}'),
+                                onPressed: _saving
+                                    ? null
+                                    : details.onStepContinue,
+                                child: const Text('Continuer'),
+                              ),
+                            if (details.stepIndex > 0) ...[
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: details.onStepCancel,
+                                child: const Text('Retour'),
+                              ),
+                            ],
+                            if (details.stepIndex == 1 ||
+                                details.stepIndex == 2)
+                              TextButton(
+                                onPressed: _saving
+                                    ? null
+                                    : () => _move(
+                                        (_step + 1).clamp(0, 3),
+                                        skip: true,
+                                      ),
+                                child: const Text('Reporter'),
+                              ),
+                          ],
+                        ),
+                      ),
+                      onStepContinue: () =>
+                          unawaited(_move((_step + 1).clamp(0, 3))),
+                      onStepCancel: () =>
+                          unawaited(_move((_step - 1).clamp(0, 3))),
+                      steps: [
+                        Step(
+                          title: const Text('Explication'),
+                          isActive: _step >= 0,
+                          content: _explanation(lesson),
+                        ),
+                        Step(
+                          title: const Text('Vérification'),
+                          isActive: _step >= 1,
+                          content: _quiz(lesson),
+                        ),
+                        Step(
+                          title: const Text('Pratique guidée'),
+                          isActive: _step >= 2,
+                          content: _practice(),
+                        ),
+                        Step(
+                          title: const Text('Devoirs de la semaine'),
+                          isActive: _step >= 3,
+                          content: _homework(),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          onStepContinue: () => setState(() => _step = (_step + 1).clamp(0, 3)),
-          onStepCancel: () => setState(() => _step = (_step - 1).clamp(0, 3)),
-          steps: [
-            Step(
-              title: const Text('Explication'),
-              isActive: _step >= 0,
-              content: _explanation(lesson),
-            ),
-            Step(
-              title: const Text('Vérification'),
-              isActive: _step >= 1,
-              content: _quiz(lesson),
-            ),
-            Step(
-              title: const Text('Pratique guidée'),
-              isActive: _step >= 2,
-              content: _practice(),
-            ),
-            Step(
-              title: const Text('Devoirs de la semaine'),
-              isActive: _step >= 3,
-              content: _homework(),
-            ),
-          ],
-        ),
+              ),
       ),
     );
   }
@@ -224,7 +338,9 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
       const Text('Expressions à réutiliser'),
       Wrap(
         spacing: 6,
-        children: [for (final phrase in lesson.phrases) Chip(label: Text(phrase))],
+        children: [
+          for (final phrase in lesson.phrases) Chip(label: Text(phrase)),
+        ],
       ),
       const SizedBox(height: 10),
       OutlinedButton.icon(
@@ -262,7 +378,14 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
               // ignore: deprecated_member_use
               onChanged: _quizChecked
                   ? null
-                  : (value) => setState(() => _answers[i] = value),
+                  : (value) {
+                      setState(() => _answers[i] = value);
+                      unawaited(
+                        _persist().catchError((Object e) {
+                          if (mounted) setState(() => _error = '$e');
+                        }),
+                      );
+                    },
             ),
           if (_quizChecked)
             Padding(
@@ -280,8 +403,19 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
             onPressed: _answers.contains(null)
                 ? null
                 : () async {
-                    setState(() => _quizChecked = true);
-                    await _completeTeaching();
+                    try {
+                      await _completeTeaching();
+                      _quizChecked = true;
+                      await _persist();
+                      if (mounted) setState(() {});
+                    } catch (e) {
+                      _quizChecked = false;
+                      if (mounted) {
+                        setState(
+                          () => _error = 'Enregistrement impossible : $e',
+                        );
+                      }
+                    }
                   },
             child: const Text('Vérifier'),
           )
@@ -354,10 +488,7 @@ class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen> {
         ),
         const SizedBox(height: 12),
         for (var day = 1; day <= plan.studyDays; day++) ...[
-          Text(
-            'Jour $day',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
+          Text('Jour $day', style: Theme.of(context).textTheme.titleSmall),
           for (final block in plan.assignmentsForDay(day))
             ListTile(
               dense: true,

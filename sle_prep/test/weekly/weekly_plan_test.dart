@@ -94,7 +94,7 @@ WeeklyPlan planFor({
 }) => composeWeeklyPlan(
   weekNumber: weekNumber,
   trackId: 'b-to-c-v1',
-  lessonId: 'bc-01-precision',
+  lessonId: '01-detail',
   lessonTitleFr: 'Décrire avec précision',
   studyDays: studyDays,
   minutesPerDay: minutesPerDay,
@@ -109,7 +109,7 @@ void main() {
 
     test('holds across many weeks, budgets and emphases', () {
       for (var week = 1; week <= 16; week++) {
-        for (final days in [3, 5, 6, 7]) {
+        for (final days in [3, 4, 5, 6, 7]) {
           for (final minutes in [30, 45, 60, 75, 90, 120]) {
             for (final emphasis in [
               const WeeklyEmphasis.balanced(),
@@ -124,14 +124,29 @@ void main() {
                 speakingBoost: -0.02,
               ),
             ]) {
-              assertContract(
-                planFor(
-                  weekNumber: week,
-                  studyDays: days,
-                  minutesPerDay: minutes,
-                  emphasis: emphasis,
-                ),
+              if (days == 3 && minutes == 30) {
+                expect(
+                  () => planFor(
+                    studyDays: days,
+                    minutesPerDay: minutes,
+                    emphasis: emphasis,
+                  ),
+                  throwsArgumentError,
+                );
+                continue;
+              }
+              final plan = planFor(
+                weekNumber: week,
+                studyDays: days,
+                minutesPerDay: minutes,
+                emphasis: emphasis,
               );
+              assertContract(plan);
+              expect(
+                plan.shareOf(SkillKind.vocabulary),
+                inInclusiveRange(.05, .12),
+              );
+              expect(plan.shareOf(SkillKind.teaching), lessThanOrEqualTo(.08));
             }
           }
         }
@@ -149,33 +164,39 @@ void main() {
   });
 
   group('adaptation', () {
-    test('reinforcing a skill moves minutes to it without breaking the band', () {
-      final balanced = planFor();
-      final focused = planFor(
-        emphasis: const WeeklyEmphasis(reinforce: {SkillKind.writing}),
-      );
+    test(
+      'reinforcing a skill moves minutes to it without breaking the band',
+      () {
+        final balanced = planFor();
+        final focused = planFor(
+          emphasis: const WeeklyEmphasis(reinforce: {SkillKind.writing}),
+        );
 
-      expect(
-        focused.minutesFor(SkillKind.writing),
-        greaterThan(balanced.minutesFor(SkillKind.writing)),
-      );
-      expect(
-        focused.minutesFor(SkillKind.reading),
-        lessThanOrEqualTo(balanced.minutesFor(SkillKind.reading)),
-      );
-      assertContract(focused);
-    });
+        expect(
+          focused.minutesFor(SkillKind.writing),
+          greaterThan(balanced.minutesFor(SkillKind.writing)),
+        );
+        expect(
+          focused.minutesFor(SkillKind.reading),
+          lessThanOrEqualTo(balanced.minutesFor(SkillKind.reading)),
+        );
+        assertContract(focused);
+      },
+    );
 
     test('a speaking boost cannot push past the ceiling', () {
-      final plan = planFor(
-        emphasis: const WeeklyEmphasis(speakingBoost: 0.40),
+      final plan = planFor(emphasis: const WeeklyEmphasis(speakingBoost: 0.40));
+      expect(
+        plan.shareOf(SkillKind.speaking),
+        lessThanOrEqualTo(kSpeakingMaxShare),
       );
-      expect(plan.shareOf(SkillKind.speaking), lessThanOrEqualTo(kSpeakingMaxShare));
       assertContract(plan);
     });
 
     test('reinforcing every distributed skill stays balanced', () {
-      final plan = planFor(emphasis: const WeeklyEmphasis(reinforce: {...distributedSkills}));
+      final plan = planFor(
+        emphasis: const WeeklyEmphasis(reinforce: {...distributedSkills}),
+      );
       assertContract(plan);
       final shares = {
         for (final skill in distributedSkills) plan.minutesFor(skill),
@@ -200,7 +221,7 @@ void main() {
       expect(later, isNotEmpty);
       for (final block in later) {
         expect(block.payload['mode'], isNot('liveClassPractice'));
-        expect(block.payload['lessonId'], 'bc-01-precision');
+        expect(block.payload['lessonId'], '01-detail');
       }
     });
 
@@ -214,7 +235,10 @@ void main() {
     });
 
     test('survives a JSON round trip', () {
-      final plan = planFor(weekNumber: 7, emphasis: const WeeklyEmphasis(reinforce: {SkillKind.reading}));
+      final plan = planFor(
+        weekNumber: 7,
+        emphasis: const WeeklyEmphasis(reinforce: {SkillKind.reading}),
+      );
       final restored = WeeklyPlan.fromJson(plan.toJson());
       expect(restored.toJson(), plan.toJson());
       expect(restored.assignments.length, plan.assignments.length);
@@ -233,24 +257,38 @@ void main() {
 
     test('rejects an emphasis that targets speaking or teaching', () {
       expect(
-        () => planFor(emphasis: const WeeklyEmphasis(reinforce: {SkillKind.speaking})),
+        () => planFor(
+          emphasis: const WeeklyEmphasis(reinforce: {SkillKind.speaking}),
+        ),
         throwsArgumentError,
       );
       expect(
-        () => planFor(emphasis: const WeeklyEmphasis(reinforce: {SkillKind.teaching})),
+        () => planFor(
+          emphasis: const WeeklyEmphasis(reinforce: {SkillKind.teaching}),
+        ),
         throwsArgumentError,
       );
       expect(
-        () => planFor(emphasis: const WeeklyEmphasis(speakingBoost: double.nan)),
+        () =>
+            planFor(emphasis: const WeeklyEmphasis(speakingBoost: double.nan)),
         throwsArgumentError,
       );
     });
 
     test('rejects malformed stored plans instead of guessing', () {
       final good = planFor().toJson();
-      expect(() => WeeklyPlan.fromJson({...good, 'version': 99}), throwsFormatException);
-      expect(() => WeeklyPlan.fromJson({...good, 'assignments': 'nope'}), throwsFormatException);
-      expect(() => WeeklyPlan.fromJson({...good, 'studyDays': 0}), throwsFormatException);
+      expect(
+        () => WeeklyPlan.fromJson({...good, 'version': 99}),
+        throwsFormatException,
+      );
+      expect(
+        () => WeeklyPlan.fromJson({...good, 'assignments': 'nope'}),
+        throwsFormatException,
+      );
+      expect(
+        () => WeeklyPlan.fromJson({...good, 'studyDays': 0}),
+        throwsFormatException,
+      );
     });
   });
 }

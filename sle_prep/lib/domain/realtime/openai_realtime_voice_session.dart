@@ -9,6 +9,20 @@ import 'manual_realtime_turn.dart';
 import 'realtime_interview_prompt.dart';
 import 'realtime_voice_session.dart';
 
+bool matchesRealtimeConfiguration(
+  Map<String, dynamic> event,
+  String? instructions,
+) {
+  final session = event['session'];
+  if (event['type'] != 'session.updated' || session is! Map) return false;
+  final audio = session['audio'];
+  return (instructions == null || session['instructions'] == instructions) &&
+      audio is Map &&
+      audio['input'] is Map &&
+      (audio['input'] as Map).containsKey('turn_detection') &&
+      audio['input']['turn_detection'] == null;
+}
+
 class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   OpenAiRealtimeVoiceSession({
     required this.api,
@@ -38,6 +52,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   MediaStream? _fallbackRemoteStream;
   RTCVideoRenderer? _remoteAudioRenderer;
   Completer<void>? _channelReady;
+  Completer<void>? _configurationReady;
   Future<void>? _connectFuture;
   Future<void>? _closeFuture;
   Future<void>? _releaseFuture;
@@ -48,6 +63,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   );
   var _closed = false;
   var _openingSent = false;
+  var _configured = false;
 
   @override
   Stream<RealtimeVoiceEvent> get events => _events.stream;
@@ -138,11 +154,41 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         if (message.isBinary) return;
         try {
           final decoded = jsonDecode(message.text);
-          if (decoded is Map<String, dynamic>) _manualTurn.handleEvent(decoded);
+          if (decoded is Map<String, dynamic>) {
+            _manualTurn.handleEvent(decoded);
+            final pending = _configurationReady;
+            if (pending != null && !pending.isCompleted) {
+              if (decoded['type'] == 'session.updated') {
+                if (matchesRealtimeConfiguration(
+                  decoded,
+                  sessionInstructions,
+                )) {
+                  pending.complete();
+                } else {
+                  pending.completeError(
+                    const RealtimeVoiceException(
+                      'Configuration de l’enseignante non confirmée.',
+                    ),
+                  );
+                }
+              } else if (decoded['type'] == 'error') {
+                pending.completeError(
+                  const RealtimeVoiceException(
+                    'La configuration Realtime a été refusée.',
+                  ),
+                );
+              }
+            }
+          }
         } on FormatException {
           return;
         }
         for (final event in parseRealtimeServerEvent(message.text)) {
+          if (!_configured &&
+              event is RealtimeActivityEvent &&
+              event.activity == RealtimeVoiceActivity.connected) {
+            continue;
+          }
           _emit(event);
         }
       };
@@ -151,7 +197,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
           if (!(_channelReady?.isCompleted ?? true)) {
             _channelReady!.complete();
           }
-          _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connected));
+          _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connecting));
           _sendOpeningTurn();
         } else if (state == RTCDataChannelState.RTCDataChannelClosed) {
           _failConnection(
@@ -255,6 +301,9 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
 
   Future<void> _configureAndOpen() async {
     try {
+      final configured = Completer<void>();
+      _configurationReady = configured;
+      unawaited(configured.future.catchError((Object _) {}));
       // Also configure the live session: an older deployed broker may still
       // mint secrets with VAD enabled. Keep the mic muted until the opening.
       await _sendAwaited({
@@ -267,6 +316,10 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
           },
         },
       });
+      await configured.future.timeout(const Duration(seconds: 10));
+      _ensureOpen();
+      _configured = true;
+      _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connected));
       await _sendAwaited({
         'type': 'response.create',
         'response': {
@@ -293,7 +346,16 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   }
 
   @override
-  Future<void> startAnswer() => _manualTurn.start();
+  Future<void> startAnswer() {
+    if (!_configured) {
+      return Future.error(
+        const RealtimeVoiceException(
+          'Attendez la confirmation de la configuration audio.',
+        ),
+      );
+    }
+    return _manualTurn.start();
+  }
 
   @override
   Future<void> submitAnswer({bool requestResponse = true}) =>
@@ -302,7 +364,13 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   void _handleConnectionState(RTCPeerConnectionState state) {
     switch (state) {
       case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
-        _emit(const RealtimeActivityEvent(RealtimeVoiceActivity.connected));
+        _emit(
+          RealtimeActivityEvent(
+            _configured
+                ? RealtimeVoiceActivity.connected
+                : RealtimeVoiceActivity.connecting,
+          ),
+        );
       case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
         _failConnection(
           'La connexion WebRTC a échoué. Vérifiez votre réseau et réessayez.',
@@ -349,6 +417,12 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
   }
 
   Future<void> _close() async {
+    final configured = _configurationReady;
+    if (configured != null && !configured.isCompleted) {
+      configured.completeError(
+        const RealtimeVoiceException('Configuration interrompue.'),
+      );
+    }
     final ready = _channelReady;
     if (ready != null && !ready.isCompleted) {
       ready.completeError(

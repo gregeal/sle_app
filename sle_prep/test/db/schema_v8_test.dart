@@ -1,204 +1,256 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sle_prep/data/db/weekly_daos.dart';
+import 'package:sle_prep/data/db/daos.dart';
 import 'package:sle_prep/domain/weekly/weekly_plan.dart';
-
+import 'package:sle_prep/domain/weekly/weekly_report.dart';
+import 'package:sle_prep/domain/course/course_catalog.dart';
 import '../support/test_db.dart';
 
 WeeklyPlan samplePlan({int weekNumber = 1}) => composeWeeklyPlan(
   weekNumber: weekNumber,
   trackId: 'b-to-c-v1',
-  lessonId: 'bc-0$weekNumber-lesson',
-  lessonTitleFr: 'Leçon $weekNumber',
+  lessonId: '01-detail',
+  lessonTitleFr: 'Décrire',
 );
-
 void main() {
   final monday = DateTime(2026, 11, 2);
-
-  group('creating a week', () {
-    test('stores the plan snapshot and every assignment', () async {
+  test(
+    'distinct speaking productions are retained without duplicate minute credit',
+    () async {
       final db = inMemoryDatabase();
       addTearDown(db.close);
-      final plan = samplePlan();
-
-      final weekId = await db.createStudyWeek(plan: plan, startDate: monday);
-
-      final week = await db.activeStudyWeek();
-      expect(week, isNotNull);
-      expect(week!.id, weekId);
-      expect(week.weekNumber, 1);
-      expect(week.trackId, 'b-to-c-v1');
-      expect(week.startDate, '2026-11-02');
-      expect(week.status, 'active');
-      expect(week.reportJson, isNull);
-
-      // The snapshot must restore the exact plan the learner was given.
-      expect(week.plan.toJson(), plan.toJson());
-
-      final assignments = await db.assignmentsForWeek(weekId);
-      expect(assignments, hasLength(plan.assignments.length));
-      expect(
-        assignments.map((row) => row.specId).toSet(),
-        plan.assignments.map((spec) => spec.id).toSet(),
+      final id = await db.createStudyWeek(
+        plan: samplePlan(),
+        startDate: monday,
       );
-      expect(assignments.every((row) => row.completedAt == null), isTrue);
-    });
-
-    test('refuses a second active week', () async {
+      final a = (await db.assignmentsForWeek(
+        id,
+      )).firstWhere((a) => a.skill == 'speaking');
+      for (final text in [
+        'Je prépare les réunions.',
+        'Je prépare aussi les comptes rendus.',
+      ]) {
+        await db.saveAssignmentEvidence(
+          a.id,
+          AssignmentEvidence(
+            kind: EvidenceKind.spokenPractice,
+            data: {
+              'exchanges': [
+                {'question': 'Votre travail ?', 'answer': text},
+              ],
+            },
+          ),
+          at: monday,
+        );
+      }
+      expect((await db.weeklySnapshot(id))['evidence'], hasLength(2));
+      expect(await db.weeklyMinutesBySkill(id, completedOnly: true), {
+        'speaking': a.minutes,
+      });
+      final foreignKeys = await db
+          .customSelect('PRAGMA foreign_key_list(weekly_evidence)')
+          .get();
+      expect(foreignKeys, isNotEmpty);
+    },
+  );
+  test(
+    'stores the plan and exact dates and prevents a second active week',
+    () async {
       final db = inMemoryDatabase();
       addTearDown(db.close);
-      await db.createStudyWeek(plan: samplePlan(), startDate: monday);
-
+      final id = await db.createStudyWeek(
+        plan: samplePlan(),
+        startDate: monday,
+      );
+      final week = (await db.activeStudyWeek())!;
+      expect(week.id, id);
+      expect(week.plan.toJson(), samplePlan().toJson());
+      expect(await db.studyDates(week), [
+        '2026-11-02',
+        '2026-11-03',
+        '2026-11-04',
+        '2026-11-05',
+        '2026-11-06',
+      ]);
+      expect(
+        await db.assignmentsForWeek(id),
+        hasLength(samplePlan().assignments.length),
+      );
       await expectLater(
-        db.createStudyWeek(plan: samplePlan(weekNumber: 2), startDate: monday),
+        db.createStudyWeek(plan: samplePlan(), startDate: monday),
         throwsStateError,
       );
-      expect(await db.weeklyHistory(), hasLength(1));
-    });
-
-    test('day lookups return that day in plan order', () async {
-      final db = inMemoryDatabase();
-      addTearDown(db.close);
-      final plan = samplePlan();
-      final weekId = await db.createStudyWeek(plan: plan, startDate: monday);
-
-      final day1 = await db.assignmentsForDay(weekId, 1);
-      expect(day1.first.skill, 'teaching');
-      expect(day1[1].skill, 'speaking');
-      expect(
-        day1.fold<int>(0, (sum, row) => sum + row.minutes),
-        plan.minutesPerDay,
-      );
-      expect(await db.assignmentsForDay(weekId, 99), isEmpty);
-    });
+    },
+  );
+  test('rejects mismatched nonexistent and missing evidence', () async {
+    final db = inMemoryDatabase();
+    addTearDown(db.close);
+    final id = await db.createStudyWeek(plan: samplePlan(), startDate: monday);
+    final a = (await db.assignmentsForWeek(
+      id,
+    )).firstWhere((a) => a.skill == 'speaking');
+    await expectLater(
+      db.completeAssignment(a.id, at: monday),
+      throwsArgumentError,
+    );
+    await expectLater(
+      db.completeAssignment(
+        a.id,
+        evidenceKind: 'readingAttempt',
+        evidenceId: 999,
+        at: monday,
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      db.completeAssignment(
+        a.id,
+        evidenceKind: 'oralAttempt',
+        evidenceId: 999,
+        at: monday,
+      ),
+      throwsArgumentError,
+    );
+    expect((await db.weeklyAssignment(a.id)).completed, isFalse);
   });
-
-  group('completing work', () {
-    test('records evidence once and stays idempotent', () async {
+  test(
+    'quiz evidence persists the real score; repeated completion is idempotent',
+    () async {
       final db = inMemoryDatabase();
       addTearDown(db.close);
-      final weekId = await db.createStudyWeek(
+      final id = await db.createStudyWeek(
         plan: samplePlan(),
         startDate: monday,
       );
-      final speaking = (await db.assignmentsForWeek(
-        weekId,
-      )).firstWhere((row) => row.skill == 'speaking');
-
-      final at = DateTime(2026, 11, 2, 19, 30);
-      await db.completeAssignment(
-        speaking.id,
-        evidenceKind: 'speakingSession',
-        evidenceId: 42,
-        at: at,
+      final a = (await db.assignmentsForWeek(id)).first;
+      final data = AssignmentEvidence(
+        kind: EvidenceKind.quiz,
+        data: {
+          'answers': findCourseLesson(
+            '01-detail',
+          ).questions.map((q) => q.correct).toList(),
+        },
       );
-      await db.completeAssignment(
-        speaking.id,
-        evidenceKind: 'speakingSession',
-        evidenceId: 77,
-        at: at.add(const Duration(hours: 2)),
-      );
-
-      final stored = await db.weeklyAssignment(speaking.id);
-      expect(stored.completedAt, at, reason: 'first completion wins');
-      expect(stored.evidenceId, 42);
-      expect(stored.evidenceKind, 'speakingSession');
-    });
-
-    test('accepts completion without evidence but rejects half a pair', () async {
-      final db = inMemoryDatabase();
-      addTearDown(db.close);
-      final weekId = await db.createStudyWeek(
-        plan: samplePlan(),
-        startDate: monday,
-      );
-      final rows = await db.assignmentsForWeek(weekId);
-
-      await db.completeAssignment(rows.first.id, at: monday);
-      expect((await db.weeklyAssignment(rows.first.id)).completedAt, monday);
-
-      // Validation is synchronous, like the other DAOs in this app.
+      final evidence = await db.saveAssignmentEvidence(a.id, data, at: monday);
       expect(
-        () => db.completeAssignment(
-          rows[1].id,
-          evidenceKind: 'readingAttempt',
+        await db.saveAssignmentEvidence(
+          a.id,
+          data,
+          at: monday.add(const Duration(hours: 1)),
+        ),
+        evidence,
+      );
+      expect((await db.weeklyAssignment(a.id)).completedAt, monday);
+      final snapshot = await db.weeklySnapshot(id);
+      expect((snapshot['evidence'] as List).single['data']['correct'], 2);
+      expect(await db.weeklyMinutesBySkill(id, completedOnly: true), {
+        'teaching': a.minutes,
+      });
+      expect(await db.totalActiveMinutes(), a.minutes);
+      expect(await db.currentStreak(monday), 1);
+    },
+  );
+  test(
+    'closing offline freezes evidence and rejects later edits or malformed reports',
+    () async {
+      final db = inMemoryDatabase();
+      addTearDown(db.close);
+      final id = await db.createStudyWeek(
+        plan: samplePlan(),
+        startDate: monday,
+      );
+      await expectLater(
+        db.closeStudyWeek(id, reportJson: '{}', at: monday),
+        throwsFormatException,
+      );
+      await db.closeStudyWeek(id, at: monday.add(const Duration(days: 5)));
+      final job = (await db.weeklyFeedback(id))!;
+      expect(job.status, 'notRequested');
+      expect(jsonDecode(job.snapshotJson)['evidence'], isEmpty);
+      final a = (await db.assignmentsForWeek(id)).first;
+      await expectLater(
+        db.saveAssignmentEvidence(
+          a.id,
+          const AssignmentEvidence(
+            kind: EvidenceKind.solo,
+            selfReported: true,
+            data: {'reflection': 'Une pratique réelle.'},
+          ),
           at: monday,
         ),
-        throwsArgumentError,
+        throwsStateError,
       );
-      expect(
-        () => db.completeAssignment(rows[1].id, evidenceId: 3, at: monday),
-        throwsArgumentError,
-      );
-      expect((await db.weeklyAssignment(rows[1].id)).completedAt, isNull);
-    });
-
-    test('reports planned and completed minutes per skill', () async {
-      final db = inMemoryDatabase();
-      addTearDown(db.close);
-      final plan = samplePlan();
-      final weekId = await db.createStudyWeek(plan: plan, startDate: monday);
-
-      final planned = await db.weeklyMinutesBySkill(weekId);
-      expect(planned['speaking'], plan.minutesFor(SkillKind.speaking));
-      expect(planned['listening'], plan.minutesFor(SkillKind.listening));
-      expect(
-        planned.values.fold<int>(0, (sum, value) => sum + value),
-        plan.totalMinutes,
-      );
-
-      expect(await db.weeklyMinutesBySkill(weekId, completedOnly: true), isEmpty);
-      final listening = (await db.assignmentsForWeek(
-        weekId,
-      )).firstWhere((row) => row.skill == 'listening');
-      await db.completeAssignment(listening.id, at: monday);
-      expect(await db.weeklyMinutesBySkill(weekId, completedOnly: true), {
-        'listening': listening.minutes,
-      });
-    });
-  });
-
-  group('closing a week', () {
-    test('frees the slot for the next week and keeps the report', () async {
-      final db = inMemoryDatabase();
-      addTearDown(db.close);
-      final weekId = await db.createStudyWeek(
-        plan: samplePlan(),
-        startDate: monday,
-      );
-
-      await db.closeStudyWeek(
-        weekId,
-        reportJson: '{"levels":{"speaking":"B"}}',
-        at: monday.add(const Duration(days: 6)),
-      );
-
-      expect(await db.activeStudyWeek(), isNull);
-      final closed = await db.studyWeek(weekId);
-      expect(closed!.status, 'closed');
-      expect(closed.reportJson, contains('speaking'));
-      expect(closed.closedAt, isNotNull);
-
-      final next = await db.createStudyWeek(
+      await expectLater(db.closeStudyWeek(id, at: monday), throwsStateError);
+      await db.createStudyWeek(
         plan: samplePlan(weekNumber: 2),
         startDate: monday.add(const Duration(days: 7)),
       );
-      expect((await db.activeStudyWeek())!.id, next);
       expect(await db.weeklyHistory(), hasLength(2));
-    });
-
-    test('refuses to close a week twice', () async {
+    },
+  );
+  test(
+    'class progress survives reload and cannot be changed after closure',
+    () async {
       final db = inMemoryDatabase();
       addTearDown(db.close);
-      final weekId = await db.createStudyWeek(
+      final id = await db.createStudyWeek(
         plan: samplePlan(),
         startDate: monday,
       );
-      await db.closeStudyWeek(weekId, reportJson: '{}', at: monday);
-
-      await expectLater(
-        db.closeStudyWeek(weekId, reportJson: '{}', at: monday),
-        throwsStateError,
+      const state = ClassProgress(
+        stage: 2,
+        answers: [0, 1],
+        checked: true,
+        skips: [0],
       );
-    });
-  });
+      await db.saveClassProgress(id, state);
+      expect((await db.classProgress(id)).toJson(), state.toJson());
+      await db.closeStudyWeek(id, at: monday);
+      await expectLater(db.saveClassProgress(id, state), throwsStateError);
+    },
+  );
+  test(
+    'voice reservation survives concurrent starts and settles once',
+    () async {
+      final db = inMemoryDatabase();
+      addTearDown(db.close);
+      final id = await db.createStudyWeek(
+        plan: samplePlan(),
+        startDate: monday,
+      );
+      final lease = await db.reserveWeeklyVoice(id);
+      expect(await db.voiceLeaseSeconds(lease), 1200);
+      await expectLater(db.reserveWeeklyVoice(id), throwsStateError);
+      await db.settleWeeklyVoice(lease, 100);
+      await db.settleWeeklyVoice(lease, 0);
+      final second = await db.reserveWeeklyVoice(id);
+      expect(await db.voiceLeaseSeconds(second), 1100);
+    },
+  );
+  test(
+    'pause reschedules only remaining dates; overdue week closes without network',
+    () async {
+      final db = inMemoryDatabase();
+      addTearDown(db.close);
+      final id = await db.createStudyWeek(
+        plan: samplePlan(),
+        startDate: monday,
+      );
+      await db.pauseStudyWeek(id, true, DateTime(2026, 11, 4));
+      await db.reconcileStudyCalendar(DateTime(2026, 11, 20));
+      expect(await db.activeStudyWeek(), isNotNull);
+      await db.pauseStudyWeek(id, false, DateTime(2026, 11, 9));
+      final dates = await db.studyDates((await db.studyWeek(id))!);
+      expect(dates, [
+        '2026-11-02',
+        '2026-11-03',
+        '2026-11-09',
+        '2026-11-10',
+        '2026-11-11',
+      ]);
+      await db.reconcileStudyCalendar(DateTime(2026, 11, 12));
+      expect(await db.activeStudyWeek(), isNull);
+    },
+  );
 }

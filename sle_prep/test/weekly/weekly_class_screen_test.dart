@@ -107,14 +107,13 @@ void main() {
       isNotNull,
       reason: 'checking understanding closes the class block',
     );
-    expect(teaching.evidenceKind, 'courseLesson');
+    expect(teaching.evidenceKind, 'weeklyEvidence');
 
     // The speaking block waits for real practice.
     expect(
       rows
           .firstWhere(
-            (row) =>
-                row.skill == SkillKind.speaking.name && row.dayIndex == 1,
+            (row) => row.skill == SkillKind.speaking.name && row.dayIndex == 1,
           )
           .completedAt,
       isNull,
@@ -140,7 +139,8 @@ void main() {
     await advance(tester, 1);
 
     for (var i = 0; i < lesson.questions.length; i++) {
-      final wrong = (lesson.questions[i].correct + 1) %
+      final wrong =
+          (lesson.questions[i].correct + 1) %
           lesson.questions[i].options.length;
       await tester.ensureVisible(find.byKey(Key('class-q$i-o$wrong')));
       await tester.pumpAndSettle();
@@ -154,9 +154,9 @@ void main() {
 
     expect(find.textContaining('✘'), findsWidgets);
     expect(find.text('0 / ${lesson.questions.length}'), findsOneWidget);
-    final teaching = (await db.assignmentsForWeek(week.id)).firstWhere(
-      (row) => row.skill == SkillKind.teaching.name,
-    );
+    final teaching = (await db.assignmentsForWeek(
+      week.id,
+    )).firstWhere((row) => row.skill == SkillKind.teaching.name);
     expect(
       teaching.completedAt,
       isNotNull,
@@ -180,7 +180,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await advance(tester, 3);
+    await advance(tester, 1);
+    for (var i = 0; i < 2; i++) {
+      await tester.ensureVisible(find.text('Reporter').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reporter').first);
+      await tester.pumpAndSettle();
+    }
 
     final plan = week.plan;
     expect(

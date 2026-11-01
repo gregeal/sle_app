@@ -6,6 +6,7 @@ import 'package:sle_prep/data/db/daos.dart';
 import 'package:sle_prep/data/db/learning_daos.dart';
 import 'package:sqlite3/sqlite3.dart';
 import '../support/test_db.dart';
+import '../support/legacy_schema.dart';
 
 void main() {
   test(
@@ -30,7 +31,7 @@ void main() {
       legacy.execute('DROP TABLE speaking_sessions');
       legacy.execute('DROP TABLE speaking_turns');
       legacy.execute('DROP TABLE speaking_mistakes');
-      legacy.execute('PRAGMA user_version = 5');
+      rewindSchema(legacy, 5);
       legacy.dispose();
       final after = AppDatabase(NativeDatabase(file));
       addTearDown(after.close);

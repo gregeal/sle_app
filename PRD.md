@@ -218,3 +218,29 @@ The final Render service, custom domain, Google OAuth/passkey validation, paid
 OpenAI smoke test, clean-profile offline/PWA test, device microphone/audio test,
 and external Observatory scan require owner-managed secrets or infrastructure
 and must not be treated as completed repository-only validation.
+
+## 15. P5 — Weekly teacher and four-skill practice
+
+- Teach, check understanding, practise and review one lesson per study cycle.
+- Default to five selectable weekdays at 60 minutes each. Speaking receives
+  40–50%; reading/listening/writing each receive 12–20%, within eight percentage
+  points of each other; vocabulary receives 5–12%; teaching/quiz at most 8%.
+  Every study day includes speaking. Reject infeasible budgets.
+- Placement samples all four skills, retains editable drafts, distinguishes
+  assisted/missing evidence, and recommends a track and lesson informed by saved
+  course work. The learner confirms or overrides the starting point.
+- Class state and activity evidence persist independently of AI feedback. Quiz
+  errors are formative. Skips are explicit. Capture stops on backgrounding and
+  cannot be hidden through helper navigation.
+- Accueil and Classe use the same persisted assignments. Rest days and missed
+  work never create a legacy-plan backlog. Catch-up replaces compatible work.
+  Pause/resume reschedules remaining study dates; weekday changes affect future cycles.
+- Allow 20 live teacher connection minutes per cycle, plus manual/solo practice.
+  Preserve provider/broker cost controls; do not label AI airtime as learner speech.
+- Close weeks offline and freeze their evidence. AI reports are validated,
+  bounded and recoverable, with one malformed-output retry. A pending report does
+  not prevent an explicit next-week choice. Missing skills stay unknown.
+- Recommend repetition or progression from evidence, explain the decision, and
+  record learner overrides. Track completion has an explicit transition/revision choice.
+- Preserve existing course/SRS/history. Schema and migration tests cover v1/v7/v8
+  to v9. No level estimate is an official SLE result or a proficiency guarantee.

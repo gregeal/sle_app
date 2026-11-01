@@ -2,7 +2,10 @@
 
 **Goal:** Add a weekly teaching cadence on top of the existing course material: every week the AI teacher gives a class, assigns a week of exercises covering all four language skills with speaking deliberately dominant, and closes the week with a review that shapes the next one.
 
-**Status:** Planned (2026-11-01). Nothing below is implemented yet.
+**Status:** Implemented; release verification tracked below (2026-11-01). P5-1–4 were
+committed in `2f18da8` and `d3b2738`; the approved full-P5 repair/rollout is tracked
+in [delivery notes](2026-11-01-p5-delivery.md). The original proposal below is
+historical where it differs from those notes (notably schema v9 and guided overrides).
 
 **Decisions taken with the owner:** hybrid class (text + TTS teaching, then a live voice practice segment); 5 study days × 60 min (~5 h/week); a placement class picks the starting track; the weekly plan gets its own tab *and* becomes the source of truth for the Accueil daily plan.
 
@@ -144,7 +147,7 @@ The current PRD specifies a 26-week curriculum and a 60–90 min day but never s
 
 ## 10. Verification
 
-- `flutter analyze` clean; full suite green (currently 136 tests) plus the new composer, DAO, parser and widget tests.
+- `flutter analyze` clean; full suite green. Current test totals and release results are recorded in the delivery notes.
 - Migration: a database at v7 (and one at v1) upgrades with existing course progress, speaking history and mock results intact.
 - Contract: property-style tests over many generated weeks assert the speaking share never drops below 40 %, the three other skills stay within 8 points of each other, and every day has a speaking block.
 - On device: placement → week 1 class (teaching audio offline, quiz, live practice, assignments) → a day's work from Accueil → week closes with a report → week 2 reflects the report's emphasis.

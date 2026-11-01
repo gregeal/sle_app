@@ -440,6 +440,14 @@ extension AppDaos on AppDatabase {
       for (final log in rows)
         if (log.blocksCompletedList.isNotEmpty) log.date,
     };
+    final weekly =
+        await (select(weeklyAssignments)..where(
+              (a) =>
+                  a.completedAt.isNotNull() &
+                  a.evidenceKind.equals('weeklyEvidence'),
+            ))
+            .get();
+    activeDays.addAll(weekly.map((a) => _dateKey(a.completedAt!)));
 
     var day = DateTime(today.year, today.month, today.day);
     if (!activeDays.contains(_dateKey(day))) {
@@ -535,7 +543,14 @@ extension AppDaos on AppDatabase {
     final sum = sessionLogs.minutesActive.sum();
     final query = selectOnly(sessionLogs)..addColumns([sum]);
     final row = await query.getSingle();
-    return row.read(sum) ?? 0;
+    final weekly =
+        await (select(weeklyAssignments)..where(
+              (a) =>
+                  a.completedAt.isNotNull() &
+                  a.evidenceKind.equals('weeklyEvidence'),
+            ))
+            .get();
+    return (row.read(sum) ?? 0) + weekly.fold<int>(0, (n, a) => n + a.minutes);
   }
 
   /// Drill attempts recorded at or after [cutoff] (for scoring a timed mock).

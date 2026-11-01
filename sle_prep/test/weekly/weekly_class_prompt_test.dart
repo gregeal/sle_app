@@ -57,7 +57,11 @@ void main() {
     expect(empty, contains('celles de la classe'));
 
     final long = teacher(objective: List.filled(4000, 'très long').join(' '));
-    expect(long.length, lessThan(6000), reason: 'one lesson cannot crowd out the rules');
+    expect(
+      long.length,
+      lessThan(6000),
+      reason: 'one lesson cannot crowd out the rules',
+    );
     expect(long, contains('aucune note'));
   });
 

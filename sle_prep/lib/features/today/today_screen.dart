@@ -10,9 +10,49 @@ import '../drills/drill_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../learning/learning_hub_screen.dart';
 import '../course/course_library_screen.dart';
+import '../weekly/weekly_providers.dart';
+import '../weekly/weekly_home_screen.dart';
+import '../settings/settings_screen.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Column(
+    children: [
+      SafeArea(
+        bottom: false,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            tooltip: 'Paramètres',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const Scaffold(body: SettingsScreen()),
+              ),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        child: ref
+            .watch(dailyStudyPlanProvider)
+            .when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => const WeeklyHomeScreen(today: true),
+              data: (plan) => plan is WeeklyStudyPlan
+                  ? const WeeklyHomeScreen(today: true)
+                  : const _LegacyTodayScreen(),
+            ),
+      ),
+    ],
+  );
+}
+
+class _LegacyTodayScreen extends ConsumerWidget {
+  const _LegacyTodayScreen();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

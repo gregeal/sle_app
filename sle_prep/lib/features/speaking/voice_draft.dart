@@ -16,11 +16,15 @@ class VoiceDraft extends ConsumerStatefulWidget {
     required this.onChanged,
     required this.onBusy,
     this.enabled = true,
+    this.onSpeechCaptured,
+    this.maxCharacters = 20000,
   });
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final ValueChanged<bool> onBusy;
   final bool enabled;
+  final VoidCallback? onSpeechCaptured;
+  final int maxCharacters;
   @override
   ConsumerState<VoiceDraft> createState() => VoiceDraftState();
 }
@@ -180,17 +184,22 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
       await _speech.listen(
         onResult: (text) {
           if (!mounted || epoch != _epoch) return;
+          if (text.trim().isNotEmpty) {
+            widget.onSpeechCaptured?.call();
+          }
           final full = [
             if (prefix.isNotEmpty) prefix,
             if (text.trim().isNotEmpty) text.trim(),
           ].join(' ');
-          final bounded = full.length > 20000 ? full.substring(0, 20000) : full;
+          final bounded = full.length > widget.maxCharacters
+              ? full.substring(0, widget.maxCharacters)
+              : full;
           widget.controller.value = TextEditingValue(
             text: bounded,
             selection: TextSelection.collapsed(offset: bounded.length),
           );
           widget.onChanged(bounded);
-          if (full.length > 20000) {
+          if (full.length > widget.maxCharacters) {
             setState(
               () => _error =
                   'Limite du brouillon atteinte. Copiez le texte et poursuivez dans un autre tour.',
@@ -276,7 +285,7 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
         controller: widget.controller,
         minLines: 3,
         maxLines: 8,
-        maxLength: 20000,
+        maxLength: widget.maxCharacters,
         readOnly: !widget.enabled || _listening || _starting,
         decoration: const InputDecoration(
           labelText: 'Ma réponse / transcription',
