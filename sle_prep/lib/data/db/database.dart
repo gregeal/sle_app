@@ -212,6 +212,58 @@ class WritingAttempts extends Table {
   DateTimeColumn get answeredAt => dateTime()();
 }
 
+/// One week of the AI teacher's programme: the class lesson it is bound to
+/// and the immutable plan snapshot the learner was given.
+class StudyWeeks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get weekNumber => integer()();
+  TextColumn get trackId => text()();
+  TextColumn get lessonId => text()();
+
+  /// Date-only key, yyyy-MM-dd, like [SessionLogs.date].
+  TextColumn get startDate => text()();
+
+  /// 'active' or 'closed'. Exactly one week may be active at a time.
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  /// The composed [WeeklyPlan] as JSON, so a stored week never silently
+  /// re-plans itself under the learner.
+  TextColumn get planJson => text()();
+
+  /// The end-of-week teacher report, written once the week closes.
+  TextColumn get reportJson => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+}
+
+/// One assignment of a week. Completion is tracked per assignment so a single
+/// missed item never blocks the week.
+class WeeklyAssignments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get weekId =>
+      integer().references(StudyWeeks, #id, onDelete: KeyAction.cascade)();
+
+  /// Stable identifier from the plan, so completion survives a reload.
+  TextColumn get specId => text()();
+  IntColumn get dayIndex => integer()();
+
+  /// A [SkillKind] name: speaking, listening, reading, writing, vocabulary,
+  /// teaching.
+  TextColumn get skill => text()();
+  IntColumn get minutes => integer()();
+  TextColumn get titleFr => text()();
+  TextColumn get subtitleFr => text()();
+
+  /// What the UI opens for this assignment, as JSON.
+  TextColumn get payloadJson => text()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
+  /// Where the proof of work lives: 'speakingSession', 'writingAttempt',
+  /// 'readingAttempt', 'listeningAttempt'. Set together with [evidenceId].
+  TextColumn get evidenceKind => text().nullable()();
+  IntColumn get evidenceId => integer().nullable()();
+}
+
 @DriftDatabase(
   tables: [
     VocabCards,
@@ -231,13 +283,15 @@ class WritingAttempts extends Table {
     SpeakingSessions,
     SpeakingTurns,
     SpeakingMistakes,
+    StudyWeeks,
+    WeeklyAssignments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -264,6 +318,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(speakingSessions);
         await m.createTable(speakingTurns);
         await m.createTable(speakingMistakes);
+      }
+      if (from < 8) {
+        await m.createTable(studyWeeks);
+        await m.createTable(weeklyAssignments);
       }
     },
   );

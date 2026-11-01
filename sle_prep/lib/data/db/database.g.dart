@@ -7289,6 +7289,1336 @@ class SpeakingMistakesCompanion extends UpdateCompanion<SpeakingMistake> {
   }
 }
 
+class $StudyWeeksTable extends StudyWeeks
+    with TableInfo<$StudyWeeksTable, StudyWeek> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StudyWeeksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _weekNumberMeta = const VerificationMeta(
+    'weekNumber',
+  );
+  @override
+  late final GeneratedColumn<int> weekNumber = GeneratedColumn<int>(
+    'week_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+    'track_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lessonIdMeta = const VerificationMeta(
+    'lessonId',
+  );
+  @override
+  late final GeneratedColumn<String> lessonId = GeneratedColumn<String>(
+    'lesson_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _planJsonMeta = const VerificationMeta(
+    'planJson',
+  );
+  @override
+  late final GeneratedColumn<String> planJson = GeneratedColumn<String>(
+    'plan_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reportJsonMeta = const VerificationMeta(
+    'reportJson',
+  );
+  @override
+  late final GeneratedColumn<String> reportJson = GeneratedColumn<String>(
+    'report_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedAtMeta = const VerificationMeta(
+    'closedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+    'closed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    weekNumber,
+    trackId,
+    lessonId,
+    startDate,
+    status,
+    planJson,
+    reportJson,
+    createdAt,
+    closedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'study_weeks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StudyWeek> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('week_number')) {
+      context.handle(
+        _weekNumberMeta,
+        weekNumber.isAcceptableOrUnknown(data['week_number']!, _weekNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekNumberMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('lesson_id')) {
+      context.handle(
+        _lessonIdMeta,
+        lessonId.isAcceptableOrUnknown(data['lesson_id']!, _lessonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lessonIdMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('plan_json')) {
+      context.handle(
+        _planJsonMeta,
+        planJson.isAcceptableOrUnknown(data['plan_json']!, _planJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planJsonMeta);
+    }
+    if (data.containsKey('report_json')) {
+      context.handle(
+        _reportJsonMeta,
+        reportJson.isAcceptableOrUnknown(data['report_json']!, _reportJsonMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(
+        _closedAtMeta,
+        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StudyWeek map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StudyWeek(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      weekNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_number'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_id'],
+      )!,
+      lessonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lesson_id'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_date'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      planJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_json'],
+      )!,
+      reportJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}report_json'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      closedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closed_at'],
+      ),
+    );
+  }
+
+  @override
+  $StudyWeeksTable createAlias(String alias) {
+    return $StudyWeeksTable(attachedDatabase, alias);
+  }
+}
+
+class StudyWeek extends DataClass implements Insertable<StudyWeek> {
+  final int id;
+  final int weekNumber;
+  final String trackId;
+  final String lessonId;
+
+  /// Date-only key, yyyy-MM-dd, like [SessionLogs.date].
+  final String startDate;
+
+  /// 'active' or 'closed'. Exactly one week may be active at a time.
+  final String status;
+
+  /// The composed [WeeklyPlan] as JSON, so a stored week never silently
+  /// re-plans itself under the learner.
+  final String planJson;
+
+  /// The end-of-week teacher report, written once the week closes.
+  final String? reportJson;
+  final DateTime createdAt;
+  final DateTime? closedAt;
+  const StudyWeek({
+    required this.id,
+    required this.weekNumber,
+    required this.trackId,
+    required this.lessonId,
+    required this.startDate,
+    required this.status,
+    required this.planJson,
+    this.reportJson,
+    required this.createdAt,
+    this.closedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['week_number'] = Variable<int>(weekNumber);
+    map['track_id'] = Variable<String>(trackId);
+    map['lesson_id'] = Variable<String>(lessonId);
+    map['start_date'] = Variable<String>(startDate);
+    map['status'] = Variable<String>(status);
+    map['plan_json'] = Variable<String>(planJson);
+    if (!nullToAbsent || reportJson != null) {
+      map['report_json'] = Variable<String>(reportJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || closedAt != null) {
+      map['closed_at'] = Variable<DateTime>(closedAt);
+    }
+    return map;
+  }
+
+  StudyWeeksCompanion toCompanion(bool nullToAbsent) {
+    return StudyWeeksCompanion(
+      id: Value(id),
+      weekNumber: Value(weekNumber),
+      trackId: Value(trackId),
+      lessonId: Value(lessonId),
+      startDate: Value(startDate),
+      status: Value(status),
+      planJson: Value(planJson),
+      reportJson: reportJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reportJson),
+      createdAt: Value(createdAt),
+      closedAt: closedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedAt),
+    );
+  }
+
+  factory StudyWeek.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StudyWeek(
+      id: serializer.fromJson<int>(json['id']),
+      weekNumber: serializer.fromJson<int>(json['weekNumber']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      lessonId: serializer.fromJson<String>(json['lessonId']),
+      startDate: serializer.fromJson<String>(json['startDate']),
+      status: serializer.fromJson<String>(json['status']),
+      planJson: serializer.fromJson<String>(json['planJson']),
+      reportJson: serializer.fromJson<String?>(json['reportJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'weekNumber': serializer.toJson<int>(weekNumber),
+      'trackId': serializer.toJson<String>(trackId),
+      'lessonId': serializer.toJson<String>(lessonId),
+      'startDate': serializer.toJson<String>(startDate),
+      'status': serializer.toJson<String>(status),
+      'planJson': serializer.toJson<String>(planJson),
+      'reportJson': serializer.toJson<String?>(reportJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'closedAt': serializer.toJson<DateTime?>(closedAt),
+    };
+  }
+
+  StudyWeek copyWith({
+    int? id,
+    int? weekNumber,
+    String? trackId,
+    String? lessonId,
+    String? startDate,
+    String? status,
+    String? planJson,
+    Value<String?> reportJson = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> closedAt = const Value.absent(),
+  }) => StudyWeek(
+    id: id ?? this.id,
+    weekNumber: weekNumber ?? this.weekNumber,
+    trackId: trackId ?? this.trackId,
+    lessonId: lessonId ?? this.lessonId,
+    startDate: startDate ?? this.startDate,
+    status: status ?? this.status,
+    planJson: planJson ?? this.planJson,
+    reportJson: reportJson.present ? reportJson.value : this.reportJson,
+    createdAt: createdAt ?? this.createdAt,
+    closedAt: closedAt.present ? closedAt.value : this.closedAt,
+  );
+  StudyWeek copyWithCompanion(StudyWeeksCompanion data) {
+    return StudyWeek(
+      id: data.id.present ? data.id.value : this.id,
+      weekNumber: data.weekNumber.present
+          ? data.weekNumber.value
+          : this.weekNumber,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      lessonId: data.lessonId.present ? data.lessonId.value : this.lessonId,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      status: data.status.present ? data.status.value : this.status,
+      planJson: data.planJson.present ? data.planJson.value : this.planJson,
+      reportJson: data.reportJson.present
+          ? data.reportJson.value
+          : this.reportJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyWeek(')
+          ..write('id: $id, ')
+          ..write('weekNumber: $weekNumber, ')
+          ..write('trackId: $trackId, ')
+          ..write('lessonId: $lessonId, ')
+          ..write('startDate: $startDate, ')
+          ..write('status: $status, ')
+          ..write('planJson: $planJson, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('closedAt: $closedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    weekNumber,
+    trackId,
+    lessonId,
+    startDate,
+    status,
+    planJson,
+    reportJson,
+    createdAt,
+    closedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StudyWeek &&
+          other.id == this.id &&
+          other.weekNumber == this.weekNumber &&
+          other.trackId == this.trackId &&
+          other.lessonId == this.lessonId &&
+          other.startDate == this.startDate &&
+          other.status == this.status &&
+          other.planJson == this.planJson &&
+          other.reportJson == this.reportJson &&
+          other.createdAt == this.createdAt &&
+          other.closedAt == this.closedAt);
+}
+
+class StudyWeeksCompanion extends UpdateCompanion<StudyWeek> {
+  final Value<int> id;
+  final Value<int> weekNumber;
+  final Value<String> trackId;
+  final Value<String> lessonId;
+  final Value<String> startDate;
+  final Value<String> status;
+  final Value<String> planJson;
+  final Value<String?> reportJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> closedAt;
+  const StudyWeeksCompanion({
+    this.id = const Value.absent(),
+    this.weekNumber = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.lessonId = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.planJson = const Value.absent(),
+    this.reportJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+  });
+  StudyWeeksCompanion.insert({
+    this.id = const Value.absent(),
+    required int weekNumber,
+    required String trackId,
+    required String lessonId,
+    required String startDate,
+    this.status = const Value.absent(),
+    required String planJson,
+    this.reportJson = const Value.absent(),
+    required DateTime createdAt,
+    this.closedAt = const Value.absent(),
+  }) : weekNumber = Value(weekNumber),
+       trackId = Value(trackId),
+       lessonId = Value(lessonId),
+       startDate = Value(startDate),
+       planJson = Value(planJson),
+       createdAt = Value(createdAt);
+  static Insertable<StudyWeek> custom({
+    Expression<int>? id,
+    Expression<int>? weekNumber,
+    Expression<String>? trackId,
+    Expression<String>? lessonId,
+    Expression<String>? startDate,
+    Expression<String>? status,
+    Expression<String>? planJson,
+    Expression<String>? reportJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? closedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (weekNumber != null) 'week_number': weekNumber,
+      if (trackId != null) 'track_id': trackId,
+      if (lessonId != null) 'lesson_id': lessonId,
+      if (startDate != null) 'start_date': startDate,
+      if (status != null) 'status': status,
+      if (planJson != null) 'plan_json': planJson,
+      if (reportJson != null) 'report_json': reportJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (closedAt != null) 'closed_at': closedAt,
+    });
+  }
+
+  StudyWeeksCompanion copyWith({
+    Value<int>? id,
+    Value<int>? weekNumber,
+    Value<String>? trackId,
+    Value<String>? lessonId,
+    Value<String>? startDate,
+    Value<String>? status,
+    Value<String>? planJson,
+    Value<String?>? reportJson,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? closedAt,
+  }) {
+    return StudyWeeksCompanion(
+      id: id ?? this.id,
+      weekNumber: weekNumber ?? this.weekNumber,
+      trackId: trackId ?? this.trackId,
+      lessonId: lessonId ?? this.lessonId,
+      startDate: startDate ?? this.startDate,
+      status: status ?? this.status,
+      planJson: planJson ?? this.planJson,
+      reportJson: reportJson ?? this.reportJson,
+      createdAt: createdAt ?? this.createdAt,
+      closedAt: closedAt ?? this.closedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (weekNumber.present) {
+      map['week_number'] = Variable<int>(weekNumber.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (lessonId.present) {
+      map['lesson_id'] = Variable<String>(lessonId.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<String>(startDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (planJson.present) {
+      map['plan_json'] = Variable<String>(planJson.value);
+    }
+    if (reportJson.present) {
+      map['report_json'] = Variable<String>(reportJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StudyWeeksCompanion(')
+          ..write('id: $id, ')
+          ..write('weekNumber: $weekNumber, ')
+          ..write('trackId: $trackId, ')
+          ..write('lessonId: $lessonId, ')
+          ..write('startDate: $startDate, ')
+          ..write('status: $status, ')
+          ..write('planJson: $planJson, ')
+          ..write('reportJson: $reportJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('closedAt: $closedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WeeklyAssignmentsTable extends WeeklyAssignments
+    with TableInfo<$WeeklyAssignmentsTable, WeeklyAssignment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyAssignmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _weekIdMeta = const VerificationMeta('weekId');
+  @override
+  late final GeneratedColumn<int> weekId = GeneratedColumn<int>(
+    'week_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _specIdMeta = const VerificationMeta('specId');
+  @override
+  late final GeneratedColumn<String> specId = GeneratedColumn<String>(
+    'spec_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayIndexMeta = const VerificationMeta(
+    'dayIndex',
+  );
+  @override
+  late final GeneratedColumn<int> dayIndex = GeneratedColumn<int>(
+    'day_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _skillMeta = const VerificationMeta('skill');
+  @override
+  late final GeneratedColumn<String> skill = GeneratedColumn<String>(
+    'skill',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _minutesMeta = const VerificationMeta(
+    'minutes',
+  );
+  @override
+  late final GeneratedColumn<int> minutes = GeneratedColumn<int>(
+    'minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleFrMeta = const VerificationMeta(
+    'titleFr',
+  );
+  @override
+  late final GeneratedColumn<String> titleFr = GeneratedColumn<String>(
+    'title_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subtitleFrMeta = const VerificationMeta(
+    'subtitleFr',
+  );
+  @override
+  late final GeneratedColumn<String> subtitleFr = GeneratedColumn<String>(
+    'subtitle_fr',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _evidenceKindMeta = const VerificationMeta(
+    'evidenceKind',
+  );
+  @override
+  late final GeneratedColumn<String> evidenceKind = GeneratedColumn<String>(
+    'evidence_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _evidenceIdMeta = const VerificationMeta(
+    'evidenceId',
+  );
+  @override
+  late final GeneratedColumn<int> evidenceId = GeneratedColumn<int>(
+    'evidence_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    weekId,
+    specId,
+    dayIndex,
+    skill,
+    minutes,
+    titleFr,
+    subtitleFr,
+    payloadJson,
+    completedAt,
+    evidenceKind,
+    evidenceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_assignments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyAssignment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('week_id')) {
+      context.handle(
+        _weekIdMeta,
+        weekId.isAcceptableOrUnknown(data['week_id']!, _weekIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekIdMeta);
+    }
+    if (data.containsKey('spec_id')) {
+      context.handle(
+        _specIdMeta,
+        specId.isAcceptableOrUnknown(data['spec_id']!, _specIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_specIdMeta);
+    }
+    if (data.containsKey('day_index')) {
+      context.handle(
+        _dayIndexMeta,
+        dayIndex.isAcceptableOrUnknown(data['day_index']!, _dayIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayIndexMeta);
+    }
+    if (data.containsKey('skill')) {
+      context.handle(
+        _skillMeta,
+        skill.isAcceptableOrUnknown(data['skill']!, _skillMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_skillMeta);
+    }
+    if (data.containsKey('minutes')) {
+      context.handle(
+        _minutesMeta,
+        minutes.isAcceptableOrUnknown(data['minutes']!, _minutesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_minutesMeta);
+    }
+    if (data.containsKey('title_fr')) {
+      context.handle(
+        _titleFrMeta,
+        titleFr.isAcceptableOrUnknown(data['title_fr']!, _titleFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleFrMeta);
+    }
+    if (data.containsKey('subtitle_fr')) {
+      context.handle(
+        _subtitleFrMeta,
+        subtitleFr.isAcceptableOrUnknown(data['subtitle_fr']!, _subtitleFrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subtitleFrMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evidence_kind')) {
+      context.handle(
+        _evidenceKindMeta,
+        evidenceKind.isAcceptableOrUnknown(
+          data['evidence_kind']!,
+          _evidenceKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evidence_id')) {
+      context.handle(
+        _evidenceIdMeta,
+        evidenceId.isAcceptableOrUnknown(data['evidence_id']!, _evidenceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WeeklyAssignment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyAssignment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      weekId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_id'],
+      )!,
+      specId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}spec_id'],
+      )!,
+      dayIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}day_index'],
+      )!,
+      skill: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}skill'],
+      )!,
+      minutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minutes'],
+      )!,
+      titleFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title_fr'],
+      )!,
+      subtitleFr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subtitle_fr'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+      evidenceKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evidence_kind'],
+      ),
+      evidenceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}evidence_id'],
+      ),
+    );
+  }
+
+  @override
+  $WeeklyAssignmentsTable createAlias(String alias) {
+    return $WeeklyAssignmentsTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyAssignment extends DataClass
+    implements Insertable<WeeklyAssignment> {
+  final int id;
+  final int weekId;
+
+  /// Stable identifier from the plan, so completion survives a reload.
+  final String specId;
+  final int dayIndex;
+
+  /// A [SkillKind] name: speaking, listening, reading, writing, vocabulary,
+  /// teaching.
+  final String skill;
+  final int minutes;
+  final String titleFr;
+  final String subtitleFr;
+
+  /// What the UI opens for this assignment, as JSON.
+  final String payloadJson;
+  final DateTime? completedAt;
+
+  /// Where the proof of work lives: 'speakingSession', 'writingAttempt',
+  /// 'readingAttempt', 'listeningAttempt'. Set together with [evidenceId].
+  final String? evidenceKind;
+  final int? evidenceId;
+  const WeeklyAssignment({
+    required this.id,
+    required this.weekId,
+    required this.specId,
+    required this.dayIndex,
+    required this.skill,
+    required this.minutes,
+    required this.titleFr,
+    required this.subtitleFr,
+    required this.payloadJson,
+    this.completedAt,
+    this.evidenceKind,
+    this.evidenceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['week_id'] = Variable<int>(weekId);
+    map['spec_id'] = Variable<String>(specId);
+    map['day_index'] = Variable<int>(dayIndex);
+    map['skill'] = Variable<String>(skill);
+    map['minutes'] = Variable<int>(minutes);
+    map['title_fr'] = Variable<String>(titleFr);
+    map['subtitle_fr'] = Variable<String>(subtitleFr);
+    map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    if (!nullToAbsent || evidenceKind != null) {
+      map['evidence_kind'] = Variable<String>(evidenceKind);
+    }
+    if (!nullToAbsent || evidenceId != null) {
+      map['evidence_id'] = Variable<int>(evidenceId);
+    }
+    return map;
+  }
+
+  WeeklyAssignmentsCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyAssignmentsCompanion(
+      id: Value(id),
+      weekId: Value(weekId),
+      specId: Value(specId),
+      dayIndex: Value(dayIndex),
+      skill: Value(skill),
+      minutes: Value(minutes),
+      titleFr: Value(titleFr),
+      subtitleFr: Value(subtitleFr),
+      payloadJson: Value(payloadJson),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      evidenceKind: evidenceKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evidenceKind),
+      evidenceId: evidenceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evidenceId),
+    );
+  }
+
+  factory WeeklyAssignment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyAssignment(
+      id: serializer.fromJson<int>(json['id']),
+      weekId: serializer.fromJson<int>(json['weekId']),
+      specId: serializer.fromJson<String>(json['specId']),
+      dayIndex: serializer.fromJson<int>(json['dayIndex']),
+      skill: serializer.fromJson<String>(json['skill']),
+      minutes: serializer.fromJson<int>(json['minutes']),
+      titleFr: serializer.fromJson<String>(json['titleFr']),
+      subtitleFr: serializer.fromJson<String>(json['subtitleFr']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      evidenceKind: serializer.fromJson<String?>(json['evidenceKind']),
+      evidenceId: serializer.fromJson<int?>(json['evidenceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'weekId': serializer.toJson<int>(weekId),
+      'specId': serializer.toJson<String>(specId),
+      'dayIndex': serializer.toJson<int>(dayIndex),
+      'skill': serializer.toJson<String>(skill),
+      'minutes': serializer.toJson<int>(minutes),
+      'titleFr': serializer.toJson<String>(titleFr),
+      'subtitleFr': serializer.toJson<String>(subtitleFr),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'evidenceKind': serializer.toJson<String?>(evidenceKind),
+      'evidenceId': serializer.toJson<int?>(evidenceId),
+    };
+  }
+
+  WeeklyAssignment copyWith({
+    int? id,
+    int? weekId,
+    String? specId,
+    int? dayIndex,
+    String? skill,
+    int? minutes,
+    String? titleFr,
+    String? subtitleFr,
+    String? payloadJson,
+    Value<DateTime?> completedAt = const Value.absent(),
+    Value<String?> evidenceKind = const Value.absent(),
+    Value<int?> evidenceId = const Value.absent(),
+  }) => WeeklyAssignment(
+    id: id ?? this.id,
+    weekId: weekId ?? this.weekId,
+    specId: specId ?? this.specId,
+    dayIndex: dayIndex ?? this.dayIndex,
+    skill: skill ?? this.skill,
+    minutes: minutes ?? this.minutes,
+    titleFr: titleFr ?? this.titleFr,
+    subtitleFr: subtitleFr ?? this.subtitleFr,
+    payloadJson: payloadJson ?? this.payloadJson,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    evidenceKind: evidenceKind.present ? evidenceKind.value : this.evidenceKind,
+    evidenceId: evidenceId.present ? evidenceId.value : this.evidenceId,
+  );
+  WeeklyAssignment copyWithCompanion(WeeklyAssignmentsCompanion data) {
+    return WeeklyAssignment(
+      id: data.id.present ? data.id.value : this.id,
+      weekId: data.weekId.present ? data.weekId.value : this.weekId,
+      specId: data.specId.present ? data.specId.value : this.specId,
+      dayIndex: data.dayIndex.present ? data.dayIndex.value : this.dayIndex,
+      skill: data.skill.present ? data.skill.value : this.skill,
+      minutes: data.minutes.present ? data.minutes.value : this.minutes,
+      titleFr: data.titleFr.present ? data.titleFr.value : this.titleFr,
+      subtitleFr: data.subtitleFr.present
+          ? data.subtitleFr.value
+          : this.subtitleFr,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+      evidenceKind: data.evidenceKind.present
+          ? data.evidenceKind.value
+          : this.evidenceKind,
+      evidenceId: data.evidenceId.present
+          ? data.evidenceId.value
+          : this.evidenceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyAssignment(')
+          ..write('id: $id, ')
+          ..write('weekId: $weekId, ')
+          ..write('specId: $specId, ')
+          ..write('dayIndex: $dayIndex, ')
+          ..write('skill: $skill, ')
+          ..write('minutes: $minutes, ')
+          ..write('titleFr: $titleFr, ')
+          ..write('subtitleFr: $subtitleFr, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('evidenceKind: $evidenceKind, ')
+          ..write('evidenceId: $evidenceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    weekId,
+    specId,
+    dayIndex,
+    skill,
+    minutes,
+    titleFr,
+    subtitleFr,
+    payloadJson,
+    completedAt,
+    evidenceKind,
+    evidenceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyAssignment &&
+          other.id == this.id &&
+          other.weekId == this.weekId &&
+          other.specId == this.specId &&
+          other.dayIndex == this.dayIndex &&
+          other.skill == this.skill &&
+          other.minutes == this.minutes &&
+          other.titleFr == this.titleFr &&
+          other.subtitleFr == this.subtitleFr &&
+          other.payloadJson == this.payloadJson &&
+          other.completedAt == this.completedAt &&
+          other.evidenceKind == this.evidenceKind &&
+          other.evidenceId == this.evidenceId);
+}
+
+class WeeklyAssignmentsCompanion extends UpdateCompanion<WeeklyAssignment> {
+  final Value<int> id;
+  final Value<int> weekId;
+  final Value<String> specId;
+  final Value<int> dayIndex;
+  final Value<String> skill;
+  final Value<int> minutes;
+  final Value<String> titleFr;
+  final Value<String> subtitleFr;
+  final Value<String> payloadJson;
+  final Value<DateTime?> completedAt;
+  final Value<String?> evidenceKind;
+  final Value<int?> evidenceId;
+  const WeeklyAssignmentsCompanion({
+    this.id = const Value.absent(),
+    this.weekId = const Value.absent(),
+    this.specId = const Value.absent(),
+    this.dayIndex = const Value.absent(),
+    this.skill = const Value.absent(),
+    this.minutes = const Value.absent(),
+    this.titleFr = const Value.absent(),
+    this.subtitleFr = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.evidenceKind = const Value.absent(),
+    this.evidenceId = const Value.absent(),
+  });
+  WeeklyAssignmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int weekId,
+    required String specId,
+    required int dayIndex,
+    required String skill,
+    required int minutes,
+    required String titleFr,
+    required String subtitleFr,
+    required String payloadJson,
+    this.completedAt = const Value.absent(),
+    this.evidenceKind = const Value.absent(),
+    this.evidenceId = const Value.absent(),
+  }) : weekId = Value(weekId),
+       specId = Value(specId),
+       dayIndex = Value(dayIndex),
+       skill = Value(skill),
+       minutes = Value(minutes),
+       titleFr = Value(titleFr),
+       subtitleFr = Value(subtitleFr),
+       payloadJson = Value(payloadJson);
+  static Insertable<WeeklyAssignment> custom({
+    Expression<int>? id,
+    Expression<int>? weekId,
+    Expression<String>? specId,
+    Expression<int>? dayIndex,
+    Expression<String>? skill,
+    Expression<int>? minutes,
+    Expression<String>? titleFr,
+    Expression<String>? subtitleFr,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? completedAt,
+    Expression<String>? evidenceKind,
+    Expression<int>? evidenceId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (weekId != null) 'week_id': weekId,
+      if (specId != null) 'spec_id': specId,
+      if (dayIndex != null) 'day_index': dayIndex,
+      if (skill != null) 'skill': skill,
+      if (minutes != null) 'minutes': minutes,
+      if (titleFr != null) 'title_fr': titleFr,
+      if (subtitleFr != null) 'subtitle_fr': subtitleFr,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (evidenceKind != null) 'evidence_kind': evidenceKind,
+      if (evidenceId != null) 'evidence_id': evidenceId,
+    });
+  }
+
+  WeeklyAssignmentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? weekId,
+    Value<String>? specId,
+    Value<int>? dayIndex,
+    Value<String>? skill,
+    Value<int>? minutes,
+    Value<String>? titleFr,
+    Value<String>? subtitleFr,
+    Value<String>? payloadJson,
+    Value<DateTime?>? completedAt,
+    Value<String?>? evidenceKind,
+    Value<int?>? evidenceId,
+  }) {
+    return WeeklyAssignmentsCompanion(
+      id: id ?? this.id,
+      weekId: weekId ?? this.weekId,
+      specId: specId ?? this.specId,
+      dayIndex: dayIndex ?? this.dayIndex,
+      skill: skill ?? this.skill,
+      minutes: minutes ?? this.minutes,
+      titleFr: titleFr ?? this.titleFr,
+      subtitleFr: subtitleFr ?? this.subtitleFr,
+      payloadJson: payloadJson ?? this.payloadJson,
+      completedAt: completedAt ?? this.completedAt,
+      evidenceKind: evidenceKind ?? this.evidenceKind,
+      evidenceId: evidenceId ?? this.evidenceId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (weekId.present) {
+      map['week_id'] = Variable<int>(weekId.value);
+    }
+    if (specId.present) {
+      map['spec_id'] = Variable<String>(specId.value);
+    }
+    if (dayIndex.present) {
+      map['day_index'] = Variable<int>(dayIndex.value);
+    }
+    if (skill.present) {
+      map['skill'] = Variable<String>(skill.value);
+    }
+    if (minutes.present) {
+      map['minutes'] = Variable<int>(minutes.value);
+    }
+    if (titleFr.present) {
+      map['title_fr'] = Variable<String>(titleFr.value);
+    }
+    if (subtitleFr.present) {
+      map['subtitle_fr'] = Variable<String>(subtitleFr.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (evidenceKind.present) {
+      map['evidence_kind'] = Variable<String>(evidenceKind.value);
+    }
+    if (evidenceId.present) {
+      map['evidence_id'] = Variable<int>(evidenceId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyAssignmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('weekId: $weekId, ')
+          ..write('specId: $specId, ')
+          ..write('dayIndex: $dayIndex, ')
+          ..write('skill: $skill, ')
+          ..write('minutes: $minutes, ')
+          ..write('titleFr: $titleFr, ')
+          ..write('subtitleFr: $subtitleFr, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('evidenceKind: $evidenceKind, ')
+          ..write('evidenceId: $evidenceId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7320,6 +8650,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SpeakingMistakesTable speakingMistakes = $SpeakingMistakesTable(
     this,
   );
+  late final $StudyWeeksTable studyWeeks = $StudyWeeksTable(this);
+  late final $WeeklyAssignmentsTable weeklyAssignments =
+      $WeeklyAssignmentsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7342,6 +8675,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     speakingSessions,
     speakingTurns,
     speakingMistakes,
+    studyWeeks,
+    weeklyAssignments,
   ];
 }
 
@@ -11214,6 +12549,646 @@ typedef $$SpeakingMistakesTableProcessedTableManager =
       SpeakingMistake,
       PrefetchHooks Function()
     >;
+typedef $$StudyWeeksTableCreateCompanionBuilder =
+    StudyWeeksCompanion Function({
+      Value<int> id,
+      required int weekNumber,
+      required String trackId,
+      required String lessonId,
+      required String startDate,
+      Value<String> status,
+      required String planJson,
+      Value<String?> reportJson,
+      required DateTime createdAt,
+      Value<DateTime?> closedAt,
+    });
+typedef $$StudyWeeksTableUpdateCompanionBuilder =
+    StudyWeeksCompanion Function({
+      Value<int> id,
+      Value<int> weekNumber,
+      Value<String> trackId,
+      Value<String> lessonId,
+      Value<String> startDate,
+      Value<String> status,
+      Value<String> planJson,
+      Value<String?> reportJson,
+      Value<DateTime> createdAt,
+      Value<DateTime?> closedAt,
+    });
+
+class $$StudyWeeksTableFilterComposer
+    extends Composer<_$AppDatabase, $StudyWeeksTable> {
+  $$StudyWeeksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekNumber => $composableBuilder(
+    column: $table.weekNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lessonId => $composableBuilder(
+    column: $table.lessonId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planJson => $composableBuilder(
+    column: $table.planJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StudyWeeksTableOrderingComposer
+    extends Composer<_$AppDatabase, $StudyWeeksTable> {
+  $$StudyWeeksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get weekNumber => $composableBuilder(
+    column: $table.weekNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lessonId => $composableBuilder(
+    column: $table.lessonId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planJson => $composableBuilder(
+    column: $table.planJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StudyWeeksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StudyWeeksTable> {
+  $$StudyWeeksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get weekNumber => $composableBuilder(
+    column: $table.weekNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get lessonId =>
+      $composableBuilder(column: $table.lessonId, builder: (column) => column);
+
+  GeneratedColumn<String> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get planJson =>
+      $composableBuilder(column: $table.planJson, builder: (column) => column);
+
+  GeneratedColumn<String> get reportJson => $composableBuilder(
+    column: $table.reportJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get closedAt =>
+      $composableBuilder(column: $table.closedAt, builder: (column) => column);
+}
+
+class $$StudyWeeksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StudyWeeksTable,
+          StudyWeek,
+          $$StudyWeeksTableFilterComposer,
+          $$StudyWeeksTableOrderingComposer,
+          $$StudyWeeksTableAnnotationComposer,
+          $$StudyWeeksTableCreateCompanionBuilder,
+          $$StudyWeeksTableUpdateCompanionBuilder,
+          (
+            StudyWeek,
+            BaseReferences<_$AppDatabase, $StudyWeeksTable, StudyWeek>,
+          ),
+          StudyWeek,
+          PrefetchHooks Function()
+        > {
+  $$StudyWeeksTableTableManager(_$AppDatabase db, $StudyWeeksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StudyWeeksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StudyWeeksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StudyWeeksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> weekNumber = const Value.absent(),
+                Value<String> trackId = const Value.absent(),
+                Value<String> lessonId = const Value.absent(),
+                Value<String> startDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> planJson = const Value.absent(),
+                Value<String?> reportJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> closedAt = const Value.absent(),
+              }) => StudyWeeksCompanion(
+                id: id,
+                weekNumber: weekNumber,
+                trackId: trackId,
+                lessonId: lessonId,
+                startDate: startDate,
+                status: status,
+                planJson: planJson,
+                reportJson: reportJson,
+                createdAt: createdAt,
+                closedAt: closedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int weekNumber,
+                required String trackId,
+                required String lessonId,
+                required String startDate,
+                Value<String> status = const Value.absent(),
+                required String planJson,
+                Value<String?> reportJson = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> closedAt = const Value.absent(),
+              }) => StudyWeeksCompanion.insert(
+                id: id,
+                weekNumber: weekNumber,
+                trackId: trackId,
+                lessonId: lessonId,
+                startDate: startDate,
+                status: status,
+                planJson: planJson,
+                reportJson: reportJson,
+                createdAt: createdAt,
+                closedAt: closedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StudyWeeksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StudyWeeksTable,
+      StudyWeek,
+      $$StudyWeeksTableFilterComposer,
+      $$StudyWeeksTableOrderingComposer,
+      $$StudyWeeksTableAnnotationComposer,
+      $$StudyWeeksTableCreateCompanionBuilder,
+      $$StudyWeeksTableUpdateCompanionBuilder,
+      (StudyWeek, BaseReferences<_$AppDatabase, $StudyWeeksTable, StudyWeek>),
+      StudyWeek,
+      PrefetchHooks Function()
+    >;
+typedef $$WeeklyAssignmentsTableCreateCompanionBuilder =
+    WeeklyAssignmentsCompanion Function({
+      Value<int> id,
+      required int weekId,
+      required String specId,
+      required int dayIndex,
+      required String skill,
+      required int minutes,
+      required String titleFr,
+      required String subtitleFr,
+      required String payloadJson,
+      Value<DateTime?> completedAt,
+      Value<String?> evidenceKind,
+      Value<int?> evidenceId,
+    });
+typedef $$WeeklyAssignmentsTableUpdateCompanionBuilder =
+    WeeklyAssignmentsCompanion Function({
+      Value<int> id,
+      Value<int> weekId,
+      Value<String> specId,
+      Value<int> dayIndex,
+      Value<String> skill,
+      Value<int> minutes,
+      Value<String> titleFr,
+      Value<String> subtitleFr,
+      Value<String> payloadJson,
+      Value<DateTime?> completedAt,
+      Value<String?> evidenceKind,
+      Value<int?> evidenceId,
+    });
+
+class $$WeeklyAssignmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyAssignmentsTable> {
+  $$WeeklyAssignmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekId => $composableBuilder(
+    column: $table.weekId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get specId => $composableBuilder(
+    column: $table.specId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dayIndex => $composableBuilder(
+    column: $table.dayIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minutes => $composableBuilder(
+    column: $table.minutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get titleFr => $composableBuilder(
+    column: $table.titleFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subtitleFr => $composableBuilder(
+    column: $table.subtitleFr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get evidenceId => $composableBuilder(
+    column: $table.evidenceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WeeklyAssignmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyAssignmentsTable> {
+  $$WeeklyAssignmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get weekId => $composableBuilder(
+    column: $table.weekId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get specId => $composableBuilder(
+    column: $table.specId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dayIndex => $composableBuilder(
+    column: $table.dayIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minutes => $composableBuilder(
+    column: $table.minutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get titleFr => $composableBuilder(
+    column: $table.titleFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subtitleFr => $composableBuilder(
+    column: $table.subtitleFr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get evidenceId => $composableBuilder(
+    column: $table.evidenceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WeeklyAssignmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyAssignmentsTable> {
+  $$WeeklyAssignmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get weekId =>
+      $composableBuilder(column: $table.weekId, builder: (column) => column);
+
+  GeneratedColumn<String> get specId =>
+      $composableBuilder(column: $table.specId, builder: (column) => column);
+
+  GeneratedColumn<int> get dayIndex =>
+      $composableBuilder(column: $table.dayIndex, builder: (column) => column);
+
+  GeneratedColumn<String> get skill =>
+      $composableBuilder(column: $table.skill, builder: (column) => column);
+
+  GeneratedColumn<int> get minutes =>
+      $composableBuilder(column: $table.minutes, builder: (column) => column);
+
+  GeneratedColumn<String> get titleFr =>
+      $composableBuilder(column: $table.titleFr, builder: (column) => column);
+
+  GeneratedColumn<String> get subtitleFr => $composableBuilder(
+    column: $table.subtitleFr,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get evidenceId => $composableBuilder(
+    column: $table.evidenceId,
+    builder: (column) => column,
+  );
+}
+
+class $$WeeklyAssignmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyAssignmentsTable,
+          WeeklyAssignment,
+          $$WeeklyAssignmentsTableFilterComposer,
+          $$WeeklyAssignmentsTableOrderingComposer,
+          $$WeeklyAssignmentsTableAnnotationComposer,
+          $$WeeklyAssignmentsTableCreateCompanionBuilder,
+          $$WeeklyAssignmentsTableUpdateCompanionBuilder,
+          (
+            WeeklyAssignment,
+            BaseReferences<
+              _$AppDatabase,
+              $WeeklyAssignmentsTable,
+              WeeklyAssignment
+            >,
+          ),
+          WeeklyAssignment,
+          PrefetchHooks Function()
+        > {
+  $$WeeklyAssignmentsTableTableManager(
+    _$AppDatabase db,
+    $WeeklyAssignmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyAssignmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyAssignmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyAssignmentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> weekId = const Value.absent(),
+                Value<String> specId = const Value.absent(),
+                Value<int> dayIndex = const Value.absent(),
+                Value<String> skill = const Value.absent(),
+                Value<int> minutes = const Value.absent(),
+                Value<String> titleFr = const Value.absent(),
+                Value<String> subtitleFr = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> evidenceKind = const Value.absent(),
+                Value<int?> evidenceId = const Value.absent(),
+              }) => WeeklyAssignmentsCompanion(
+                id: id,
+                weekId: weekId,
+                specId: specId,
+                dayIndex: dayIndex,
+                skill: skill,
+                minutes: minutes,
+                titleFr: titleFr,
+                subtitleFr: subtitleFr,
+                payloadJson: payloadJson,
+                completedAt: completedAt,
+                evidenceKind: evidenceKind,
+                evidenceId: evidenceId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int weekId,
+                required String specId,
+                required int dayIndex,
+                required String skill,
+                required int minutes,
+                required String titleFr,
+                required String subtitleFr,
+                required String payloadJson,
+                Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> evidenceKind = const Value.absent(),
+                Value<int?> evidenceId = const Value.absent(),
+              }) => WeeklyAssignmentsCompanion.insert(
+                id: id,
+                weekId: weekId,
+                specId: specId,
+                dayIndex: dayIndex,
+                skill: skill,
+                minutes: minutes,
+                titleFr: titleFr,
+                subtitleFr: subtitleFr,
+                payloadJson: payloadJson,
+                completedAt: completedAt,
+                evidenceKind: evidenceKind,
+                evidenceId: evidenceId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WeeklyAssignmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyAssignmentsTable,
+      WeeklyAssignment,
+      $$WeeklyAssignmentsTableFilterComposer,
+      $$WeeklyAssignmentsTableOrderingComposer,
+      $$WeeklyAssignmentsTableAnnotationComposer,
+      $$WeeklyAssignmentsTableCreateCompanionBuilder,
+      $$WeeklyAssignmentsTableUpdateCompanionBuilder,
+      (
+        WeeklyAssignment,
+        BaseReferences<
+          _$AppDatabase,
+          $WeeklyAssignmentsTable,
+          WeeklyAssignment
+        >,
+      ),
+      WeeklyAssignment,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11252,4 +13227,8 @@ class $AppDatabaseManager {
       $$SpeakingTurnsTableTableManager(_db, _db.speakingTurns);
   $$SpeakingMistakesTableTableManager get speakingMistakes =>
       $$SpeakingMistakesTableTableManager(_db, _db.speakingMistakes);
+  $$StudyWeeksTableTableManager get studyWeeks =>
+      $$StudyWeeksTableTableManager(_db, _db.studyWeeks);
+  $$WeeklyAssignmentsTableTableManager get weeklyAssignments =>
+      $$WeeklyAssignmentsTableTableManager(_db, _db.weeklyAssignments);
 }
