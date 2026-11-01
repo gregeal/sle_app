@@ -10,6 +10,7 @@ import 'features/practice/practice_screen.dart';
 import 'features/progress/progress_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/today/today_screen.dart';
+import 'features/weekly/weekly_home_screen.dart';
 import 'features/word_help/app_text_selection.dart';
 import 'providers.dart';
 
@@ -62,8 +63,11 @@ class _AppShellState extends ConsumerState<AppShell>
   var _index = 0;
   Timer? _midnightTimer;
 
+  // Six destinations is one past the Material guideline; P5-5 moves
+  // Paramètres into the Accueil app bar to come back to five.
   static const _screens = [
     TodayScreen(),
+    WeeklyHomeScreen(),
     PracticeScreen(),
     CoachScreen(),
     ProgressScreen(),
@@ -123,6 +127,11 @@ class _AppShellState extends ConsumerState<AppShell>
           icon: Icon(Icons.home_outlined),
           selectedIcon: Icon(Icons.home),
           label: 'Accueil',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.cast_for_education_outlined),
+          selectedIcon: Icon(Icons.cast_for_education),
+          label: 'Classe',
         ),
         NavigationDestination(
           icon: Icon(Icons.style_outlined),

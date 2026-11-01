@@ -13,7 +13,28 @@ import 'coach_screen.dart';
 import 'oral_session_screen.dart';
 
 class RealtimeInterviewScreen extends ConsumerStatefulWidget {
-  const RealtimeInterviewScreen({super.key});
+  const RealtimeInterviewScreen({
+    super.key,
+    this.title = 'Entrevue Realtime',
+    this.sessionInstructions,
+    this.openingInstruction,
+    this.mode = 'realtime',
+    this.onCompleted,
+  });
+
+  /// App-bar title, so the weekly class does not call itself an interview.
+  final String title;
+
+  /// Optional persona replacing the ELO examiner for this session.
+  final String? sessionInstructions;
+  final String? openingInstruction;
+
+  /// Stored on the oral attempt, so the weekly review can tell a class
+  /// practice from a mock interview.
+  final String mode;
+
+  /// Called once a report has been produced and stored.
+  final void Function()? onCompleted;
 
   @override
   ConsumerState<RealtimeInterviewScreen> createState() =>
@@ -111,6 +132,8 @@ class _RealtimeInterviewScreenState
         ),
         model: config.realtimeModel,
         voice: config.realtimeVoice,
+        sessionInstructions: widget.sessionInstructions,
+        openingInstruction: widget.openingInstruction,
       );
       _session = session;
       _subscription = session.events.listen(
@@ -400,7 +423,7 @@ class _RealtimeInterviewScreenState
       final feedback = await requestOralFeedback(
         db: ref.read(appDatabaseProvider),
         client: client,
-        mode: 'realtime',
+        mode: widget.mode,
         exchanges: exchanges,
       );
       if (mounted) {
@@ -409,6 +432,7 @@ class _RealtimeInterviewScreenState
           _finishing = false;
           _assessmentFailed = false;
         });
+        widget.onCompleted?.call();
       }
     } catch (error) {
       if (mounted) {
@@ -426,7 +450,7 @@ class _RealtimeInterviewScreenState
     final feedback = _feedback;
     final exchanges = pairRealtimeTranscript(_transcript.orderedTurns);
     return Scaffold(
-      appBar: AppBar(title: const Text('Entrevue Realtime')),
+      appBar: AppBar(title: Text(widget.title)),
       body: SafeArea(
         child: feedback != null
             ? OralReportView(feedback: feedback, exchanges: exchanges)

@@ -14,11 +14,22 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
     required this.api,
     this.model = defaultRealtimeModel,
     this.voice = defaultRealtimeVoice,
+    this.sessionInstructions,
+    this.openingInstruction,
   });
 
   final OpenAiRealtimeApi api;
   final String model;
   final String voice;
+
+  /// Replaces the persona minted with the ephemeral secret. The weekly class
+  /// uses this to teach instead of running an examination, and it works on
+  /// both platforms because the update travels over the data channel rather
+  /// than the broker's session config.
+  final String? sessionInstructions;
+
+  /// First turn to generate once the channel is open.
+  final String? openingInstruction;
   final _events = StreamController<RealtimeVoiceEvent>.broadcast();
 
   RTCPeerConnection? _peerConnection;
@@ -250,6 +261,7 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         'type': 'session.update',
         'session': {
           'type': 'realtime',
+          'instructions': ?sessionInstructions,
           'audio': {
             'input': {'turn_detection': null},
           },
@@ -259,7 +271,8 @@ class OpenAiRealtimeVoiceSession implements RealtimeVoiceSession {
         'type': 'response.create',
         'response': {
           'output_modalities': ['audio'],
-          'instructions': buildRealtimeOpeningInstruction(),
+          'instructions':
+              openingInstruction ?? buildRealtimeOpeningInstruction(),
         },
       });
     } catch (_) {

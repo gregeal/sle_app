@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import 'data/db/daos.dart';
+import 'data/db/weekly_daos.dart';
+import 'domain/weekly/placement.dart';
 import 'data/db/database.dart';
 import 'data/seed/seed_loader.dart';
 import 'domain/auth/web_auth_service.dart';
@@ -150,6 +152,28 @@ final cloudSpeechFactoryProvider = Provider<SpeechService Function()>((ref) {
 });
 
 final ttsServiceProvider = Provider<TtsService>((ref) => DeviceTtsService());
+
+/// The placement decision, or null when the learner has not been placed yet
+/// (including a stored value that no longer parses).
+final placementProvider = FutureProvider<PlacementResult?>((ref) async {
+  final raw = await ref
+      .watch(appDatabaseProvider)
+      .getSetting(placementSettingKey);
+  return raw == null ? null : PlacementResult.tryParse(raw);
+});
+
+/// The week currently being taught, or null between weeks.
+final activeStudyWeekProvider = FutureProvider<StudyWeek?>(
+  (ref) => ref.watch(appDatabaseProvider).activeStudyWeek(),
+);
+
+/// Assignments of the active week, oldest day first.
+final activeWeekAssignmentsProvider =
+    FutureProvider<List<WeeklyAssignment>>((ref) async {
+      final week = await ref.watch(activeStudyWeekProvider.future);
+      if (week == null) return const [];
+      return ref.watch(appDatabaseProvider).assignmentsForWeek(week.id);
+    });
 
 final seedImportProvider = FutureProvider<void>((ref) async {
   await importSeedFromAssets(ref.watch(appDatabaseProvider));
