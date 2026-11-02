@@ -290,5 +290,43 @@ void main() {
         throwsFormatException,
       );
     });
+
+    /// `validate()` is the single gate every stored week passes through, so
+    /// the shapes that would corrupt a week on disk are checked directly.
+    test('validate refuses a week nothing could teach', () {
+      final good = planFor().toJson();
+
+      expect(
+        () => WeeklyPlan.fromJson({
+          ...good,
+          'lessonId': 'lesson-qui-nexiste-pas',
+        }).validate(),
+        throwsFormatException,
+        reason: 'the class would have no lesson to open',
+      );
+      expect(
+        () => WeeklyPlan.fromJson({...good, 'trackId': 'z-to-a-v1'}).validate(),
+        throwsFormatException,
+      );
+      expect(
+        () => WeeklyPlan.fromJson({
+          ...good,
+          'assignments': <Object>[],
+        }).validate(),
+        throwsFormatException,
+        reason: 'a week with no work is not a week',
+      );
+
+      final assignments = good['assignments'] as List;
+      expect(
+        () => WeeklyPlan.fromJson({
+          ...good,
+          'assignments': [...assignments, assignments.last],
+        }).validate(),
+        throwsFormatException,
+        reason: 'two blocks sharing an id would credit minutes twice',
+      );
+      expect(planFor().validate, returnsNormally);
+    });
   });
 }
