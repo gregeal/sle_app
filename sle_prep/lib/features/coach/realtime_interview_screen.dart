@@ -9,6 +9,8 @@ import '../../domain/realtime/openai_realtime_api.dart';
 import '../../domain/realtime/openai_realtime_voice_session.dart';
 import '../../domain/realtime/realtime_voice_session.dart';
 import '../../providers.dart';
+import '../habit/activity_tracker.dart';
+import '../habit/wake_lock.dart';
 import 'coach_screen.dart';
 import 'oral_session_screen.dart';
 
@@ -24,6 +26,7 @@ class RealtimeInterviewScreen extends ConsumerStatefulWidget {
     this.onCheckpoint,
     this.reserveDuration,
     this.onConnectionEnded,
+    this.onHeartbeat,
   });
 
   /// App-bar title, so the weekly class does not call itself an interview.
@@ -49,10 +52,17 @@ class RealtimeInterviewScreen extends ConsumerStatefulWidget {
   final Future<int> Function()? reserveDuration;
   final Future<void> Function(int seconds)? onConnectionEnded;
 
+  /// Called at reservation and then every [realtimeHeartbeatInterval] with
+  /// the connected seconds so far, so a session that dies can be settled at
+  /// what it really used.
+  final Future<void> Function(int seconds)? onHeartbeat;
+
   @override
   ConsumerState<RealtimeInterviewScreen> createState() =>
       _RealtimeInterviewScreenState();
 }
+
+const realtimeHeartbeatInterval = Duration(seconds: 15);
 
 /// Realtime API `error` events generally describe a failed client operation,
 /// not a dead session. Only transport failures marked fatal by the session
@@ -62,7 +72,15 @@ bool shouldTerminateRealtimeInterview(RealtimeVoiceEvent event) =>
 
 class _RealtimeInterviewScreenState
     extends ConsumerState<RealtimeInterviewScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ActivityTracking<RealtimeInterviewScreen> {
+  @override
+  String get activityKind => 'realtime';
+  @override
+  String? get activitySkill => 'speaking';
+
+  bool get _teacher => widget.mode == 'class';
+  late final ScreenWakeLock _wakeLock;
+  Timer? _heartbeatTimer;
   final _transcript = RealtimeTranscriptBuffer();
   RealtimeVoiceSession? _session;
   StreamSubscription<RealtimeVoiceEvent>? _subscription;
@@ -88,6 +106,7 @@ class _RealtimeInterviewScreenState
   @override
   void initState() {
     super.initState();
+    _wakeLock = ref.read(wakeLockProvider);
     _releaseWordHelp = ref
         .read(wordHelpGuardProvider)
         .register(() => _session != null || _starting || _finishing);
@@ -140,10 +159,14 @@ class _RealtimeInterviewScreenState
       _finishing = false;
       _assessmentFailed = false;
     });
+    // A long answer must outlive the display timeout: once the screen sleeps
+    // the app is paused and the microphone is muted mid-sentence.
+    unawaited(_wakeLock.enable());
     try {
       final seconds = await widget.reserveDuration?.call() ?? 1200;
       _hasReservation = widget.reserveDuration != null;
       _connectionWatch.reset();
+      _startHeartbeat();
       if (!mounted) {
         await _settleAllowance();
         return;
@@ -266,7 +289,22 @@ class _RealtimeInterviewScreenState
     await _settleAllowance();
   }
 
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    final beat = widget.onHeartbeat;
+    if (beat == null || !_hasReservation) return;
+    unawaited(beat(0).catchError((Object _) {}));
+    _heartbeatTimer = Timer.periodic(realtimeHeartbeatInterval, (_) {
+      unawaited(
+        beat(_connectionWatch.elapsed.inSeconds).catchError((Object _) {}),
+      );
+    });
+  }
+
   Future<void> _settleAllowance() async {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    unawaited(_wakeLock.disable());
     _connectionWatch.stop();
     if (!_hasReservation) return;
     _hasReservation = false;
@@ -431,6 +469,7 @@ class _RealtimeInterviewScreenState
     } else {
       await session.close();
     }
+    unawaited(_wakeLock.disable());
     if (!mounted) return;
     await _assessTranscript();
   }
@@ -544,7 +583,7 @@ class _RealtimeInterviewScreenState
             : feedback != null
             ? OralReportView(feedback: feedback, exchanges: exchanges)
             : _finishing
-            ? const _AssessingView()
+            ? _AssessingView(teacher: _teacher)
             : !_started
             ? _buildIntroduction(context)
             : _buildLiveSession(context),
@@ -629,7 +668,7 @@ class _RealtimeInterviewScreenState
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
       child: Column(
         children: [
-          _VoiceStatus(activity: _activity, muted: _muted),
+          _VoiceStatus(activity: _activity, muted: _muted, teacher: _teacher),
           if (_error != null) ...[
             const SizedBox(height: 10),
             Card(
@@ -646,7 +685,9 @@ class _RealtimeInterviewScreenState
                 ? Center(
                     child: Text(
                       connecting
-                          ? 'Connexion sécurisée à l’évaluatrice…'
+                          ? _teacher
+                                ? 'Connexion sécurisée à votre enseignante…'
+                                : 'Connexion sécurisée à l’évaluatrice…'
                           : 'La transcription apparaîtra ici après chaque tour.',
                       textAlign: TextAlign.center,
                     ),
@@ -656,6 +697,7 @@ class _RealtimeInterviewScreenState
                     itemCount: _transcript.orderedTurns.length,
                     itemBuilder: (context, index) => _TranscriptBubble(
                       turn: _transcript.orderedTurns[index],
+                      teacher: _teacher,
                     ),
                   ),
           ),
@@ -738,10 +780,17 @@ class _RealtimeInterviewScreenState
 }
 
 class _VoiceStatus extends StatelessWidget {
-  const _VoiceStatus({required this.activity, required this.muted});
+  const _VoiceStatus({
+    required this.activity,
+    required this.muted,
+    required this.teacher,
+  });
 
   final RealtimeVoiceActivity activity;
   final bool muted;
+
+  /// The weekly class has a teacher, not an examiner.
+  final bool teacher;
 
   @override
   Widget build(BuildContext context) {
@@ -754,7 +803,7 @@ class _VoiceStatus extends StatelessWidget {
               Colors.orange,
             ),
             RealtimeVoiceActivity.assistantSpeaking => (
-              'L’évaluatrice parle',
+              teacher ? 'Votre enseignante parle' : 'L’évaluatrice parle',
               Icons.volume_up,
               coachAccent,
             ),
@@ -764,7 +813,9 @@ class _VoiceStatus extends StatelessWidget {
               Colors.green,
             ),
             RealtimeVoiceActivity.thinking => (
-              'L’évaluatrice réfléchit…',
+              teacher
+                  ? 'Votre enseignante réfléchit…'
+                  : 'L’évaluatrice réfléchit…',
               Icons.psychology_alt_outlined,
               Colors.orange,
             ),
@@ -800,9 +851,10 @@ class _VoiceStatus extends StatelessWidget {
 }
 
 class _TranscriptBubble extends StatelessWidget {
-  const _TranscriptBubble({required this.turn});
+  const _TranscriptBubble({required this.turn, required this.teacher});
 
   final RealtimeTranscriptEvent turn;
+  final bool teacher;
 
   @override
   Widget build(BuildContext context) => Align(
@@ -821,7 +873,11 @@ class _TranscriptBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            turn.isUser ? 'Vous' : 'Évaluatrice',
+            turn.isUser
+                ? 'Vous'
+                : teacher
+                ? 'Enseignante'
+                : 'Évaluatrice',
             style: Theme.of(context).textTheme.labelSmall,
           ),
           const SizedBox(height: 3),
@@ -849,16 +905,22 @@ class _InfoLine extends StatelessWidget {
 }
 
 class _AssessingView extends StatelessWidget {
-  const _AssessingView();
+  const _AssessingView({required this.teacher});
+
+  final bool teacher;
 
   @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) => Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircularProgressIndicator(),
-        SizedBox(height: 16),
-        Text('Analyse des cinq dimensions de compétence…'),
+        const CircularProgressIndicator(),
+        const SizedBox(height: 16),
+        Text(
+          teacher
+              ? 'Enregistrement de votre pratique…'
+              : 'Analyse des cinq dimensions de compétence…',
+        ),
       ],
     ),
   );

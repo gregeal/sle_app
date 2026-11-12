@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/writing_coach.dart';
 import '../../providers.dart';
+import '../habit/activity_tracker.dart';
 
 class WritingScreen extends ConsumerStatefulWidget {
   const WritingScreen({super.key, required this.themeFr});
@@ -15,7 +16,13 @@ class WritingScreen extends ConsumerStatefulWidget {
   ConsumerState<WritingScreen> createState() => _WritingScreenState();
 }
 
-class _WritingScreenState extends ConsumerState<WritingScreen> {
+class _WritingScreenState extends ConsumerState<WritingScreen>
+    with ActivityTracking<WritingScreen> {
+  @override
+  String get activityKind => 'writing';
+  @override
+  String? get activitySkill => 'writing';
+
   final _textController = TextEditingController();
   var _variant = 0;
   var _isSubmitting = false;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/database.dart';
 import '../../data/db/daos.dart';
+import '../../data/db/habit_daos.dart';
 import '../../data/db/weekly_daos.dart';
 import '../../domain/course/course_catalog.dart';
 import '../../domain/weekly/placement.dart';
@@ -11,6 +12,8 @@ import '../../domain/weekly/weekly_plan.dart';
 import '../../domain/weekly/weekly_report.dart';
 import '../../domain/weekly/weekly_service.dart';
 import '../../providers.dart';
+import '../habit/habit_providers.dart';
+import '../habit/rhythm_screen.dart';
 import 'placement_screen.dart';
 import 'weekly_class_screen.dart';
 import 'weekly_assignment_screen.dart';
@@ -45,6 +48,7 @@ Future<void> startNextWeek(
       );
     }
   }
+  final habit = await db.habitSettings();
   await db.createStudyWeek(
     plan: composeWeeklyPlan(
       weekNumber: history.isEmpty
@@ -54,12 +58,59 @@ Future<void> startNextWeek(
       trackId: track.id,
       lessonId: lesson.id,
       lessonTitleFr: lesson.title,
+      studyDays: habit.studyDays.length,
+      minutesPerDay: habit.dailyMinutes,
       emphasis: emphasis,
     ),
     startDate: ref.read(studyDayProvider),
-    weekdays: await db.studyWeekdays(),
+    weekdays: habit.studyDays,
   );
   refreshWeekly(ref);
+}
+
+/// Brings one earlier missed block into today in place of a block of the same
+/// skill and length, so catching up never adds time to the day. The oldest
+/// missed block goes first.
+Future<void> swapInCatchup(
+  AppDatabase db,
+  WeeklyStudyPlan weekly, {
+  required int todayIndex,
+  required String today,
+}) async {
+  final todays = weekly.assignments
+      .where((a) => a.dayIndex == todayIndex + 1 && !a.completed)
+      .toList();
+  final missed =
+      weekly.assignments
+          .where(
+            (a) =>
+                a.dayIndex <= todayIndex &&
+                !a.completed &&
+                a.skill != 'teaching',
+          )
+          .toList()
+        ..sort((a, b) => a.dayIndex.compareTo(b.dayIndex));
+  for (final old in missed) {
+    for (final replacement in todays) {
+      if (replacement.skill == old.skill &&
+          replacement.minutes == old.minutes) {
+        await db.swapCatchup(weekly.week!.id, old.id, replacement.id, today);
+        return;
+      }
+    }
+  }
+  throw StateError(
+    'Aucun remplacement de même compétence et durée : le travail manqué '
+    'reste facultatif.',
+  );
+}
+
+String lessonTitleOrId(String lessonId) {
+  try {
+    return findCourseLesson(lessonId).title;
+  } on StateError {
+    return lessonId;
+  }
 }
 
 class WeeklyHomeScreen extends ConsumerStatefulWidget {
@@ -221,59 +272,51 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
     await startNextWeek(ref, placement, lessonId: lessonId);
   }
 
-  Future<void> _weekdays() async {
-    final db = ref.read(appDatabaseProvider);
-    final selected = (await db.studyWeekdays()).toSet();
-    if (!mounted) return;
-    final accepted = await showDialog<bool>(
+  Future<void> _rhythm() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RhythmScreen()),
+    );
+    if (mounted) ref.invalidate(habitSettingsProvider);
+  }
+
+  /// Closing freezes the week's evidence for good, so it is never one tap.
+  Future<void> _close(StudyWeek week, List<WeeklyAssignment> rows) async {
+    if (_busy) return;
+    final open = rows.where((a) => !a.completed).length;
+    final plural = open > 1;
+    final status = open == 0
+        ? 'Toutes les activités sont enregistrées.'
+        : plural
+        ? '$open activités ne sont pas terminées.'
+        : 'Une activité n’est pas terminée.';
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, update) => AlertDialog(
-          title: const Text('Cinq jours · prochaine semaine'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var d = 1; d <= 7; d++)
-                CheckboxListTile(
-                  dense: true,
-                  value: selected.contains(d),
-                  title: Text(
-                    const [
-                      'Lundi',
-                      'Mardi',
-                      'Mercredi',
-                      'Jeudi',
-                      'Vendredi',
-                      'Samedi',
-                      'Dimanche',
-                    ][d - 1],
-                  ),
-                  onChanged: (v) => update(() {
-                    if (v == true) {
-                      selected.add(d);
-                    } else {
-                      selected.remove(d);
-                    }
-                  }),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: selected.length == 5
-                  ? () => Navigator.pop(c, true)
-                  : null,
-              child: const Text('Enregistrer'),
-            ),
-          ],
+      builder: (c) => AlertDialog(
+        title: const Text('Clore cette semaine ?'),
+        content: Text(
+          '$status Une semaine close ne peut plus être modifiée : ses '
+          'preuves sont figées pour le bilan.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            key: const Key('weekly-close-confirm'),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Clore la semaine'),
+          ),
+        ],
       ),
     );
-    if (accepted == true) await db.setStudyWeekdays(selected.toList()..sort());
+    if (confirmed != true || !mounted) return;
+    await _action(
+      () => ref
+          .read(appDatabaseProvider)
+          .closeStudyWeek(week.id, at: DateTime.now()),
+    );
   }
 
   Future<void> _open(StudyWeek week, WeeklyAssignment a) async {
@@ -334,6 +377,7 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
               if (mounted) unawaited(_automaticReport(closed.first));
             });
           }
+          final habit = ref.watch(habitSettingsProvider).asData?.value;
           final today = studyDateKey(ref.watch(studyDayProvider));
           final day = weekly?.dates.indexOf(today) ?? -1;
           final rows = widget.today
@@ -350,8 +394,11 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
                 widget.today ? 'Aujourd’hui · $today' : 'Ma classe',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const Text(
-                '5 jours × 60 minutes. Lecture, écoute, rédaction et expression orale; 20 minutes en direct par semaine.',
+              Text(
+                '${week?.plan.studyDays ?? habit?.studyDays.length ?? 5} jours × '
+                '${week?.plan.minutesPerDay ?? habit?.dailyMinutes ?? 20} minutes. '
+                'Lecture, écoute, rédaction et expression orale; 20 minutes '
+                'en direct par semaine.',
               ),
               if (_error != null)
                 Text(
@@ -414,36 +461,14 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
                   TextButton(
                     onPressed: _busy
                         ? null
-                        : () => _action(() async {
-                            final candidates = weekly!.assignments.where(
-                              (p) =>
-                                  p.dayIndex == day &&
-                                  !p.completed &&
-                                  p.skill != 'teaching',
-                            );
-                            for (final old in candidates) {
-                              final replacements = rows.where(
-                                (r) =>
-                                    !r.completed &&
-                                    r.skill == old.skill &&
-                                    r.minutes == old.minutes,
-                              );
-                              if (replacements.isNotEmpty) {
-                                await ref
-                                    .read(appDatabaseProvider)
-                                    .swapCatchup(
-                                      week.id,
-                                      old.id,
-                                      replacements.first.id,
-                                      today,
-                                    );
-                                return;
-                              }
-                            }
-                            throw StateError(
-                              'Aucun remplacement de même compétence et durée : le travail manqué reste facultatif.',
-                            );
-                          }),
+                        : () => _action(
+                            () => swapInCatchup(
+                              ref.read(appDatabaseProvider),
+                              weekly!,
+                              todayIndex: day,
+                              today: today,
+                            ),
+                          ),
                     child: const Text(
                       'Un rattrapage en remplacement, sans temps supplémentaire',
                     ),
@@ -470,19 +495,15 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
                     TextButton(
                       onPressed: _busy
                           ? null
-                          : () => _action(
-                              () => ref
-                                  .read(appDatabaseProvider)
-                                  .closeStudyWeek(week.id, at: DateTime.now()),
-                            ),
+                          : () => _close(week, weekly!.assignments),
                       child: const Text('Clore et préparer le bilan'),
                     ),
                   ],
                 ),
               ],
               OutlinedButton(
-                onPressed: _busy ? null : () => _action(_weekdays),
-                child: const Text('Choisir mes cinq jours'),
+                onPressed: _busy ? null : () => _action(_rhythm),
+                child: const Text('Mon rythme · jours, durée et rappel'),
               ),
               FutureBuilder<String?>(
                 future: ref
@@ -506,7 +527,9 @@ class _WeeklyHomeState extends ConsumerState<WeeklyHomeScreen> {
               if (closed.isNotEmpty) const Text('Bilans et historique'),
               for (final w in closed)
                 ListTile(
-                  title: Text('Semaine ${w.weekNumber} · ${w.lessonId}'),
+                  title: Text(
+                    'Semaine ${w.weekNumber} · ${lessonTitleOrId(w.lessonId)}',
+                  ),
                   trailing: const Icon(Icons.assessment_outlined),
                   onTap: () => Navigator.push(
                     context,

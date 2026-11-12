@@ -67,6 +67,10 @@ class _PracticeState extends ConsumerState<WeeklyPracticeScreen> {
               _lease = null;
               if (id != null) await _db.settleWeeklyVoice(id, seconds);
             },
+            onHeartbeat: (seconds) async {
+              final id = _lease;
+              if (id != null) await _db.heartbeatWeeklyVoice(id, seconds);
+            },
             onCheckpoint: (pairs) => _db.setSetting(
               'weekly:liveDraft:${widget.assignment.id}',
               jsonEncode(pairs),
@@ -316,7 +320,7 @@ class _PracticeState extends ConsumerState<WeeklyPracticeScreen> {
       padding: const EdgeInsets.all(20),
       children: [
         const Text(
-          '20 minutes de connexion en direct au total par semaine. Les minutes restantes se pratiquent en autonomie. Une connexion interrompue peut réserver son solde jusqu’à réconciliation; les plafonds du fournisseur restent applicables.',
+          '20 minutes de connexion en direct au total par semaine. Les minutes restantes se pratiquent en autonomie. Si une conversation est interrompue, seules les secondes réellement utilisées sont décomptées. Les plafonds du fournisseur restent applicables.',
         ),
         FilledButton.icon(
           onPressed: _busy ? null : _live,

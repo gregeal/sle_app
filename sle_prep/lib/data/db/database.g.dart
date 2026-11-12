@@ -9911,6 +9911,28 @@ class $WeeklyVoiceLeasesTable extends WeeklyVoiceLeases
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _checkpointSecondsMeta = const VerificationMeta(
+    'checkpointSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> checkpointSeconds = GeneratedColumn<int>(
+    'checkpoint_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _heartbeatAtMeta = const VerificationMeta(
+    'heartbeatAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> heartbeatAt = GeneratedColumn<DateTime>(
+    'heartbeat_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -9918,6 +9940,8 @@ class $WeeklyVoiceLeasesTable extends WeeklyVoiceLeases
     reservedSeconds,
     usedSeconds,
     createdAt,
+    checkpointSeconds,
+    heartbeatAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9970,6 +9994,24 @@ class $WeeklyVoiceLeasesTable extends WeeklyVoiceLeases
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('checkpoint_seconds')) {
+      context.handle(
+        _checkpointSecondsMeta,
+        checkpointSeconds.isAcceptableOrUnknown(
+          data['checkpoint_seconds']!,
+          _checkpointSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('heartbeat_at')) {
+      context.handle(
+        _heartbeatAtMeta,
+        heartbeatAt.isAcceptableOrUnknown(
+          data['heartbeat_at']!,
+          _heartbeatAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -9999,6 +10041,14 @@ class $WeeklyVoiceLeasesTable extends WeeklyVoiceLeases
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      checkpointSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}checkpoint_seconds'],
+      ),
+      heartbeatAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}heartbeat_at'],
+      ),
     );
   }
 
@@ -10015,12 +10065,19 @@ class WeeklyVoiceLease extends DataClass
   final int reservedSeconds;
   final int? usedSeconds;
   final DateTime createdAt;
+
+  /// Connected seconds at the last heartbeat. A lease whose owner died is
+  /// settled at this value instead of at its whole reservation.
+  final int? checkpointSeconds;
+  final DateTime? heartbeatAt;
   const WeeklyVoiceLease({
     required this.id,
     required this.weekId,
     required this.reservedSeconds,
     this.usedSeconds,
     required this.createdAt,
+    this.checkpointSeconds,
+    this.heartbeatAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10032,6 +10089,12 @@ class WeeklyVoiceLease extends DataClass
       map['used_seconds'] = Variable<int>(usedSeconds);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || checkpointSeconds != null) {
+      map['checkpoint_seconds'] = Variable<int>(checkpointSeconds);
+    }
+    if (!nullToAbsent || heartbeatAt != null) {
+      map['heartbeat_at'] = Variable<DateTime>(heartbeatAt);
+    }
     return map;
   }
 
@@ -10044,6 +10107,12 @@ class WeeklyVoiceLease extends DataClass
           ? const Value.absent()
           : Value(usedSeconds),
       createdAt: Value(createdAt),
+      checkpointSeconds: checkpointSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checkpointSeconds),
+      heartbeatAt: heartbeatAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(heartbeatAt),
     );
   }
 
@@ -10058,6 +10127,8 @@ class WeeklyVoiceLease extends DataClass
       reservedSeconds: serializer.fromJson<int>(json['reservedSeconds']),
       usedSeconds: serializer.fromJson<int?>(json['usedSeconds']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      checkpointSeconds: serializer.fromJson<int?>(json['checkpointSeconds']),
+      heartbeatAt: serializer.fromJson<DateTime?>(json['heartbeatAt']),
     );
   }
   @override
@@ -10069,6 +10140,8 @@ class WeeklyVoiceLease extends DataClass
       'reservedSeconds': serializer.toJson<int>(reservedSeconds),
       'usedSeconds': serializer.toJson<int?>(usedSeconds),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'checkpointSeconds': serializer.toJson<int?>(checkpointSeconds),
+      'heartbeatAt': serializer.toJson<DateTime?>(heartbeatAt),
     };
   }
 
@@ -10078,12 +10151,18 @@ class WeeklyVoiceLease extends DataClass
     int? reservedSeconds,
     Value<int?> usedSeconds = const Value.absent(),
     DateTime? createdAt,
+    Value<int?> checkpointSeconds = const Value.absent(),
+    Value<DateTime?> heartbeatAt = const Value.absent(),
   }) => WeeklyVoiceLease(
     id: id ?? this.id,
     weekId: weekId ?? this.weekId,
     reservedSeconds: reservedSeconds ?? this.reservedSeconds,
     usedSeconds: usedSeconds.present ? usedSeconds.value : this.usedSeconds,
     createdAt: createdAt ?? this.createdAt,
+    checkpointSeconds: checkpointSeconds.present
+        ? checkpointSeconds.value
+        : this.checkpointSeconds,
+    heartbeatAt: heartbeatAt.present ? heartbeatAt.value : this.heartbeatAt,
   );
   WeeklyVoiceLease copyWithCompanion(WeeklyVoiceLeasesCompanion data) {
     return WeeklyVoiceLease(
@@ -10096,6 +10175,12 @@ class WeeklyVoiceLease extends DataClass
           ? data.usedSeconds.value
           : this.usedSeconds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      checkpointSeconds: data.checkpointSeconds.present
+          ? data.checkpointSeconds.value
+          : this.checkpointSeconds,
+      heartbeatAt: data.heartbeatAt.present
+          ? data.heartbeatAt.value
+          : this.heartbeatAt,
     );
   }
 
@@ -10106,14 +10191,23 @@ class WeeklyVoiceLease extends DataClass
           ..write('weekId: $weekId, ')
           ..write('reservedSeconds: $reservedSeconds, ')
           ..write('usedSeconds: $usedSeconds, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('checkpointSeconds: $checkpointSeconds, ')
+          ..write('heartbeatAt: $heartbeatAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, weekId, reservedSeconds, usedSeconds, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    weekId,
+    reservedSeconds,
+    usedSeconds,
+    createdAt,
+    checkpointSeconds,
+    heartbeatAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10122,7 +10216,9 @@ class WeeklyVoiceLease extends DataClass
           other.weekId == this.weekId &&
           other.reservedSeconds == this.reservedSeconds &&
           other.usedSeconds == this.usedSeconds &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.checkpointSeconds == this.checkpointSeconds &&
+          other.heartbeatAt == this.heartbeatAt);
 }
 
 class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
@@ -10131,12 +10227,16 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
   final Value<int> reservedSeconds;
   final Value<int?> usedSeconds;
   final Value<DateTime> createdAt;
+  final Value<int?> checkpointSeconds;
+  final Value<DateTime?> heartbeatAt;
   const WeeklyVoiceLeasesCompanion({
     this.id = const Value.absent(),
     this.weekId = const Value.absent(),
     this.reservedSeconds = const Value.absent(),
     this.usedSeconds = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.checkpointSeconds = const Value.absent(),
+    this.heartbeatAt = const Value.absent(),
   });
   WeeklyVoiceLeasesCompanion.insert({
     this.id = const Value.absent(),
@@ -10144,6 +10244,8 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
     required int reservedSeconds,
     this.usedSeconds = const Value.absent(),
     required DateTime createdAt,
+    this.checkpointSeconds = const Value.absent(),
+    this.heartbeatAt = const Value.absent(),
   }) : weekId = Value(weekId),
        reservedSeconds = Value(reservedSeconds),
        createdAt = Value(createdAt);
@@ -10153,6 +10255,8 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
     Expression<int>? reservedSeconds,
     Expression<int>? usedSeconds,
     Expression<DateTime>? createdAt,
+    Expression<int>? checkpointSeconds,
+    Expression<DateTime>? heartbeatAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -10160,6 +10264,8 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
       if (reservedSeconds != null) 'reserved_seconds': reservedSeconds,
       if (usedSeconds != null) 'used_seconds': usedSeconds,
       if (createdAt != null) 'created_at': createdAt,
+      if (checkpointSeconds != null) 'checkpoint_seconds': checkpointSeconds,
+      if (heartbeatAt != null) 'heartbeat_at': heartbeatAt,
     });
   }
 
@@ -10169,6 +10275,8 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
     Value<int>? reservedSeconds,
     Value<int?>? usedSeconds,
     Value<DateTime>? createdAt,
+    Value<int?>? checkpointSeconds,
+    Value<DateTime?>? heartbeatAt,
   }) {
     return WeeklyVoiceLeasesCompanion(
       id: id ?? this.id,
@@ -10176,6 +10284,8 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
       reservedSeconds: reservedSeconds ?? this.reservedSeconds,
       usedSeconds: usedSeconds ?? this.usedSeconds,
       createdAt: createdAt ?? this.createdAt,
+      checkpointSeconds: checkpointSeconds ?? this.checkpointSeconds,
+      heartbeatAt: heartbeatAt ?? this.heartbeatAt,
     );
   }
 
@@ -10197,6 +10307,12 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (checkpointSeconds.present) {
+      map['checkpoint_seconds'] = Variable<int>(checkpointSeconds.value);
+    }
+    if (heartbeatAt.present) {
+      map['heartbeat_at'] = Variable<DateTime>(heartbeatAt.value);
+    }
     return map;
   }
 
@@ -10207,6 +10323,714 @@ class WeeklyVoiceLeasesCompanion extends UpdateCompanion<WeeklyVoiceLease> {
           ..write('weekId: $weekId, ')
           ..write('reservedSeconds: $reservedSeconds, ')
           ..write('usedSeconds: $usedSeconds, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('checkpointSeconds: $checkpointSeconds, ')
+          ..write('heartbeatAt: $heartbeatAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ActivityLogsTable extends ActivityLogs
+    with TableInfo<$ActivityLogsTable, ActivityLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ActivityLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsMeta = const VerificationMeta(
+    'seconds',
+  );
+  @override
+  late final GeneratedColumn<int> seconds = GeneratedColumn<int>(
+    'seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _skillMeta = const VerificationMeta('skill');
+  @override
+  late final GeneratedColumn<String> skill = GeneratedColumn<String>(
+    'skill',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, startedAt, seconds, kind, skill];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'activity_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ActivityLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('seconds')) {
+      context.handle(
+        _secondsMeta,
+        seconds.isAcceptableOrUnknown(data['seconds']!, _secondsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('skill')) {
+      context.handle(
+        _skillMeta,
+        skill.isAcceptableOrUnknown(data['skill']!, _skillMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ActivityLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ActivityLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      seconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seconds'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      skill: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}skill'],
+      ),
+    );
+  }
+
+  @override
+  $ActivityLogsTable createAlias(String alias) {
+    return $ActivityLogsTable(attachedDatabase, alias);
+  }
+}
+
+class ActivityLog extends DataClass implements Insertable<ActivityLog> {
+  final int id;
+  final DateTime startedAt;
+
+  /// Foreground seconds, with idle time already removed.
+  final int seconds;
+
+  /// Where the time was spent: 'weekly', 'vocab', 'drill', 'reading',
+  /// 'writing', 'listening', 'oral', 'realtime', 'partner', 'course',
+  /// 'class', 'placement', 'groupClass'.
+  final String kind;
+
+  /// A [SkillKind] name when the activity trains one skill.
+  final String? skill;
+  const ActivityLog({
+    required this.id,
+    required this.startedAt,
+    required this.seconds,
+    required this.kind,
+    this.skill,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    map['seconds'] = Variable<int>(seconds);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || skill != null) {
+      map['skill'] = Variable<String>(skill);
+    }
+    return map;
+  }
+
+  ActivityLogsCompanion toCompanion(bool nullToAbsent) {
+    return ActivityLogsCompanion(
+      id: Value(id),
+      startedAt: Value(startedAt),
+      seconds: Value(seconds),
+      kind: Value(kind),
+      skill: skill == null && nullToAbsent
+          ? const Value.absent()
+          : Value(skill),
+    );
+  }
+
+  factory ActivityLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ActivityLog(
+      id: serializer.fromJson<int>(json['id']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      seconds: serializer.fromJson<int>(json['seconds']),
+      kind: serializer.fromJson<String>(json['kind']),
+      skill: serializer.fromJson<String?>(json['skill']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'seconds': serializer.toJson<int>(seconds),
+      'kind': serializer.toJson<String>(kind),
+      'skill': serializer.toJson<String?>(skill),
+    };
+  }
+
+  ActivityLog copyWith({
+    int? id,
+    DateTime? startedAt,
+    int? seconds,
+    String? kind,
+    Value<String?> skill = const Value.absent(),
+  }) => ActivityLog(
+    id: id ?? this.id,
+    startedAt: startedAt ?? this.startedAt,
+    seconds: seconds ?? this.seconds,
+    kind: kind ?? this.kind,
+    skill: skill.present ? skill.value : this.skill,
+  );
+  ActivityLog copyWithCompanion(ActivityLogsCompanion data) {
+    return ActivityLog(
+      id: data.id.present ? data.id.value : this.id,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      seconds: data.seconds.present ? data.seconds.value : this.seconds,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      skill: data.skill.present ? data.skill.value : this.skill,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityLog(')
+          ..write('id: $id, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('seconds: $seconds, ')
+          ..write('kind: $kind, ')
+          ..write('skill: $skill')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, startedAt, seconds, kind, skill);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ActivityLog &&
+          other.id == this.id &&
+          other.startedAt == this.startedAt &&
+          other.seconds == this.seconds &&
+          other.kind == this.kind &&
+          other.skill == this.skill);
+}
+
+class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
+  final Value<int> id;
+  final Value<DateTime> startedAt;
+  final Value<int> seconds;
+  final Value<String> kind;
+  final Value<String?> skill;
+  const ActivityLogsCompanion({
+    this.id = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.seconds = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.skill = const Value.absent(),
+  });
+  ActivityLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required DateTime startedAt,
+    required int seconds,
+    required String kind,
+    this.skill = const Value.absent(),
+  }) : startedAt = Value(startedAt),
+       seconds = Value(seconds),
+       kind = Value(kind);
+  static Insertable<ActivityLog> custom({
+    Expression<int>? id,
+    Expression<DateTime>? startedAt,
+    Expression<int>? seconds,
+    Expression<String>? kind,
+    Expression<String>? skill,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (startedAt != null) 'started_at': startedAt,
+      if (seconds != null) 'seconds': seconds,
+      if (kind != null) 'kind': kind,
+      if (skill != null) 'skill': skill,
+    });
+  }
+
+  ActivityLogsCompanion copyWith({
+    Value<int>? id,
+    Value<DateTime>? startedAt,
+    Value<int>? seconds,
+    Value<String>? kind,
+    Value<String?>? skill,
+  }) {
+    return ActivityLogsCompanion(
+      id: id ?? this.id,
+      startedAt: startedAt ?? this.startedAt,
+      seconds: seconds ?? this.seconds,
+      kind: kind ?? this.kind,
+      skill: skill ?? this.skill,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (seconds.present) {
+      map['seconds'] = Variable<int>(seconds.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (skill.present) {
+      map['skill'] = Variable<String>(skill.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('seconds: $seconds, ')
+          ..write('kind: $kind, ')
+          ..write('skill: $skill')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GroupClassNotesTable extends GroupClassNotes
+    with TableInfo<$GroupClassNotesTable, GroupClassNote> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroupClassNotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<String> day = GeneratedColumn<String>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _coveredMeta = const VerificationMeta(
+    'covered',
+  );
+  @override
+  late final GeneratedColumn<String> covered = GeneratedColumn<String>(
+    'covered',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _correctionsMeta = const VerificationMeta(
+    'corrections',
+  );
+  @override
+  late final GeneratedColumn<String> corrections = GeneratedColumn<String>(
+    'corrections',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    day,
+    covered,
+    corrections,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'group_class_notes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroupClassNote> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('covered')) {
+      context.handle(
+        _coveredMeta,
+        covered.isAcceptableOrUnknown(data['covered']!, _coveredMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_coveredMeta);
+    }
+    if (data.containsKey('corrections')) {
+      context.handle(
+        _correctionsMeta,
+        corrections.isAcceptableOrUnknown(
+          data['corrections']!,
+          _correctionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroupClassNote map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroupClassNote(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day'],
+      )!,
+      covered: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}covered'],
+      )!,
+      corrections: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}corrections'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $GroupClassNotesTable createAlias(String alias) {
+    return $GroupClassNotesTable(attachedDatabase, alias);
+  }
+}
+
+class GroupClassNote extends DataClass implements Insertable<GroupClassNote> {
+  final int id;
+
+  /// Date-only key, yyyy-MM-dd.
+  final String day;
+  final String covered;
+  final String corrections;
+  final DateTime createdAt;
+  const GroupClassNote({
+    required this.id,
+    required this.day,
+    required this.covered,
+    required this.corrections,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['day'] = Variable<String>(day);
+    map['covered'] = Variable<String>(covered);
+    map['corrections'] = Variable<String>(corrections);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  GroupClassNotesCompanion toCompanion(bool nullToAbsent) {
+    return GroupClassNotesCompanion(
+      id: Value(id),
+      day: Value(day),
+      covered: Value(covered),
+      corrections: Value(corrections),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory GroupClassNote.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroupClassNote(
+      id: serializer.fromJson<int>(json['id']),
+      day: serializer.fromJson<String>(json['day']),
+      covered: serializer.fromJson<String>(json['covered']),
+      corrections: serializer.fromJson<String>(json['corrections']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'day': serializer.toJson<String>(day),
+      'covered': serializer.toJson<String>(covered),
+      'corrections': serializer.toJson<String>(corrections),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  GroupClassNote copyWith({
+    int? id,
+    String? day,
+    String? covered,
+    String? corrections,
+    DateTime? createdAt,
+  }) => GroupClassNote(
+    id: id ?? this.id,
+    day: day ?? this.day,
+    covered: covered ?? this.covered,
+    corrections: corrections ?? this.corrections,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  GroupClassNote copyWithCompanion(GroupClassNotesCompanion data) {
+    return GroupClassNote(
+      id: data.id.present ? data.id.value : this.id,
+      day: data.day.present ? data.day.value : this.day,
+      covered: data.covered.present ? data.covered.value : this.covered,
+      corrections: data.corrections.present
+          ? data.corrections.value
+          : this.corrections,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupClassNote(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('covered: $covered, ')
+          ..write('corrections: $corrections, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, day, covered, corrections, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroupClassNote &&
+          other.id == this.id &&
+          other.day == this.day &&
+          other.covered == this.covered &&
+          other.corrections == this.corrections &&
+          other.createdAt == this.createdAt);
+}
+
+class GroupClassNotesCompanion extends UpdateCompanion<GroupClassNote> {
+  final Value<int> id;
+  final Value<String> day;
+  final Value<String> covered;
+  final Value<String> corrections;
+  final Value<DateTime> createdAt;
+  const GroupClassNotesCompanion({
+    this.id = const Value.absent(),
+    this.day = const Value.absent(),
+    this.covered = const Value.absent(),
+    this.corrections = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  GroupClassNotesCompanion.insert({
+    this.id = const Value.absent(),
+    required String day,
+    required String covered,
+    this.corrections = const Value.absent(),
+    required DateTime createdAt,
+  }) : day = Value(day),
+       covered = Value(covered),
+       createdAt = Value(createdAt);
+  static Insertable<GroupClassNote> custom({
+    Expression<int>? id,
+    Expression<String>? day,
+    Expression<String>? covered,
+    Expression<String>? corrections,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (day != null) 'day': day,
+      if (covered != null) 'covered': covered,
+      if (corrections != null) 'corrections': corrections,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  GroupClassNotesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? day,
+    Value<String>? covered,
+    Value<String>? corrections,
+    Value<DateTime>? createdAt,
+  }) {
+    return GroupClassNotesCompanion(
+      id: id ?? this.id,
+      day: day ?? this.day,
+      covered: covered ?? this.covered,
+      corrections: corrections ?? this.corrections,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<String>(day.value);
+    }
+    if (covered.present) {
+      map['covered'] = Variable<String>(covered.value);
+    }
+    if (corrections.present) {
+      map['corrections'] = Variable<String>(corrections.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupClassNotesCompanion(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('covered: $covered, ')
+          ..write('corrections: $corrections, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -10254,6 +11078,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $WeeklyFeedbackJobsTable(this);
   late final $WeeklyVoiceLeasesTable weeklyVoiceLeases =
       $WeeklyVoiceLeasesTable(this);
+  late final $ActivityLogsTable activityLogs = $ActivityLogsTable(this);
+  late final $GroupClassNotesTable groupClassNotes = $GroupClassNotesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10282,6 +11110,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     weeklyEvidence,
     weeklyFeedbackJobs,
     weeklyVoiceLeases,
+    activityLogs,
+    groupClassNotes,
   ];
 }
 
@@ -16286,6 +17116,8 @@ typedef $$WeeklyVoiceLeasesTableCreateCompanionBuilder =
       required int reservedSeconds,
       Value<int?> usedSeconds,
       required DateTime createdAt,
+      Value<int?> checkpointSeconds,
+      Value<DateTime?> heartbeatAt,
     });
 typedef $$WeeklyVoiceLeasesTableUpdateCompanionBuilder =
     WeeklyVoiceLeasesCompanion Function({
@@ -16294,6 +17126,8 @@ typedef $$WeeklyVoiceLeasesTableUpdateCompanionBuilder =
       Value<int> reservedSeconds,
       Value<int?> usedSeconds,
       Value<DateTime> createdAt,
+      Value<int?> checkpointSeconds,
+      Value<DateTime?> heartbeatAt,
     });
 
 final class $$WeeklyVoiceLeasesTableReferences
@@ -16358,6 +17192,16 @@ class $$WeeklyVoiceLeasesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get checkpointSeconds => $composableBuilder(
+    column: $table.checkpointSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get heartbeatAt => $composableBuilder(
+    column: $table.heartbeatAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$StudyWeeksTableFilterComposer get weekId {
     final $$StudyWeeksTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -16411,6 +17255,16 @@ class $$WeeklyVoiceLeasesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get checkpointSeconds => $composableBuilder(
+    column: $table.checkpointSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get heartbeatAt => $composableBuilder(
+    column: $table.heartbeatAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$StudyWeeksTableOrderingComposer get weekId {
     final $$StudyWeeksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -16459,6 +17313,16 @@ class $$WeeklyVoiceLeasesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get checkpointSeconds => $composableBuilder(
+    column: $table.checkpointSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get heartbeatAt => $composableBuilder(
+    column: $table.heartbeatAt,
+    builder: (column) => column,
+  );
 
   $$StudyWeeksTableAnnotationComposer get weekId {
     final $$StudyWeeksTableAnnotationComposer composer = $composerBuilder(
@@ -16522,12 +17386,16 @@ class $$WeeklyVoiceLeasesTableTableManager
                 Value<int> reservedSeconds = const Value.absent(),
                 Value<int?> usedSeconds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<int?> checkpointSeconds = const Value.absent(),
+                Value<DateTime?> heartbeatAt = const Value.absent(),
               }) => WeeklyVoiceLeasesCompanion(
                 id: id,
                 weekId: weekId,
                 reservedSeconds: reservedSeconds,
                 usedSeconds: usedSeconds,
                 createdAt: createdAt,
+                checkpointSeconds: checkpointSeconds,
+                heartbeatAt: heartbeatAt,
               ),
           createCompanionCallback:
               ({
@@ -16536,12 +17404,16 @@ class $$WeeklyVoiceLeasesTableTableManager
                 required int reservedSeconds,
                 Value<int?> usedSeconds = const Value.absent(),
                 required DateTime createdAt,
+                Value<int?> checkpointSeconds = const Value.absent(),
+                Value<DateTime?> heartbeatAt = const Value.absent(),
               }) => WeeklyVoiceLeasesCompanion.insert(
                 id: id,
                 weekId: weekId,
                 reservedSeconds: reservedSeconds,
                 usedSeconds: usedSeconds,
                 createdAt: createdAt,
+                checkpointSeconds: checkpointSeconds,
+                heartbeatAt: heartbeatAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -16612,6 +17484,402 @@ typedef $$WeeklyVoiceLeasesTableProcessedTableManager =
       WeeklyVoiceLease,
       PrefetchHooks Function({bool weekId})
     >;
+typedef $$ActivityLogsTableCreateCompanionBuilder =
+    ActivityLogsCompanion Function({
+      Value<int> id,
+      required DateTime startedAt,
+      required int seconds,
+      required String kind,
+      Value<String?> skill,
+    });
+typedef $$ActivityLogsTableUpdateCompanionBuilder =
+    ActivityLogsCompanion Function({
+      Value<int> id,
+      Value<DateTime> startedAt,
+      Value<int> seconds,
+      Value<String> kind,
+      Value<String?> skill,
+    });
+
+class $$ActivityLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $ActivityLogsTable> {
+  $$ActivityLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ActivityLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ActivityLogsTable> {
+  $$ActivityLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get seconds => $composableBuilder(
+    column: $table.seconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get skill => $composableBuilder(
+    column: $table.skill,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ActivityLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ActivityLogsTable> {
+  $$ActivityLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get seconds =>
+      $composableBuilder(column: $table.seconds, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get skill =>
+      $composableBuilder(column: $table.skill, builder: (column) => column);
+}
+
+class $$ActivityLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ActivityLogsTable,
+          ActivityLog,
+          $$ActivityLogsTableFilterComposer,
+          $$ActivityLogsTableOrderingComposer,
+          $$ActivityLogsTableAnnotationComposer,
+          $$ActivityLogsTableCreateCompanionBuilder,
+          $$ActivityLogsTableUpdateCompanionBuilder,
+          (
+            ActivityLog,
+            BaseReferences<_$AppDatabase, $ActivityLogsTable, ActivityLog>,
+          ),
+          ActivityLog,
+          PrefetchHooks Function()
+        > {
+  $$ActivityLogsTableTableManager(_$AppDatabase db, $ActivityLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ActivityLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ActivityLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ActivityLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<int> seconds = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String?> skill = const Value.absent(),
+              }) => ActivityLogsCompanion(
+                id: id,
+                startedAt: startedAt,
+                seconds: seconds,
+                kind: kind,
+                skill: skill,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DateTime startedAt,
+                required int seconds,
+                required String kind,
+                Value<String?> skill = const Value.absent(),
+              }) => ActivityLogsCompanion.insert(
+                id: id,
+                startedAt: startedAt,
+                seconds: seconds,
+                kind: kind,
+                skill: skill,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ActivityLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ActivityLogsTable,
+      ActivityLog,
+      $$ActivityLogsTableFilterComposer,
+      $$ActivityLogsTableOrderingComposer,
+      $$ActivityLogsTableAnnotationComposer,
+      $$ActivityLogsTableCreateCompanionBuilder,
+      $$ActivityLogsTableUpdateCompanionBuilder,
+      (
+        ActivityLog,
+        BaseReferences<_$AppDatabase, $ActivityLogsTable, ActivityLog>,
+      ),
+      ActivityLog,
+      PrefetchHooks Function()
+    >;
+typedef $$GroupClassNotesTableCreateCompanionBuilder =
+    GroupClassNotesCompanion Function({
+      Value<int> id,
+      required String day,
+      required String covered,
+      Value<String> corrections,
+      required DateTime createdAt,
+    });
+typedef $$GroupClassNotesTableUpdateCompanionBuilder =
+    GroupClassNotesCompanion Function({
+      Value<int> id,
+      Value<String> day,
+      Value<String> covered,
+      Value<String> corrections,
+      Value<DateTime> createdAt,
+    });
+
+class $$GroupClassNotesTableFilterComposer
+    extends Composer<_$AppDatabase, $GroupClassNotesTable> {
+  $$GroupClassNotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get covered => $composableBuilder(
+    column: $table.covered,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get corrections => $composableBuilder(
+    column: $table.corrections,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GroupClassNotesTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroupClassNotesTable> {
+  $$GroupClassNotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get covered => $composableBuilder(
+    column: $table.covered,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get corrections => $composableBuilder(
+    column: $table.corrections,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GroupClassNotesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroupClassNotesTable> {
+  $$GroupClassNotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<String> get covered =>
+      $composableBuilder(column: $table.covered, builder: (column) => column);
+
+  GeneratedColumn<String> get corrections => $composableBuilder(
+    column: $table.corrections,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$GroupClassNotesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroupClassNotesTable,
+          GroupClassNote,
+          $$GroupClassNotesTableFilterComposer,
+          $$GroupClassNotesTableOrderingComposer,
+          $$GroupClassNotesTableAnnotationComposer,
+          $$GroupClassNotesTableCreateCompanionBuilder,
+          $$GroupClassNotesTableUpdateCompanionBuilder,
+          (
+            GroupClassNote,
+            BaseReferences<
+              _$AppDatabase,
+              $GroupClassNotesTable,
+              GroupClassNote
+            >,
+          ),
+          GroupClassNote,
+          PrefetchHooks Function()
+        > {
+  $$GroupClassNotesTableTableManager(
+    _$AppDatabase db,
+    $GroupClassNotesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroupClassNotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroupClassNotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroupClassNotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> day = const Value.absent(),
+                Value<String> covered = const Value.absent(),
+                Value<String> corrections = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => GroupClassNotesCompanion(
+                id: id,
+                day: day,
+                covered: covered,
+                corrections: corrections,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String day,
+                required String covered,
+                Value<String> corrections = const Value.absent(),
+                required DateTime createdAt,
+              }) => GroupClassNotesCompanion.insert(
+                id: id,
+                day: day,
+                covered: covered,
+                corrections: corrections,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GroupClassNotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroupClassNotesTable,
+      GroupClassNote,
+      $$GroupClassNotesTableFilterComposer,
+      $$GroupClassNotesTableOrderingComposer,
+      $$GroupClassNotesTableAnnotationComposer,
+      $$GroupClassNotesTableCreateCompanionBuilder,
+      $$GroupClassNotesTableUpdateCompanionBuilder,
+      (
+        GroupClassNote,
+        BaseReferences<_$AppDatabase, $GroupClassNotesTable, GroupClassNote>,
+      ),
+      GroupClassNote,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -16662,4 +17930,8 @@ class $AppDatabaseManager {
       $$WeeklyFeedbackJobsTableTableManager(_db, _db.weeklyFeedbackJobs);
   $$WeeklyVoiceLeasesTableTableManager get weeklyVoiceLeases =>
       $$WeeklyVoiceLeasesTableTableManager(_db, _db.weeklyVoiceLeases);
+  $$ActivityLogsTableTableManager get activityLogs =>
+      $$ActivityLogsTableTableManager(_db, _db.activityLogs);
+  $$GroupClassNotesTableTableManager get groupClassNotes =>
+      $$GroupClassNotesTableTableManager(_db, _db.groupClassNotes);
 }

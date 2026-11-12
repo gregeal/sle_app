@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/daos.dart';
 import '../../domain/srs/sm2.dart';
 import '../../providers.dart';
+import '../habit/activity_tracker.dart';
 
 class VocabReviewScreen extends ConsumerStatefulWidget {
   const VocabReviewScreen({super.key, this.onReviewed});
@@ -13,7 +14,13 @@ class VocabReviewScreen extends ConsumerStatefulWidget {
   ConsumerState<VocabReviewScreen> createState() => _VocabReviewScreenState();
 }
 
-class _VocabReviewScreenState extends ConsumerState<VocabReviewScreen> {
+class _VocabReviewScreenState extends ConsumerState<VocabReviewScreen>
+    with ActivityTracking<VocabReviewScreen> {
+  @override
+  String get activityKind => 'vocab';
+  @override
+  String? get activitySkill => 'vocabulary';
+
   var _cardIndex = 0;
   var _reviewed = 0;
   var _showAnswer = false;

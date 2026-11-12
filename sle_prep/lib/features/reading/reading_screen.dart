@@ -10,6 +10,7 @@ import '../../domain/speech/speech_services.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/reading_generator.dart';
 import '../../providers.dart';
+import '../habit/activity_tracker.dart';
 
 String kindLabel(String kind) => switch (kind) {
   'note_service' => 'Note de service',
@@ -165,7 +166,12 @@ class ReadingSessionScreen extends ConsumerStatefulWidget {
 }
 
 class _ReadingSessionScreenState extends ConsumerState<ReadingSessionScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ActivityTracking<ReadingSessionScreen> {
+  @override
+  String get activityKind => widget.listeningMode ? 'listening' : 'reading';
+  @override
+  String? get activitySkill => widget.listeningMode ? 'listening' : 'reading';
+
   TtsService? _tts;
   bool _showTranscript = false;
   bool _usedTranscript = false;

@@ -2,6 +2,17 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 /// Strip all later-version objects, rather than only changing user_version.
 void rewindSchema(sqlite.Database db, int version) {
+  if (version < 10) {
+    db.execute('DROP TABLE IF EXISTS activity_logs');
+    db.execute('DROP TABLE IF EXISTS group_class_notes');
+    db.execute("DELETE FROM app_settings WHERE key LIKE 'habit:%'");
+    if (version >= 9) {
+      db.execute(
+        'ALTER TABLE weekly_voice_leases DROP COLUMN checkpoint_seconds',
+      );
+      db.execute('ALTER TABLE weekly_voice_leases DROP COLUMN heartbeat_at');
+    }
+  }
   if (version < 9) {
     for (final table in [
       'weekly_voice_leases',

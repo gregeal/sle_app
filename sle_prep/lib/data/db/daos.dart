@@ -3,8 +3,10 @@ import 'dart:math';
 
 import 'package:drift/drift.dart';
 
+import '../../domain/habit/streak.dart';
 import '../../domain/session/session_composer.dart';
 import 'database.dart';
+import 'habit_daos.dart';
 
 /// A due vocabulary card together with its scheduling state.
 class DueCard {
@@ -434,31 +436,46 @@ extension AppDaos on AppDatabase {
 
   /// Consecutive days with at least one completed block, counting back from
   /// [today] (an inactive today does not break yesterday's streak).
+  /// Consecutive kept days. A scheduled rest day never breaks the chain:
+  /// inside a weekly plan the plan's own dates decide, elsewhere the
+  /// learner's chosen weekdays do. Before any rhythm exists every day counts,
+  /// as it always has.
   Future<int> currentStreak(DateTime today) async {
-    final rows = await select(sessionLogs).get();
-    final activeDays = {
-      for (final log in rows)
-        if (log.blocksCompletedList.isNotEmpty) log.date,
-    };
-    final weekly =
-        await (select(weeklyAssignments)..where(
-              (a) =>
-                  a.completedAt.isNotNull() &
-                  a.evidenceKind.equals('weeklyEvidence'),
-            ))
-            .get();
-    activeDays.addAll(weekly.map((a) => _dateKey(a.completedAt!)));
+    final activeDays = await activeDayKeys();
+    final spans = <({String first, String last, Set<String> dates})>[];
+    for (final week in await select(studyWeeks).get()) {
+      final Object? raw;
+      try {
+        raw = jsonDecode(week.scheduleJson);
+      } on FormatException {
+        continue;
+      }
+      if (raw is! List) continue;
+      final dates = raw.whereType<String>().toSet();
+      if (dates.isEmpty) continue;
+      final sorted = dates.toList()..sort();
+      spans.add((first: sorted.first, last: sorted.last, dates: dates));
+    }
+    final habit = await habitSettings();
+    final scheduled =
+        habit.configured || await getSetting('weekly:enabled') == 'true';
 
-    var day = DateTime(today.year, today.month, today.day);
-    if (!activeDays.contains(_dateKey(day))) {
-      day = DateTime(day.year, day.month, day.day - 1);
+    bool isRestDay(DateTime day) {
+      if (habit.classDays.contains(day.weekday)) return false;
+      final key = _dateKey(day);
+      for (final span in spans) {
+        if (key.compareTo(span.first) >= 0 && key.compareTo(span.last) <= 0) {
+          return !span.dates.contains(key);
+        }
+      }
+      return scheduled && !habit.studyDays.contains(day.weekday);
     }
-    var streak = 0;
-    while (activeDays.contains(_dateKey(day))) {
-      streak++;
-      day = DateTime(day.year, day.month, day.day - 1);
-    }
-    return streak;
+
+    return computeStreak(
+      today: today,
+      activeDays: activeDays,
+      isRestDay: isRestDay,
+    );
   }
 
   // ── Reading ───────────────────────────────────────────────────────────────
@@ -539,18 +556,22 @@ extension AppDaos on AppDatabase {
   }
 
   /// Total study minutes logged across all sessions.
+  /// Minutes actually spent studying. From the day the activity log exists
+  /// only observed time counts; planned minutes are never credited. Older
+  /// session logs keep their recorded minutes, since nothing better exists
+  /// for those days.
   Future<int> totalActiveMinutes() async {
-    final sum = sessionLogs.minutesActive.sum();
-    final query = selectOnly(sessionLogs)..addColumns([sum]);
-    final row = await query.getSingle();
-    final weekly =
-        await (select(weeklyAssignments)..where(
-              (a) =>
-                  a.completedAt.isNotNull() &
-                  a.evidenceKind.equals('weeklyEvidence'),
-            ))
-            .get();
-    return (row.read(sum) ?? 0) + weekly.fold<int>(0, (n, a) => n + a.minutes);
+    final since = await getSetting('habit:logSince');
+    final legacySum = sessionLogs.minutesActive.sum();
+    final legacyQuery = selectOnly(sessionLogs)..addColumns([legacySum]);
+    if (since != null) {
+      legacyQuery.where(sessionLogs.date.isSmallerThanValue(since));
+    }
+    final legacy = (await legacyQuery.getSingle()).read(legacySum) ?? 0;
+    final loggedSum = activityLogs.seconds.sum();
+    final loggedQuery = selectOnly(activityLogs)..addColumns([loggedSum]);
+    final logged = (await loggedQuery.getSingle()).read(loggedSum) ?? 0;
+    return legacy + logged ~/ 60;
   }
 
   /// Drill attempts recorded at or after [cutoff] (for scoring a timed mock).

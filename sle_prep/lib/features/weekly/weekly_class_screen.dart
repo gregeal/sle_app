@@ -11,6 +11,7 @@ import '../../domain/weekly/weekly_plan.dart';
 import '../../domain/weekly/weekly_report.dart';
 import '../../providers.dart';
 import 'weekly_practice_screen.dart';
+import '../habit/activity_tracker.dart';
 
 /// The weekly class: the teacher explains, checks understanding, practises
 /// out loud with the learner, then hands over the week's assignments.
@@ -27,7 +28,12 @@ class WeeklyClassScreen extends ConsumerStatefulWidget {
 }
 
 class _WeeklyClassScreenState extends ConsumerState<WeeklyClassScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ActivityTracking<WeeklyClassScreen> {
+  @override
+  String get activityKind => 'class';
+  @override
+  String? get activitySkill => 'teaching';
+
   var _step = 0;
   List<int?> _answers = const [];
   var _quizChecked = false;

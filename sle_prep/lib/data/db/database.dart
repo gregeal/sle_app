@@ -279,6 +279,41 @@ class WeeklyVoiceLeases extends Table {
   IntColumn get reservedSeconds => integer()();
   IntColumn get usedSeconds => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+
+  /// Connected seconds at the last heartbeat. A lease whose owner died is
+  /// settled at this value instead of at its whole reservation.
+  IntColumn get checkpointSeconds => integer().nullable()();
+  DateTimeColumn get heartbeatAt => dateTime().nullable()();
+}
+
+/// One stretch of real study time, planned or not. Totals and the streak are
+/// computed from these rows so they reflect what happened, not what was
+/// scheduled.
+class ActivityLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get startedAt => dateTime()();
+
+  /// Foreground seconds, with idle time already removed.
+  IntColumn get seconds => integer()();
+
+  /// Where the time was spent: 'weekly', 'vocab', 'drill', 'reading',
+  /// 'writing', 'listening', 'oral', 'realtime', 'partner', 'course',
+  /// 'class', 'placement', 'groupClass'.
+  TextColumn get kind => text()();
+
+  /// A [SkillKind] name when the activity trains one skill.
+  TextColumn get skill => text().nullable()();
+}
+
+/// What the learner brought back from an in-person group class.
+class GroupClassNotes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Date-only key, yyyy-MM-dd.
+  TextColumn get day => text()();
+  TextColumn get covered => text()();
+  TextColumn get corrections => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime()();
 }
 
 /// One assignment of a week. Completion is tracked per assignment so a single
@@ -334,13 +369,15 @@ class WeeklyAssignments extends Table {
     WeeklyEvidence,
     WeeklyFeedbackJobs,
     WeeklyVoiceLeases,
+    ActivityLogs,
+    GroupClassNotes,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -396,9 +433,47 @@ class AppDatabase extends _$AppDatabase {
           'CREATE UNIQUE INDEX IF NOT EXISTS weekly_spec_unique ON weekly_assignments(week_id, spec_id)',
         );
       }
+      if (from < 10) {
+        if (from >= 9) {
+          await m.addColumn(
+            weeklyVoiceLeases,
+            weeklyVoiceLeases.checkpointSeconds,
+          );
+          await m.addColumn(weeklyVoiceLeases, weeklyVoiceLeases.heartbeatAt);
+        }
+        await m.createTable(activityLogs);
+        await m.createTable(groupClassNotes);
+        // Carry observed time forward so totals stay honest for work done
+        // before the log existed. Planned minutes are deliberately not
+        // converted: they were never a measurement.
+        await customStatement(
+          'INSERT INTO activity_logs (started_at, seconds, kind, skill) '
+          'SELECT e.created_at - e.observed_seconds, e.observed_seconds, '
+          "'weekly', a.skill FROM weekly_evidence e "
+          'JOIN weekly_assignments a ON a.id = e.assignment_id '
+          'WHERE e.observed_seconds IS NOT NULL AND e.observed_seconds > 0',
+        );
+      }
     },
     beforeOpen: (_) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // The first day observed study time exists. Session logs from that day
+      // on no longer contribute their planned minutes to the total.
+      final now = DateTime.now();
+      try {
+        await customStatement(
+          'INSERT OR IGNORE INTO app_settings ("key", "value") '
+          "VALUES ('habit:logSince', ?)",
+          [
+            '${now.year.toString().padLeft(4, '0')}-'
+                '${now.month.toString().padLeft(2, '0')}-'
+                '${now.day.toString().padLeft(2, '0')}',
+          ],
+        );
+      } on Object {
+        // A database too old to have a settings table simply keeps
+        // counting its recorded minutes.
+      }
       await customStatement(
         'CREATE UNIQUE INDEX IF NOT EXISTS weekly_spec_unique ON weekly_assignments(week_id, spec_id)',
       );

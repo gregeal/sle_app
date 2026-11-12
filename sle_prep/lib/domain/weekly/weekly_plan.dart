@@ -25,6 +25,10 @@ const kMaxDistributedSpread = 0.08;
 /// Blocks shorter than this are not worth opening the app for.
 const kMinimumBlockMinutes = 5;
 
+/// The shortest study day the contract can still honour: below this a day
+/// cannot hold speaking plus one other skill in whole blocks.
+const kMinimumDayMinutes = 20;
+
 const distributedSkills = [
   SkillKind.listening,
   SkillKind.reading,
@@ -161,7 +165,7 @@ class WeeklyPlan {
     if (weekNumber < 1 ||
         studyDays < 3 ||
         studyDays > 7 ||
-        minutesPerDay < 30 ||
+        minutesPerDay < kMinimumDayMinutes ||
         minutesPerDay > 120 ||
         minutesPerDay % 5 != 0 ||
         assignments.isEmpty ||
@@ -275,8 +279,10 @@ class WeeklyPlan {
     if (studyDays is! int || studyDays < 3 || studyDays > 7) {
       throw const FormatException('A weekly plan needs 3 to 7 study days.');
     }
-    if (minutesPerDay is! int || minutesPerDay < 30 || minutesPerDay > 120) {
-      throw const FormatException('A study day must be 30 to 120 minutes.');
+    if (minutesPerDay is! int ||
+        minutesPerDay < kMinimumDayMinutes ||
+        minutesPerDay > 120) {
+      throw const FormatException('A study day must be 20 to 120 minutes.');
     }
     if (rawAssignments is! List) {
       throw const FormatException('A weekly plan needs a list of assignments.');
@@ -317,11 +323,11 @@ WeeklyPlan composeWeeklyPlan({
   if (studyDays < 3 || studyDays > 7) {
     throw ArgumentError.value(studyDays, 'studyDays', 'Use 3 to 7 study days.');
   }
-  if (minutesPerDay < 30 || minutesPerDay > 120) {
+  if (minutesPerDay < kMinimumDayMinutes || minutesPerDay > 120) {
     throw ArgumentError.value(
       minutesPerDay,
       'minutesPerDay',
-      'A study day must be 30 to 120 minutes.',
+      'A study day must be 20 to 120 minutes.',
     );
   }
   if (minutesPerDay % _unit != 0) {

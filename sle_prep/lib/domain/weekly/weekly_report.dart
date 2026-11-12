@@ -216,8 +216,10 @@ List<DateTime> scheduledStudyDates(
   List<int> weekdays, {
   int count = 5,
 }) {
-  if (weekdays.toSet().length != 5 || weekdays.any((d) => d < 1 || d > 7)) {
-    throw ArgumentError('Choisissez cinq jours.');
+  if (weekdays.toSet().length != weekdays.length ||
+      weekdays.length < 3 ||
+      weekdays.any((d) => d < 1 || d > 7)) {
+    throw ArgumentError('Choisissez de trois à sept jours distincts.');
   }
   final dates = <DateTime>[];
   var day = DateTime(start.year, start.month, start.day);

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/auth/web_auth_gate.dart';
 import 'features/coach/coach_screen.dart';
+import 'features/habit/habit_providers.dart';
 import 'features/practice/practice_screen.dart';
 import 'features/progress/progress_screen.dart';
 import 'features/today/today_screen.dart';
@@ -75,6 +76,14 @@ class _AppShellState extends ConsumerState<AppShell>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scheduleMidnightRefresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncReminders());
+  }
+
+  /// Reminders are recomputed whenever the app comes forward, so today's is
+  /// dropped once the learner has studied and the times follow the clock.
+  void _syncReminders() {
+    if (!mounted) return;
+    unawaited(ref.read(reminderSyncProvider)().catchError((Object _) {}));
   }
 
   @override
@@ -103,7 +112,9 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _refreshStudyDay() {
     ref.invalidate(studyDayProvider);
+    ref.invalidate(habitSnapshotProvider);
     _scheduleMidnightRefresh();
+    _syncReminders();
   }
 
   @override

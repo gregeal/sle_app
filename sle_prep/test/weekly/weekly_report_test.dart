@@ -201,9 +201,27 @@ void main() {
       ]).map(studyDateKey),
       ['2026-10-30', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'],
     );
+    // The rhythm is the learner's choice: any three to seven distinct days.
     expect(
-      () => scheduledStudyDates(DateTime(2026), [1, 2, 3]),
-      throwsArgumentError,
+      scheduledStudyDates(DateTime(2026, 11, 2), [
+        1,
+        3,
+        5,
+        6,
+      ], count: 4).map(studyDateKey),
+      ['2026-11-02', '2026-11-04', '2026-11-06', '2026-11-07'],
     );
+    for (final bad in [
+      [1, 2],
+      [1, 1, 2, 3],
+      [0, 1, 2],
+      [1, 2, 8],
+    ]) {
+      expect(
+        () => scheduledStudyDates(DateTime(2026), bad),
+        throwsArgumentError,
+        reason: '$bad',
+      );
+    }
   });
 }

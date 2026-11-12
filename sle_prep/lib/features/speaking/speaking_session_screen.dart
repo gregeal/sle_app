@@ -10,6 +10,8 @@ import '../../domain/speech/speech_services.dart';
 import '../../providers.dart';
 import 'voice_draft.dart';
 import 'speaking_mistakes_screen.dart';
+import '../habit/activity_tracker.dart';
+import '../habit/wake_lock.dart';
 
 class SpeakingSessionScreen extends ConsumerStatefulWidget {
   const SpeakingSessionScreen({
@@ -24,7 +26,15 @@ class SpeakingSessionScreen extends ConsumerStatefulWidget {
 }
 
 class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ActivityTracking<SpeakingSessionScreen>,
+        KeepsScreenAwake<SpeakingSessionScreen> {
+  @override
+  String get activityKind => 'partner';
+  @override
+  String? get activitySkill => 'speaking';
+
   late final AppDatabase _db;
   late final TtsService _tts;
   final _editor = TextEditingController();

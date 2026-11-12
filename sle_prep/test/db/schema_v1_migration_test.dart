@@ -80,7 +80,10 @@ void main() {
     expect(await after.reviewStateFor(cardId), isNotNull);
     expect(await after.dueCardCount(DateTime(2030)), 1);
     expect((await after.weekByNumber(8))!.themeFr, 'Réunions d\'équipe');
-    expect(await after.topicAccuracy(), containsPair('subjonctif_present', 1.0));
+    expect(
+      await after.topicAccuracy(),
+      containsPair('subjonctif_present', 1.0),
+    );
     final log = await after.sessionLogFor(DateTime(2026, 7, 12));
     expect(log, isNotNull);
     expect(log!.minutesActive, 35);

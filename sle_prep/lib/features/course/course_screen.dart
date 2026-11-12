@@ -10,6 +10,7 @@ import '../../providers.dart';
 import '../speaking/speaking_session_screen.dart';
 import '../speaking/speaking_mistakes_screen.dart';
 import '../word_help/app_text_selection.dart';
+import '../habit/activity_tracker.dart';
 
 class CourseScreen extends ConsumerStatefulWidget {
   const CourseScreen({super.key, this.track = bToCCourse});
@@ -254,7 +255,12 @@ class CourseLessonScreen extends ConsumerStatefulWidget {
 }
 
 class _CourseLessonState extends ConsumerState<CourseLessonScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ActivityTracking<CourseLessonScreen> {
+  @override
+  String get activityKind => 'course';
+  @override
+  String? get activitySkill => 'teaching';
+
   late final AppDatabase _db;
   late final TtsService _tts;
   final _notes = TextEditingController();

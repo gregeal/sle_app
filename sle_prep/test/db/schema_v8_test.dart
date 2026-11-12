@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sle_prep/data/db/habit_daos.dart';
 import 'package:sle_prep/data/db/weekly_daos.dart';
 import 'package:sle_prep/data/db/daos.dart';
 import 'package:sle_prep/domain/weekly/weekly_plan.dart';
@@ -147,7 +148,16 @@ void main() {
       expect(await db.weeklyMinutesBySkill(id, completedOnly: true), {
         'teaching': a.minutes,
       });
-      expect(await db.totalActiveMinutes(), a.minutes);
+      // Planned minutes are a schedule, not a measurement: completing a
+      // block credits no study time until real time has been observed.
+      expect(await db.totalActiveMinutes(), 0);
+      await db.logActivity(
+        startedAt: monday,
+        seconds: 9 * 60,
+        kind: 'class',
+        skill: 'teaching',
+      );
+      expect(await db.totalActiveMinutes(), 9);
       expect(await db.currentStreak(monday), 1);
     },
   );

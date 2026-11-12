@@ -12,6 +12,7 @@ import '../speaking/voice_draft.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../word_help/app_text_selection.dart';
 import '../word_help/word_help_screen.dart';
+import '../habit/activity_tracker.dart';
 
 class WeeklyAssignmentScreen extends ConsumerStatefulWidget {
   const WeeklyAssignmentScreen({super.key, required this.assignment});
@@ -21,7 +22,12 @@ class WeeklyAssignmentScreen extends ConsumerStatefulWidget {
 }
 
 class _AssignmentState extends ConsumerState<WeeklyAssignmentScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ActivityTracking<WeeklyAssignmentScreen> {
+  @override
+  String get activityKind => 'weekly';
+  @override
+  String? get activitySkill => widget.assignment.skill;
+
   final _editor = TextEditingController();
   final _voice = GlobalKey<VoiceDraftState>();
   final _watch = Stopwatch();

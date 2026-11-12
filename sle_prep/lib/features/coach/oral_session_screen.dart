@@ -10,6 +10,8 @@ import '../../domain/llm/oral_coach.dart';
 import '../../domain/speech/speech_services.dart';
 import '../../providers.dart';
 import 'coach_screen.dart';
+import '../habit/activity_tracker.dart';
+import '../habit/wake_lock.dart';
 
 enum _Stage { answering, reviewing, assessing, report }
 
@@ -29,7 +31,15 @@ class OralSessionScreen extends ConsumerStatefulWidget {
 }
 
 class _OralSessionScreenState extends ConsumerState<OralSessionScreen>
-    with WidgetsBindingObserver {
+    with
+        WidgetsBindingObserver,
+        ActivityTracking<OralSessionScreen>,
+        KeepsScreenAwake<OralSessionScreen> {
+  @override
+  String get activityKind => 'oral';
+  @override
+  String? get activitySkill => 'speaking';
+
   late final SpeechService _speech;
   late final TtsService _tts;
   final _exchanges = <Map<String, dynamic>>[];

@@ -10,6 +10,14 @@ import 'database.dart';
 
 const _activeWeekSetting = 'weekly:activeWeekId';
 
+/// Live voice allowance per week.
+const kWeeklyLiveVoiceSeconds = 1200;
+
+/// A lease with no heartbeat for this long belongs to a session that died.
+/// Live sessions report every [kVoiceHeartbeatInterval].
+const kVoiceLeaseStaleAfter = Duration(seconds: 60);
+const kVoiceHeartbeatInterval = Duration(seconds: 15);
+
 /// Evidence kinds a completed assignment may point at.
 const weeklyEvidenceKinds = {
   'oralAttempt',
@@ -579,31 +587,79 @@ extension WeeklyDaos on AppDatabase {
         );
         return (await weeklyFeedback(id))!;
       });
-  Future<int> reserveWeeklyVoice(int id) => transaction(() async {
-    if ((await studyWeek(id))?.status != 'active') {
-      throw StateError('Semaine inactive.');
-    }
-    final leases = await (select(
+
+  /// Settles leases whose owner stopped sending heartbeats. A session that
+  /// died (crash, kill, battery) then costs the seconds it had used at its
+  /// last checkpoint instead of its whole reservation.
+  Future<void> reconcileVoiceLeases(int weekId, DateTime now) async {
+    final open = await (select(
       weeklyVoiceLeases,
-    )..where((l) => l.weekId.equals(id))).get();
-    final used = leases.fold<int>(
-      0,
-      (n, l) => n + (l.usedSeconds ?? l.reservedSeconds),
-    );
-    final remaining = 1200 - used;
-    if (remaining <= 0) {
-      throw StateError(
-        'Les 20 minutes en direct ont été utilisées. Choisissez la pratique autonome.',
+    )..where((l) => l.weekId.equals(weekId) & l.usedSeconds.isNull())).get();
+    for (final lease in open) {
+      final lastSeen = lease.heartbeatAt ?? lease.createdAt;
+      if (now.difference(lastSeen) < kVoiceLeaseStaleAfter) continue;
+      await (update(
+        weeklyVoiceLeases,
+      )..where((l) => l.id.equals(lease.id) & l.usedSeconds.isNull())).write(
+        WeeklyVoiceLeasesCompanion(
+          usedSeconds: Value(
+            (lease.checkpointSeconds ?? 0).clamp(0, lease.reservedSeconds),
+          ),
+        ),
       );
     }
-    return into(weeklyVoiceLeases).insert(
-      WeeklyVoiceLeasesCompanion.insert(
-        weekId: id,
-        reservedSeconds: remaining,
-        createdAt: DateTime.now(),
+  }
+
+  Future<int> reserveWeeklyVoice(int id, {DateTime? now}) =>
+      transaction(() async {
+        final at = now ?? DateTime.now();
+        if ((await studyWeek(id))?.status != 'active') {
+          throw StateError('Semaine inactive.');
+        }
+        await reconcileVoiceLeases(id, at);
+        final leases = await (select(
+          weeklyVoiceLeases,
+        )..where((l) => l.weekId.equals(id))).get();
+        final used = leases.fold<int>(
+          0,
+          (n, l) => n + (l.usedSeconds ?? l.reservedSeconds),
+        );
+        final remaining = kWeeklyLiveVoiceSeconds - used;
+        if (remaining <= 0) {
+          throw StateError(
+            leases.any((l) => l.usedSeconds == null)
+                ? 'Une conversation en direct est déjà ouverte. Si elle a '
+                      'été interrompue, réessayez dans une minute.'
+                : 'Les 20 minutes en direct ont été utilisées. Choisissez '
+                      'la pratique autonome.',
+          );
+        }
+        return into(weeklyVoiceLeases).insert(
+          WeeklyVoiceLeasesCompanion.insert(
+            weekId: id,
+            reservedSeconds: remaining,
+            createdAt: at,
+          ),
+        );
+      });
+
+  /// Records how long a live session has been connected. Called every few
+  /// seconds while the session is open; a settled lease is left alone.
+  Future<void> heartbeatWeeklyVoice(
+    int leaseId,
+    int connectedSeconds, {
+    DateTime? now,
+  }) async {
+    await (update(
+      weeklyVoiceLeases,
+    )..where((l) => l.id.equals(leaseId) & l.usedSeconds.isNull())).write(
+      WeeklyVoiceLeasesCompanion(
+        checkpointSeconds: Value(connectedSeconds < 0 ? 0 : connectedSeconds),
+        heartbeatAt: Value(now ?? DateTime.now()),
       ),
     );
-  });
+  }
+
   Future<int> voiceLeaseSeconds(int id) async => (await (select(
     weeklyVoiceLeases,
   )..where((l) => l.id.equals(id))).getSingle()).reservedSeconds;
@@ -666,7 +722,7 @@ extension WeeklyDaos on AppDatabase {
     if (day < 2 ||
         previous.weekId != weekId ||
         today.weekId != weekId ||
-        previous.dayIndex != day - 1 ||
+        previous.dayIndex >= day ||
         today.dayIndex != day ||
         previous.completed ||
         today.completed ||
@@ -678,7 +734,7 @@ extension WeeklyDaos on AppDatabase {
     await (update(weeklyAssignments)..where((a) => a.id.equals(previousId)))
         .write(WeeklyAssignmentsCompanion(dayIndex: Value(day)));
     await (update(weeklyAssignments)..where((a) => a.id.equals(todayId))).write(
-      WeeklyAssignmentsCompanion(dayIndex: Value(day - 1)),
+      WeeklyAssignmentsCompanion(dayIndex: Value(previous.dayIndex)),
     );
     await setSetting(
       'weekly:catchup:$weekId:$date',

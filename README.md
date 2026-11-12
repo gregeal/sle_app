@@ -14,7 +14,46 @@ security checklist:
 - **Secure web session (P4)** — Flutter Web with a per-user browser-local SQLite/OPFS database, an allowlisted FastAPI AI Broker, Google OAuth bootstrap, passkey sign-in, HttpOnly sessions + CSRF, model/rate/budget enforcement, and feature parity including Realtime WebRTC. A custom application-shell service worker keeps seeded practice available during a short offline return visit without ever caching `/api/*` or `/auth/*`. Deployment is defined by `Dockerfile` and `render.yaml`.
 - **Learning Hub (P5 increment)** — a searchable personal vocabulary notebook with spaced repetition, edit/delete controls, a queue of grammar mistakes to retry, four original workplace listening lessons with optional transcripts and saved results, and a library of previously saved oral/writing feedback. No additional AI subscription is required for these features.
 
+- **Habit and rhythm (P6)** — a one-action home screen, study reminders on the days you chose, a streak that respects rest days, study time measured rather than assumed, group-class days, and a weekly check-in. See below.
+
 Navigation: **Accueil**, **Classe**, **Réviser**, **Coach**, **Progrès**. Open **Paramètres** using the gear on Accueil.
+
+## Habit and rhythm (P6)
+
+The product's first job is to be opened on the days you planned. **Accueil**
+shows where you are, then one thing to start.
+
+- **Mon rythme** (Accueil or Classe) sets each weekday to *Étude*, *Cours* or
+  *Repos*, the session length (20, 40 or 60 minutes; 20 by default), and the
+  reminder time. At least one full rest day is required, and a week too small
+  to cover the four skills is refused with the reason. Enter your working
+  hours to get three suggested slots around them.
+- **Reminders** (Android) fire only on study and class days, never on rest
+  days. One gentler nudge follows three hours later, never after 21:00, and
+  nothing more fires once five minutes are done that day. They are inexact
+  alarms, so no exact-alarm permission is requested.
+- **Five-minute floor** — any five minutes of real study keeps the day.
+  *Je n'ai que cinq minutes* opens due vocabulary, or a short grammar drill
+  when no card is due. Both work offline.
+- **Streak** — a scheduled rest day never breaks it. Inside a weekly plan the
+  plan's own dates decide; otherwise your chosen weekdays do.
+- **Measured time** — every study screen reports its foreground time, planned
+  or not. Idle gaps count for at most five minutes and a single activity for
+  at most ninety. Totals no longer credit planned minutes.
+- **Group-class days** — the app asks only for a 10-minute warm-up before
+  the class and a 5-minute note after it (what was covered, corrections
+  received). The note is shown again before the next class.
+- **Mon meilleur créneau** — after a few sessions the rhythm screen shows, by
+  time of day, how often a day you started then was finished, and offers to
+  move the reminder there.
+- **Weekly check-in** — the week after, three minutes: days kept, measured
+  time by skill, and whether to keep, lighten or move the rhythm.
+- **Stages, not deadlines** — the home screen shows *Étape 1 · Installer
+  l'habitude* until four weeks have been kept, with no level goal at all;
+  then *Étape 2 · Construire un B solide à l'oral*. Level C follows without
+  a date.
+
+Design and rationale: [P6 plan](docs/plans/2026-11-11-p6-habit-and-fluency-plan.md).
 
 ## Weekly teacher (P5)
 
@@ -24,13 +63,16 @@ it without AI and choose a provisional starting point. The suggested lesson uses
 your existing course progress; confirm or change the track and lesson explicitly.
 Unassessed skills remain unknown. Course completion and estimates are unofficial.
 
-Choose five study weekdays (Monday–Friday initially). Each week has five dated
-60-minute sessions; speaking is 40–50%, reading/listening/writing each 12–20%,
-vocabulary 5–12%, and teaching at most 8%. Unsupported smaller schedules are
-rejected instead of dropping a skill. Your weekly assignments become Accueil's
+Choose your study weekdays and session length in **Mon rythme** (Monday–Friday
+and 20 minutes initially; three to six days of 20, 40 or 60 minutes). Each week
+has one dated session per study day; speaking is 40–50%, reading/listening/writing
+each 12–20%, vocabulary 5–12%, and teaching at most 8%. Unsupported smaller
+schedules are rejected instead of dropping a skill. Your weekly assignments become Accueil's
 plan. Rest days remain free, and missed days do not accumulate. A compatible
-catch-up replaces one same-skill, equal-duration block; it never adds time.
-Weekday changes apply to the next cycle. Pause/resume moves remaining dates.
+catch-up brings in one block missed on any earlier day in place of a same-skill,
+equal-duration block; it never adds time. Rhythm changes apply to the next week
+opened. Pause/resume moves remaining dates. Closing a week asks for confirmation,
+because its evidence is frozen from then on.
 
 The class saves its stage and quiz answers. Wrong answers show explanations;
 **Reporter** records an explicit skip. Practice can use a live teacher, editable
@@ -38,9 +80,12 @@ dictation/manual work, or an offline solo confirmation. Speaking evidence saves
 before optional AI feedback; a failed assessment does not erase the activity.
 Long conversations are assessed in bounded chunks and successful chunks are reused.
 The live teacher has **20 connection minutes total per study week**, shared by
-reconnections. The default remaining speaking time uses solo practice. Interrupted
-connections conservatively retain reservations; the app does not promise to infer
-exact spending or actual learner airtime. Cloud dictation has its separate existing
+reconnections. The default remaining speaking time uses solo practice. A live
+session reports a heartbeat every 15 seconds; if it dies (crash, kill, battery),
+it is settled a minute later at the seconds it had used, not at its whole
+reservation. The screen stays awake during voice sessions so a long answer is
+not cut by the display timeout. The app does not promise to infer provider
+billing or actual learner airtime. Cloud dictation has its separate existing
 cost notice. Teaching/listening audio requires an available French device voice;
 device dictation may itself require connectivity.
 
@@ -52,8 +97,9 @@ and show planned, credited and observed minutes separately. They recommend the
 next lesson and emphasis; you can override the recommendation. At track completion,
 choose revision or the next track rather than silently repeating the last lesson.
 
-Study data remains local to the phone/browser. Schema v9 retains prior course,
-vocabulary and speaking history. Legacy weekly completion links without verifiable
+Study data remains local to the phone/browser. Schema v10 retains prior course,
+vocabulary and speaking history, and carries previously observed study time into
+the activity log. Legacy weekly completion links without verifiable
 evidence remain historical and do not establish mastery. An unreadable weekly plan
 can be archived from its recovery screen without deleting other study records.
 

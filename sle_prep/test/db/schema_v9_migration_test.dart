@@ -51,7 +51,7 @@ void main() {
         'saved-course-evidence',
       );
       expect((await after.reviewStateFor(card)).repetitions, 0);
-      expect(after.schemaVersion, 9);
+      expect(after.schemaVersion, greaterThanOrEqualTo(9));
       if (oldWeek != null) {
         expect((await after.activeStudyWeek())!.id, oldWeek);
         expect(

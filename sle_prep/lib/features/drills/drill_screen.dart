@@ -5,6 +5,7 @@ import '../../data/db/daos.dart';
 import '../../data/db/database.dart';
 import '../../data/db/learning_daos.dart';
 import '../../providers.dart';
+import '../habit/activity_tracker.dart';
 
 class DrillScreen extends ConsumerStatefulWidget {
   const DrillScreen({
@@ -22,7 +23,13 @@ class DrillScreen extends ConsumerStatefulWidget {
   ConsumerState<DrillScreen> createState() => _DrillScreenState();
 }
 
-class _DrillScreenState extends ConsumerState<DrillScreen> {
+class _DrillScreenState extends ConsumerState<DrillScreen>
+    with ActivityTracking<DrillScreen> {
+  @override
+  String get activityKind => 'drill';
+  @override
+  String? get activitySkill => 'writing';
+
   List<DrillItem>? _items;
   Object? _error;
   var _index = 0;

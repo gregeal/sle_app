@@ -9,6 +9,7 @@ import '../../domain/weekly/placement.dart';
 import '../../domain/weekly/placement_diagnostic.dart';
 import '../../providers.dart';
 import '../speaking/voice_draft.dart';
+import '../habit/activity_tracker.dart';
 
 class PlacementScreen extends ConsumerStatefulWidget {
   const PlacementScreen({super.key});
@@ -16,7 +17,13 @@ class PlacementScreen extends ConsumerStatefulWidget {
   ConsumerState<PlacementScreen> createState() => _PlacementState();
 }
 
-class _PlacementState extends ConsumerState<PlacementScreen> {
+class _PlacementState extends ConsumerState<PlacementScreen>
+    with ActivityTracking<PlacementScreen> {
+  @override
+  String get activityKind => 'placement';
+  @override
+  String? get activitySkill => null;
+
   final _spoken = TextEditingController(), _written = TextEditingController();
   final _voice = GlobalKey<VoiceDraftState>();
   final _answers = List<int?>.filled(8, null);
