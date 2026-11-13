@@ -15,6 +15,12 @@ class LlmException implements Exception {
       statusCode == null ? message : '$message (HTTP $statusCode)';
 }
 
+/// How long a screen waits for an AI answer before giving the learner the
+/// screen back. The request may still finish in the background; its result
+/// is then ignored. Interactive feedback that takes longer than this is
+/// indistinguishable from a frozen app.
+const aiPatience = Duration(seconds: 75);
+
 abstract class LlmClient {
   /// Sends one system+user exchange and returns the assistant's text.
   Future<String> complete({

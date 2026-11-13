@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/daos.dart';
 import '../../data/db/course_daos.dart';
 import '../../domain/course/course_catalog.dart';
+import '../../domain/llm/llm_client.dart';
 import '../../domain/weekly/placement.dart';
 import '../../domain/weekly/placement_diagnostic.dart';
 import '../../providers.dart';
@@ -33,6 +34,11 @@ class _PlacementState extends ConsumerState<PlacementScreen>
       _captured = false,
       _assisted = false,
       _ready = false;
+
+  /// True only while the AI recommendation is awaited, which is the one wait
+  /// long enough that the learner must be able to cancel or leave.
+  bool _waitingForAi = false;
+  int _submitEpoch = 0;
   String? _error;
   PlacementResult? _result;
   String _track = 'a-to-b-v1', _lesson = 'ab-01-identity';
@@ -123,10 +129,26 @@ class _PlacementState extends ConsumerState<PlacementScreen>
     };
   }
 
+  /// Stops waiting for the recommendation. The request itself cannot be
+  /// recalled, but its answer is ignored and the learner is free again.
+  void _cancelAnalysis() {
+    if (!_waitingForAi) return;
+    ++_submitEpoch;
+    setState(() {
+      _busy = false;
+      _waitingForAi = false;
+      _error =
+          'Analyse annulée. Vos réponses sont conservées : réessayez, ou '
+          'choisissez votre départ sans IA.';
+    });
+  }
+
   Future<void> _submit({bool manual = false}) async {
     if (_busy || _voiceBusy) return;
+    final epoch = ++_submitEpoch;
     setState(() {
       _busy = true;
+      _waitingForAi = !manual;
       _error = null;
     });
     try {
@@ -153,24 +175,38 @@ class _PlacementState extends ConsumerState<PlacementScreen>
               writtenText: _written.text,
               diagnostic: _diagnostic(),
               persist: false,
-            );
+            ).timeout(aiPatience);
+      if (!mounted || epoch != _submitEpoch) return;
       final track = courseTracks.firstWhere((t) => t.id == result.trackId);
       final progress = await db.courseOverview(track: track);
       final next = track.lessons.firstWhere(
         (l) => progress[l.id]?.fullCourseCompleted != true,
         orElse: () => track.lessons.last,
       );
-      if (mounted) {
+      if (mounted && epoch == _submitEpoch) {
         setState(() {
           _result = result;
           _track = result.trackId;
           _lesson = next.id;
         });
       }
+    } on TimeoutException {
+      if (mounted && epoch == _submitEpoch) {
+        setState(
+          () => _error =
+              'L’analyse prend trop de temps. Vos réponses sont conservées : '
+              'réessayez, ou choisissez votre départ sans IA.',
+        );
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted && epoch == _submitEpoch) setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && epoch == _submitEpoch) {
+        setState(() {
+          _busy = false;
+          _waitingForAi = false;
+        });
+      }
     }
   }
 
@@ -204,7 +240,8 @@ class _PlacementState extends ConsumerState<PlacementScreen>
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !_voiceBusy && !_busy,
+    // Waiting for the AI must never trap the learner on this screen.
+    canPop: !_voiceBusy && (!_busy || _waitingForAi),
     onPopInvokedWithResult: (didPop, result) {
       if (didPop) unawaited(_flush().catchError((Object _) {}));
     },
@@ -347,6 +384,20 @@ class _PlacementState extends ConsumerState<PlacementScreen>
                       _busy ? 'Analyse…' : 'Obtenir une recommandation IA',
                     ),
                   ),
+                  if (_waitingForAi) ...[
+                    const SizedBox(height: 8),
+                    const LinearProgressIndicator(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'L’analyse peut prendre jusqu’à une minute. Vos réponses '
+                      'sont déjà enregistrées sur cet appareil.',
+                    ),
+                    TextButton(
+                      key: const Key('placement-cancel'),
+                      onPressed: _cancelAnalysis,
+                      child: const Text('Annuler l’analyse'),
+                    ),
+                  ],
                   TextButton(
                     onPressed: _busy || _voiceBusy
                         ? null

@@ -16,7 +16,48 @@ security checklist:
 
 - **Habit and rhythm (P6)** — a one-action home screen, study reminders on the days you chose, a streak that respects rest days, study time measured rather than assumed, group-class days, and a weekly check-in. See below.
 
+- **Grammaire pas à pas (P7)** — twenty grammar lessons in classroom order, each with the rule, conjugation tables, examples with audio, common mistakes, a quiz, speaking prompts and verified external links. See below.
+
 Navigation: **Accueil**, **Classe**, **Réviser**, **Coach**, **Progrès**. Open **Paramètres** using the gear on Accueil.
+
+## Grammaire pas à pas (P7)
+
+Open it from **Réviser** or from the **Plus** section of Accueil. The path
+follows the order a classroom teacher would use, in five parts:
+
+1. **Les bases de la phrase** — être and avoir, articles and gender, the
+   present of -er verbs, -ir / -re and the frequent irregular verbs,
+   negation and questions, adjective agreement, pronominal verbs.
+2. **Parler de l'avenir** — futur proche, futur simple.
+3. **Raconter le passé** — passé composé with avoir, passé composé with être,
+   imparfait, and choosing between the two.
+4. **Les pronoms** — le / la / les / lui / leur, y and en, qui / que / où /
+   dont.
+5. **Demander, conseiller, nuancer** — impératif, conditionnel de politesse,
+   hypotheses with si, subjonctif présent.
+
+Every lesson runs like a class and works offline:
+
+- the one idea to keep, in English, then when to use the form and how to
+  build it, with conjugation tables;
+- five examples with translations, each playable aloud;
+- three typical mistakes with the correction and the reason;
+- a four-question quiz with explanations. Three correct answers mark the
+  lesson as acquired; the best result is kept and a retry never takes a
+  lesson away. Options are reshuffled on each attempt;
+- three speaking prompts with a model answer to compare against;
+- a button into the offline drill bank for that point, where the bank
+  covers it;
+- optional links: the matching page of Tex's French Grammar (University of
+  Texas at Austin, an open resource with audio and self-correcting
+  exercises), the full conjugation of a model verb, and a video search.
+
+Lessons are independent, so the learner can jump straight to whatever a
+group class is covering that week. Time spent is logged like any other
+study activity.
+
+All lesson content is original teaching material, not official or recalled
+SLE test questions.
 
 ## Habit and rhythm (P6)
 
@@ -48,6 +89,16 @@ shows where you are, then one thing to start.
   move the reminder there.
 - **Weekly check-in** — the week after, three minutes: days kept, measured
   time by skill, and whether to keep, lighten or move the rhythm.
+- **AI waits never trap you** — while the placement recommendation or a
+  conversation partner's answer is pending, a progress bar and a cancel
+  button are shown, the back button works, and after 75 seconds the screen
+  is handed back with the text kept. Previously every control was disabled
+  for up to several minutes, which looked like a frozen app.
+- **Dictation keeps what was said** — the screen stays awake while the
+  microphone is live (dictation stops when the app is paused, and the app is
+  paused when the display times out). A recogniser that starts its text over
+  after a pause, or emits an empty result, no longer erases earlier words.
+  A transient network "disconnected" no longer ends cloud dictation.
 - **Stages, not deadlines** — the home screen shows *Étape 1 · Installer
   l'habitude* until four weeks have been kept, with no level goal at all;
   then *Étape 2 · Construire un B solide à l'oral*. Level C follows without

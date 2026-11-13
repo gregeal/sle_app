@@ -38,20 +38,66 @@ final wakeLockProvider = Provider<ScreenWakeLock>(
   (ref) => const DeviceWakeLock(),
 );
 
+/// Shares the single device wake lock between everything that needs it. A
+/// dictation box inside a speaking screen must not switch the screen back to
+/// sleeping when it stops while the screen around it still wants it awake.
+class WakeLockCounter {
+  WakeLockCounter(this._device);
+
+  final ScreenWakeLock _device;
+  var _holders = 0;
+
+  void _acquire() {
+    if (_holders++ == 0) unawaited(_device.enable());
+  }
+
+  void _release() {
+    if (_holders == 0) return;
+    if (--_holders == 0) unawaited(_device.disable());
+  }
+}
+
+final wakeLockCounterProvider = Provider<WakeLockCounter>(
+  (ref) => WakeLockCounter(ref.watch(wakeLockProvider)),
+);
+
+/// One holder's claim on the wake lock. Acquiring or releasing twice is
+/// harmless, so callers can release from every exit path.
+class WakeLockHold {
+  WakeLockHold(this._counter);
+
+  final WakeLockCounter _counter;
+  var _held = false;
+
+  bool get isHeld => _held;
+
+  void acquire() {
+    if (_held) return;
+    _held = true;
+    _counter._acquire();
+  }
+
+  void release() {
+    if (!_held) return;
+    _held = false;
+    _counter._release();
+  }
+}
+
 /// Holds the wake lock for as long as a speaking screen is open.
 mixin KeepsScreenAwake<T extends ConsumerStatefulWidget> on ConsumerState<T> {
-  late final ScreenWakeLock _screenWakeLock;
+  late final WakeLockHold _screenWakeHold;
 
   @override
   void initState() {
     super.initState();
-    _screenWakeLock = ref.read(wakeLockProvider);
-    unawaited(_screenWakeLock.enable());
+    _screenWakeHold = WakeLockHold(ref.read(wakeLockCounterProvider))
+      ..acquire();
   }
 
   @override
   void dispose() {
-    unawaited(_screenWakeLock.disable());
+    _screenWakeHold.release();
     super.dispose();
   }
 }

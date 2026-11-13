@@ -79,7 +79,7 @@ class _RealtimeInterviewScreenState
   String? get activitySkill => 'speaking';
 
   bool get _teacher => widget.mode == 'class';
-  late final ScreenWakeLock _wakeLock;
+  late final WakeLockHold _wakeHold;
   Timer? _heartbeatTimer;
   final _transcript = RealtimeTranscriptBuffer();
   RealtimeVoiceSession? _session;
@@ -106,7 +106,7 @@ class _RealtimeInterviewScreenState
   @override
   void initState() {
     super.initState();
-    _wakeLock = ref.read(wakeLockProvider);
+    _wakeHold = WakeLockHold(ref.read(wakeLockCounterProvider));
     _releaseWordHelp = ref
         .read(wordHelpGuardProvider)
         .register(() => _session != null || _starting || _finishing);
@@ -161,7 +161,7 @@ class _RealtimeInterviewScreenState
     });
     // A long answer must outlive the display timeout: once the screen sleeps
     // the app is paused and the microphone is muted mid-sentence.
-    unawaited(_wakeLock.enable());
+    _wakeHold.acquire();
     try {
       final seconds = await widget.reserveDuration?.call() ?? 1200;
       _hasReservation = widget.reserveDuration != null;
@@ -304,7 +304,7 @@ class _RealtimeInterviewScreenState
   Future<void> _settleAllowance() async {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
-    unawaited(_wakeLock.disable());
+    _wakeHold.release();
     _connectionWatch.stop();
     if (!_hasReservation) return;
     _hasReservation = false;
@@ -469,7 +469,7 @@ class _RealtimeInterviewScreenState
     } else {
       await session.close();
     }
-    unawaited(_wakeLock.disable());
+    _wakeHold.release();
     if (!mounted) return;
     await _assessTranscript();
   }

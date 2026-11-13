@@ -7,6 +7,7 @@ import '../../domain/speech/speech_services.dart';
 import '../../domain/speech/openai_speech_service.dart';
 import '../../data/db/daos.dart';
 import '../../providers.dart';
+import '../habit/wake_lock.dart';
 
 /// Learner-controlled continuous dictation, with an editable transcription.
 class VoiceDraft extends ConsumerStatefulWidget {
@@ -40,9 +41,11 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
   bool _choiceMade = false;
   int _choiceRevision = 0;
   VoidCallback _releaseWordHelp = () {};
+  late final WakeLockHold _wakeHold;
   @override
   void initState() {
     super.initState();
+    _wakeHold = WakeLockHold(ref.read(wakeLockCounterProvider));
     _releaseWordHelp = ref
         .read(wordHelpGuardProvider)
         .register(() => _starting || _listening);
@@ -123,7 +126,19 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
     }
   }
 
-  void _notify() => widget.onBusy(_starting || _listening);
+  void _notify() {
+    final busy = _starting || _listening;
+    // Dictation stops itself when the app is paused, and the app is paused
+    // when the display times out. A learner thinking between two sentences
+    // does not touch the screen, so keep it on while the microphone is live.
+    if (busy) {
+      _wakeHold.acquire();
+    } else {
+      _wakeHold.release();
+    }
+    widget.onBusy(busy);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _background =
@@ -242,6 +257,7 @@ class VoiceDraftState extends ConsumerState<VoiceDraft>
   @override
   void dispose() {
     _releaseWordHelp();
+    _wakeHold.release();
     ++_epoch;
     WidgetsBinding.instance.removeObserver(this);
     final speech = _speech;

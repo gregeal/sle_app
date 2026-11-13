@@ -58,10 +58,13 @@ class OpenAiDictationTransport implements DictationTransport {
       _peer = peer;
       _check();
       peer.onConnectionState = (state) {
+        // "Disconnected" is transient on mobile networks and usually
+        // recovers by itself; ending the dictation there throws away a
+        // working session. A connection that does not recover becomes
+        // "failed", which is handled.
         if (!_closed &&
             {
               RTCPeerConnectionState.RTCPeerConnectionStateFailed,
-              RTCPeerConnectionState.RTCPeerConnectionStateDisconnected,
               RTCPeerConnectionState.RTCPeerConnectionStateClosed,
             }.contains(state)) {
           _failReady();

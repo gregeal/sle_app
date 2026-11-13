@@ -8,7 +8,9 @@ import '../../domain/habit/streak.dart';
 import '../../domain/weekly/weekly_report.dart';
 import '../../providers.dart';
 import '../course/course_library_screen.dart';
+import '../../domain/grammar/grammar_course.dart';
 import '../drills/drill_screen.dart';
+import '../grammar/grammar_screens.dart';
 import '../learning/learning_hub_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../weekly/weekly_assignment_screen.dart';
@@ -48,6 +50,7 @@ class _HabitHomeState extends ConsumerState<HabitHome> {
     refreshWeekly(ref);
     refreshHabit(ProviderScope.containerOf(context, listen: false));
     ref.invalidate(todayClassNoteProvider);
+    ref.invalidate(grammarProgressProvider);
   }
 
   /// Runs [action], then refreshes: every route opened from here can change
@@ -135,6 +138,7 @@ class _HabitHomeState extends ConsumerState<HabitHome> {
               )
               .length;
     final classDay = habit?.dayType == DayType.groupClass;
+    final grammar = ref.watch(grammarProgressProvider).asData?.value;
     // Before any rhythm exists the original daily plan has no rest days.
     final restDay =
         habit?.dayType == DayType.rest &&
@@ -373,6 +377,23 @@ class _HabitHomeState extends ConsumerState<HabitHome> {
             ),
             const SizedBox(height: 8),
             Text('PLUS', style: theme.textTheme.labelLarge),
+            ListTile(
+              key: const Key('home-grammar'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.auto_stories_outlined),
+              title: const Text('Grammaire pas à pas'),
+              subtitle: Text(
+                grammar == null
+                    ? 'Vingt leçons dans l’ordre d’une classe'
+                    : '${acquiredGrammarLessons(grammar)} sur '
+                          '${grammarLessons.length} · à suivre : '
+                          '${nextGrammarLesson(grammar).title}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _busy
+                  ? null
+                  : () => _run(() => _push(const GrammarPathScreen())),
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.route_outlined),

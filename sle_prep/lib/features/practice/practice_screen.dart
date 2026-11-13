@@ -6,6 +6,7 @@ import '../../domain/llm/drill_generator.dart';
 import '../../domain/llm/llm_client.dart';
 import '../../providers.dart';
 import '../drills/drill_screen.dart';
+import '../grammar/grammar_screens.dart';
 import '../reading/reading_screen.dart';
 import '../vocab/vocab_review_screen.dart';
 import '../writing/writing_screen.dart';
@@ -28,6 +29,16 @@ class PracticeScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text('Semaine ${week.number} · ${week.week.themeFr}'),
             const SizedBox(height: 16),
+            _PracticeCard(
+              icon: Icons.auto_stories_outlined,
+              title: 'Grammaire pas à pas',
+              subtitle:
+                  'Vingt leçons dans l’ordre d’une classe · règle, '
+                  'exemples, pièges, quiz',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const GrammarPathScreen()),
+              ),
+            ),
             _PracticeCard(
               icon: Icons.school_outlined,
               title: 'Mon espace d’apprentissage',

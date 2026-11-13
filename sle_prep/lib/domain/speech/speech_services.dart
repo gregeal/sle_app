@@ -78,6 +78,10 @@ class DeviceSpeechService implements SpeechService {
   Completer<void>? _finalized;
   var _committed = '';
   var _segmentWords = '';
+
+  /// Text already kept from the current segment after the recognizer started
+  /// its transcript over, so a later cumulative result is not counted twice.
+  var _carried = '';
   void Function(String transcript)? _onResult;
   void Function()? _onDone;
 
@@ -128,6 +132,7 @@ class DeviceSpeechService implements SpeechService {
     _onDone = onDone;
     _committed = '';
     _segmentWords = '';
+    _carried = '';
     _sessionActive = true;
     _errors = 0;
     try {
@@ -144,13 +149,12 @@ class DeviceSpeechService implements SpeechService {
     _drainWatchdog = null;
     _committed = _join(_committed, _segmentWords);
     _segmentWords = '';
+    _carried = '';
     final segment = ++_segment;
     _finalized = Completer<void>();
     final starting = _engine.listen((words, isFinal) {
       if (generation != _generation || segment != _segment) return;
-      _segmentWords = words;
-      if (words.isNotEmpty) _errors = 0;
-      _onResult?.call(_join(_committed, _segmentWords));
+      _acceptWords(words);
     });
     _starting = starting;
     try {
@@ -159,6 +163,43 @@ class DeviceSpeechService implements SpeechService {
       if (identical(_starting, starting)) _starting = null;
     }
   }
+
+  /// Takes one recognizer result for the current segment.
+  ///
+  /// A recognizer normally resends the whole utterance as it grows, so each
+  /// result replaces the previous one. Some recognizers instead start their
+  /// text over after a pause without ending the session, and some emit an
+  /// empty result at that moment. Neither may erase what was already said.
+  void _acceptWords(String words) {
+    var next = words.trim();
+    if (next.isEmpty) return;
+    _errors = 0;
+    final lower = next.toLowerCase();
+    if (_carried.isNotEmpty && lower.startsWith(_carried.toLowerCase())) {
+      // A cumulative result arriving after a start-over repeats kept text.
+      next = next.substring(_carried.length).trim();
+      if (next.isEmpty) return;
+    } else if (_startsOver(_segmentWords, next)) {
+      if (_segmentWords.toLowerCase().endsWith(lower)) {
+        // Only the tail of what is already shown: nothing new was said.
+        return;
+      }
+      _committed = _join(_committed, _segmentWords);
+      _carried = _join(_carried, _segmentWords);
+    }
+    _segmentWords = next;
+    _onResult?.call(_join(_committed, _segmentWords));
+  }
+
+  /// A hypothesis being revised keeps roughly its length. One that collapses
+  /// to half its words or fewer is a new utterance, not a correction.
+  static bool _startsOver(String previous, String next) {
+    final before = _wordCount(previous);
+    return before >= 4 && _wordCount(next) * 2 <= before;
+  }
+
+  static int _wordCount(String text) =>
+      text.trim().isEmpty ? 0 : text.trim().split(RegExp(r'\s+')).length;
 
   void _scheduleRestart() {
     if (!_sessionActive || _restart != null) return;

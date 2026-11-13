@@ -366,7 +366,26 @@ Deliberately left for later: the 40-minute "long session" is the session
 length setting rather than a per-day choice; reminders on the web; the
 content shortfall (B5) and the 75-minute live allowance (P6-2, P6-3).
 
-## 11. Open question
+## 11. Added on 2026-11-12 from first real use
+
+Found by the owner on the device after P6-1:
+
+- **Frozen-looking AI waits.** Placement and the turn-based conversation
+  disabled every control and blocked the back button while waiting for the
+  model, for up to 90 seconds per attempt. Both waits are now cancellable,
+  leavable and capped at 75 seconds, with the learner's text kept.
+- **Dictation stopping and rewriting itself.** The dictation box had no wake
+  lock, so thinking between two sentences let the display time out, which
+  pauses the app and stops the microphone. It now holds the shared wake lock
+  while live. The device recogniser path no longer lets an empty or
+  restarted partial result replace earlier words. These two are fixed from
+  code analysis and unit tests; they still need confirming on the phone.
+- **No step-by-step grammar.** The courses teach communicative tasks, not
+  the tense system a beginner class is built on. "Grammaire pas à pas" adds
+  twenty sequenced lessons (see the README). This partly answers B5 for
+  grammar; reading and listening volume is still P6-3.
+
+## 12. Open question
 
 Realtime per-minute cost is an estimate until the meter exists. The 75-minute
 allowance should be revisited after two weeks of metered use.

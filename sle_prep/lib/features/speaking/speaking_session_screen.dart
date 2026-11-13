@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/database.dart';
 import '../../data/db/speaking_daos.dart';
+import '../../domain/llm/llm_client.dart';
 import '../../domain/llm/speaking_partner.dart';
 import '../../domain/speech/speech_services.dart';
 import '../../providers.dart';
@@ -45,6 +46,11 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
   PartnerFeedback? _lastFeedback, _pending;
   String? _pendingAnswer, _error;
   bool _busy = false, _voiceBusy = false, _background = false, _leaving = false;
+
+  /// True only while the partner's answer is awaited, which is the one wait
+  /// long enough that the learner must be able to walk away from it.
+  bool _awaitingAi = false;
+  int _submitEpoch = 0;
   Timer? _debounce;
   Future<void> _draftWrite = Future.value();
   @override
@@ -144,6 +150,19 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
     }
   }
 
+  /// Stops waiting for the partner. The request cannot be recalled, but its
+  /// answer is ignored; the learner's text stays in the editor.
+  void _cancelWait() {
+    if (!_awaitingAi) return;
+    ++_submitEpoch;
+    setState(() {
+      _busy = false;
+      _awaitingAi = false;
+      _error =
+          'Attente annulée. Votre texte est conservé; vous pouvez le renvoyer.';
+    });
+  }
+
   Future<void> _submit() async {
     final session = _session;
     if (_busy ||
@@ -155,8 +174,10 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
     }
     final answer = _pendingAnswer ?? _editor.text.trim();
     if (answer.isEmpty || answer.length > speakingAnswerLimit) return;
+    final epoch = ++_submitEpoch;
     setState(() {
       _busy = true;
+      _awaitingAi = _pending == null;
       _error = null;
     });
     try {
@@ -166,7 +187,7 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
         final focus = await _db.speakingFocus(session, DateTime.now());
         if (!mounted) return;
         final client = await ref.read(llmClientProvider.future);
-        _pending = await requestPartnerFeedback(
+        final feedback = await requestPartnerFeedback(
           client: client,
           answer: answer,
           prompt: session.promptFr,
@@ -198,8 +219,11 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
                 },
               )
               .toList(),
-        );
+        ).timeout(aiPatience);
+        if (!mounted || epoch != _submitEpoch) return;
+        _pending = feedback;
         _pendingAnswer = answer;
+        setState(() => _awaitingAi = false);
       }
       await _db.saveSpeakingTurn(
         sessionId: session.id,
@@ -217,8 +241,16 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
         if (_scroll.hasClients) _scroll.jumpTo(0);
         await _say(reply);
       }
+    } on TimeoutException {
+      if (mounted && epoch == _submitEpoch) {
+        setState(
+          () => _error =
+              'Le partenaire met trop de temps à répondre. Votre texte est '
+              'conservé; réessayez.',
+        );
+      }
     } catch (_) {
-      if (mounted) {
+      if (mounted && epoch == _submitEpoch) {
         setState(
           () => _error = _pending == null
               ? 'Réponse IA indisponible ou correction non vérifiable. Votre brouillon est conservé; réessayez.'
@@ -226,12 +258,20 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
         );
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && epoch == _submitEpoch) {
+        setState(() {
+          _busy = false;
+          _awaitingAi = false;
+        });
+      }
     }
   }
 
   Future<void> _leave({bool finish = false}) async {
-    if (_busy || _leaving) return;
+    // Waiting for the AI must never trap the learner here: leaving simply
+    // abandons the wait, and the draft is saved below as usual.
+    if ((_busy && !_awaitingAi) || _leaving) return;
+    if (_awaitingAi) ++_submitEpoch;
     _leaving = true;
     try {
       await _voice.currentState?.stop();
@@ -378,6 +418,20 @@ class _PartnerSessionState extends ConsumerState<SpeakingSessionScreen>
                             : 'Envoyer ma pensée',
                       ),
                     ),
+                    if (_awaitingAi) ...[
+                      const SizedBox(height: 8),
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'La réponse peut prendre jusqu’à une minute. Votre '
+                        'texte est déjà enregistré.',
+                      ),
+                      TextButton(
+                        key: const Key('partner-cancel'),
+                        onPressed: _cancelWait,
+                        child: const Text('Annuler l’attente'),
+                      ),
+                    ],
                   ],
                   if (!session.finished && _turns.length >= 30)
                     const Text(
